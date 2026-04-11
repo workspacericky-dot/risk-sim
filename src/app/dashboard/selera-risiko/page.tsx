@@ -48,10 +48,12 @@ export default async function SeleraRisikoPage({
   const initialData = seleraData
     ? {
         strategis:   seleraData.strategis,
-        operasional: seleraData.operasional,
-        kepatuhan:   seleraData.kepatuhan,
+        kebijakan:   seleraData.kebijakan,
         kecurangan:  seleraData.kecurangan,
-        reputasi:    seleraData.reputasi,
+        bencana:     seleraData.bencana,
+        kepatuhan:   seleraData.kepatuhan,
+        operasional: seleraData.operasional,
+        kemitraan:   seleraData.kemitraan,
         catatan:     seleraData.catatan ?? '',
       }
     : null

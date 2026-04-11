@@ -31,8 +31,8 @@ export default function DashboardCharts({ distribution }: { distribution: RiskDi
                 paddingAngle={4}
                 dataKey="value"
                 nameKey="name"
-                label={({ name, percent }) =>
-                  percent > 0.04 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''
+                label={({ name, percent }: { name?: string; percent?: number }) =>
+                  (percent ?? 0) > 0.04 ? `${name ?? ''} (${((percent ?? 0) * 100).toFixed(0)}%)` : ''
                 }
                 labelLine={false}
               >
