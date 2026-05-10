@@ -1,5 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { addRisiko, deleteRisiko } from './actions'
+import PejabatCells from './PejabatCells'
+import ProsesBisnisSelect, { type ProsesOption } from './ProsesBisnisSelect'
+import { getParentKode, getParentNama } from '@/lib/proses-bisnis'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { ChevronLeft, Trash2, ArrowRight, BookOpen } from 'lucide-react'
+import { ChevronLeft, Trash2, ArrowRight, BookOpen, Network } from 'lucide-react'
 
 export default async function IdentifikasiPage({
   searchParams,
@@ -25,6 +28,23 @@ export default async function IdentifikasiPage({
         .eq('id', konteksId)
         .single()
     : { data: null }
+
+  // Parse sasaran strategis — handles both formats:
+  //   old: string[]                         → ["Sasaran A", "Sasaran B"]
+  //   new: {sasaran, indikator}[]            → [{sasaran:"A", indikator:["Ind1"]}, ...]
+  let sasaranList: string[] = []
+  if (konteksData?.sasaran_strategis) {
+    try {
+      const parsed = JSON.parse(konteksData.sasaran_strategis)
+      if (Array.isArray(parsed)) {
+        sasaranList = parsed
+          .map((item: any) => (typeof item === 'string' ? item : item?.sasaran ?? ''))
+          .filter(Boolean)
+      }
+    } catch {
+      sasaranList = [konteksData.sasaran_strategis]
+    }
+  }
 
   const { data: risikoList } = konteksId
     ? await supabase
@@ -56,6 +76,23 @@ export default async function IdentifikasiPage({
   // @ts-ignore
   const unitNama = konteksData.unit?.nama_unit || '–'
   const risikoCount = risikoList?.length || 0
+
+  // Build proses options enriched with parent group info for auto-filling Sasaran Strategis
+  let prosesOptions: ProsesOption[] = []
+  try {
+    const raw = (konteksData as any)?.proses_bisnis_json
+    if (Array.isArray(raw) && raw.length > 0) {
+      prosesOptions = raw
+        .filter((p: any) => p?.kode && p?.nama)
+        .map((p: any) => ({
+          kode:       p.kode,
+          nama:       p.nama,
+          indikator:  p.indikator ?? '',
+          parentKode: getParentKode(p.kode),
+          parentNama: getParentNama(p.kode),
+        }))
+    }
+  } catch {}
 
   return (
     <div className="space-y-6">
@@ -93,14 +130,6 @@ export default async function IdentifikasiPage({
         </div>
       </div>
 
-      {/* ── Context Banner ───────────────────────────── */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 flex flex-wrap gap-6 text-sm">
-        <div className="flex-1">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-amber-600 mb-0.5">Sasaran Strategis</p>
-          <p className="font-medium text-slate-800">{konteksData.sasaran_strategis}</p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
         {/* ── Input Form ─────────────────────────────── */}
@@ -125,17 +154,7 @@ export default async function IdentifikasiPage({
                     A. Identifikasi
                   </h4>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="indikator_konteks" className="text-xs">
-                      Indikator Konteks <span className="text-slate-400">(Kol. 3)</span>
-                    </Label>
-                    <Input
-                      id="indikator_konteks"
-                      name="indikator_konteks"
-                      placeholder="Indikator atas nama konteks"
-                      className="text-sm h-8"
-                    />
-                  </div>
+                  <ProsesBisnisSelect options={prosesOptions} sasaranList={sasaranList} />
 
                   <div className="space-y-1.5">
                     <Label htmlFor="pernyataan_risiko" className="text-xs font-semibold">
@@ -219,13 +238,11 @@ export default async function IdentifikasiPage({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="penyebab_risiko" className="text-xs">Penyebab Risiko</Label>
-                    <Textarea
-                      id="penyebab_risiko"
-                      name="penyebab_risiko"
-                      rows={2}
-                      className="text-sm"
-                    />
+                    <Label className="text-xs">Penyebab Risiko</Label>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Identifikasi penyebab risiko (Analisis Akar Masalah) dilakukan setelah risiko disimpan.
+                      Klik tombol <span className="font-semibold text-indigo-600">Identifikasi Penyebab</span> pada baris risiko di tabel.
+                    </p>
                   </div>
                 </div>
 
@@ -283,6 +300,26 @@ export default async function IdentifikasiPage({
                       Metode SPIP<br />
                       <span className="font-normal text-slate-400">(Kol. 8)</span>
                     </th>
+                    <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-28">
+                      Penyebab Risiko
+                    </th>
+                    <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-24">
+                      Nama Pemilik<br />
+                      <span className="font-normal text-slate-400">Risiko</span>
+                    </th>
+                    <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-24">
+                      Jabatan Pemilik<br />
+                      <span className="font-normal text-slate-400">Risiko</span>
+                    </th>
+                    <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-24">
+                      Nama Pengelola<br />
+                      <span className="font-normal text-slate-400">Risiko</span>
+                    </th>
+                    <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-24">
+                      Jabatan Pengelola<br />
+                      <span className="font-normal text-slate-400">Risiko</span>
+                    </th>
+                    <th className="border border-slate-200 px-2 py-2.5 text-center w-8"></th>
                     <th className="border border-slate-200 px-2 py-2.5 text-center w-10"></th>
                   </tr>
                 </thead>
@@ -299,9 +336,11 @@ export default async function IdentifikasiPage({
                         <td className="border border-slate-100 px-2 py-2 text-slate-700">
                           <span
                             className="line-clamp-2"
-                            title={konteksData.sasaran_strategis}
+                            // @ts-ignore
+                            title={r.sasaran_strategis_item || ''}
                           >
-                            {konteksData.sasaran_strategis || (
+                            {/* @ts-ignore */}
+                            {r.sasaran_strategis_item || (
                               <span className="text-slate-300">–</span>
                             )}
                           </span>
@@ -344,6 +383,27 @@ export default async function IdentifikasiPage({
                             {r.metode_pencapaian_spip || <span className="text-slate-300">–</span>}
                           </span>
                         </td>
+                        {/* Identifikasi Penyebab button */}
+                        <td className="border border-slate-100 px-2 py-2 text-center">
+                          <a
+                            href={`/dashboard/identifikasi-penyebab?risiko=${r.id}&konteks=${konteksId}`}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-semibold transition-colors"
+                            title="Identifikasi Penyebab Risiko (Analisis Akar Masalah)"
+                          >
+                            <Network className="w-3 h-3" />
+                            Penyebab
+                          </a>
+                        </td>
+
+                        {/* Pejabat — per-risiko, editable inline */}
+                        <PejabatCells
+                          risikoId={r.id}
+                          namaPemilik={(r as any).nama_pemilik_risiko ?? ''}
+                          jabatanPemilik={(r as any).jabatan_pemilik_risiko ?? ''}
+                          namaPengelola={(r as any).nama_pengelola_risiko ?? ''}
+                          jabatanPengelola={(r as any).jabatan_pengelola_risiko ?? ''}
+                        />
+
                         <td className="border border-slate-100 px-2 py-2 text-center">
                           <form
                             action={async () => {
@@ -365,7 +425,7 @@ export default async function IdentifikasiPage({
                   ) : (
                     <tr>
                       <td
-                        colSpan={9}
+                        colSpan={15}
                         className="border border-slate-100 px-4 py-10 text-center text-muted-foreground"
                       >
                         Belum ada risiko yang teridentifikasi. Gunakan form di sebelah kiri untuk menambahkan.

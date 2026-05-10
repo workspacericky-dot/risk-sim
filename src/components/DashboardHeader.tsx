@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Bell, Search, ChevronDown, X, User } from 'lucide-react'
+import { Bell, Search, ChevronDown, X, User, Users, Printer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // --- Role label map ---
@@ -224,6 +224,16 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
             <Search className="w-4 h-4" />
           </button>
 
+          {/* Print / Export PDF button */}
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 text-slate-600 hover:text-slate-800 text-xs font-semibold transition-all shadow-sm"
+            title="Ekspor halaman ini ke PDF"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            Ekspor PDF
+          </button>
+
           {/* Notification button */}
           <div ref={notifRef} className="relative">
             <button
@@ -330,6 +340,16 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
                     <User className="size-4" />
                     <span>Profil Saya</span>
                   </button>
+                  {userRole === 'admin_sistem' && (
+                    <a
+                      href="/dashboard/kelola-pengguna"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    >
+                      <Users className="size-4" />
+                      <span>Kelola Pengguna</span>
+                    </a>
+                  )}
                 </div>
                 <div className="p-2 border-t">
                   <form action="/auth/signout" method="POST">

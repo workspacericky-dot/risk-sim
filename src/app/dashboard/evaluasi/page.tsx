@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ChevronLeft, Target } from 'lucide-react'
+import { ChevronLeft, Target, ClipboardCheck } from 'lucide-react'
 import { RiskMapPopup } from './RiskMapPopup'
 import type { RiskPoint } from '@/components/RiskMatrix'
 
@@ -178,17 +178,32 @@ export default async function EvaluasiPage({
             <strong>{tahun}</strong> — <strong>{unitNama}</strong>
           </p>
         </div>
-        {/* Action buttons */}
+        {/* Action buttons — icon-only with hover tooltip */}
         <div className="flex items-center gap-2">
+          {/* Selera Risiko */}
           <a
             href={`/dashboard/selera-risiko?konteks=${konteksId}`}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 shadow-sm transition-all text-sm font-medium"
-            title="Lihat & ubah selera risiko"
+            className="group relative flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-900 shadow-sm transition-all"
+            title="Selera Risiko"
           >
             <Target className="w-4 h-4" />
-            <span>Selera Risiko</span>
+            <span className="pointer-events-none absolute top-full right-0 mt-1.5 whitespace-nowrap rounded-lg bg-slate-800 text-white text-[10px] font-medium px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+              Selera Risiko
+            </span>
           </a>
-          <RiskMapPopup risks={riskPoints} unitNama={unitNama} tahun={tahun} />
+          {/* Peta Risiko */}
+          <RiskMapPopup risks={riskPoints} unitNama={unitNama} tahun={tahun} iconOnly />
+          {/* Rencana Tindak Pengendalian */}
+          <a
+            href={`/dashboard/rencana-tindak-pengendalian?konteks=${konteksId}`}
+            className="group relative flex items-center justify-center w-9 h-9 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-800 shadow-sm transition-all"
+            title="Rencana Tindak Pengendalian"
+          >
+            <ClipboardCheck className="w-4 h-4" />
+            <span className="pointer-events-none absolute top-full right-0 mt-1.5 whitespace-nowrap rounded-lg bg-indigo-800 text-white text-[10px] font-medium px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+              Rencana Tindak Pengendalian
+            </span>
+          </a>
         </div>
       </div>
 
@@ -266,7 +281,30 @@ export default async function EvaluasiPage({
                           <span className="text-slate-400 font-normal shrink-0">{idx + 1}.</span>
                           <span className="leading-relaxed">{r.pernyataan_risiko}</span>
                         </div>
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+
+                        {/* Konteks kinerja */}
+                        <div className="mt-1.5 space-y-0.5 pl-4">
+                          {r.sasaran_strategis_item && (
+                            <p className="text-[10px] text-slate-500 leading-tight">
+                              <span className="font-semibold text-slate-600">Sasaran:</span>{' '}
+                              {r.sasaran_strategis_item}
+                            </p>
+                          )}
+                          {r.indikator_konteks && (
+                            <p className="text-[10px] text-slate-500 leading-tight">
+                              <span className="font-semibold text-slate-600">Indikator:</span>{' '}
+                              {r.indikator_konteks}
+                            </p>
+                          )}
+                          {(r as any).proses_bisnis_item && (
+                            <p className="text-[10px] text-slate-500 leading-tight">
+                              <span className="font-semibold text-slate-600">Proses:</span>{' '}
+                              <span className="font-mono text-indigo-600">{(r as any).proses_bisnis_item}</span>
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                           {r.kategori_risiko && (
                             <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 text-[10px]">
                               {r.kategori_risiko}

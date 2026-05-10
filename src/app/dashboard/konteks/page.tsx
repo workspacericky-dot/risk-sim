@@ -1,140 +1,118 @@
 import { createClient } from '@/utils/supabase/server'
-import { addKonteks } from './actions'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { SearchableUnitSelect } from '@/components/SearchableUnitSelect'
-import { Target } from 'lucide-react'
+import { Target, FileText } from 'lucide-react'
+import KonteksForm from './KonteksForm'
+import DeleteKonteksButton from './DeleteKonteksButton'
 
 export default async function KonteksPage() {
   const supabase = await createClient()
-  
-  // Fetch master data for dropdowns
-  const { data: units } = await supabase.from('unit_kerja').select('*').order('tingkat', { ascending: false })
-  
-  // Fetch context data
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = user
+    ? await supabase.from('users').select('role').eq('id', user.id).single()
+    : { data: null }
+  const isAdmin = profile?.role === 'admin_sistem'
+
+  const { data: units } = await supabase
+    .from('unit_kerja')
+    .select('*')
+    .order('tingkat', { ascending: false })
+
   const { data: konteksList } = await supabase
     .from('penetapan_konteks')
-    .select(`*, unit:unit_kerja_id(nama_unit)`)
+    .select('*, unit:unit_kerja_id(nama_unit)')
     .order('tahun_penerapan', { ascending: false })
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight font-serif">Penetapan Konteks</h2>
-          <p className="text-muted-foreground">Langkah 1: Tetapkan sasaran dan parameter risiko tahunan satuan kerja.</p>
-        </div>
+
+      {/* ── Page title ─────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight font-serif">Penetapan Konteks</h2>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Langkah 1: Tetapkan sasaran dan parameter risiko tahunan satuan kerja.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Form Container */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader className="bg-slate-50 border-b pb-4 mb-4">
-              <CardTitle className="text-lg font-serif">Form Konteks Baru</CardTitle>
-              <CardDescription>Isi sasaran strategis & proses bisnis utama</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={async (formData) => { 'use server'; await addKonteks(formData) }} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="unit_kerja_id">Unit Kerja</Label>
-                  {units && units.length > 0 ? (
-                    <SearchableUnitSelect units={units} name="unit_kerja_id" required />
-                  ) : (
-                    <div className="p-3 bg-red-50 text-red-800 text-sm rounded-md border border-red-200">
-                      Belum ada Master Data Unit Kerja. <a href="/dashboard/master-data/unit-kerja" className="underline font-bold">Tambahkan di sini.</a>
-                    </div>
+      {/* ── Existing contexts — compact list ───────────────────────────── */}
+      {konteksList && konteksList.length > 0 && (
+        <div
+          className="rounded-2xl border border-white/60 shadow-sm overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)' }}
+        >
+          <div className="flex items-center gap-2 px-5 py-3 border-b bg-slate-50/80">
+            <FileText className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-slate-700">Daftar Dokumen Konteks</h3>
+            <span className="ml-auto text-[11px] text-slate-400">{konteksList.length} dokumen</span>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {konteksList.map((k) => (
+              <div key={k.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/60 transition-colors">
+                {/* Tahun pill */}
+                <span className="shrink-0 w-12 text-center text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg py-0.5">
+                  {k.tahun_penerapan}
+                </span>
+
+                {/* Unit name */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">
+                    {/* @ts-ignore */}
+                    {k.unit?.nama_unit}
+                  </p>
+                  {(k.nama_pemilik_risiko || k.periode_mulai) && (
+                    <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                      {k.nama_pemilik_risiko && <span>{k.nama_pemilik_risiko}</span>}
+                      {k.periode_mulai && k.periode_selesai && (
+                        <span className="ml-2">
+                          {new Date(k.periode_mulai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {' — '}
+                          {new Date(k.periode_selesai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tahun_penerapan">Tahun Penerapan</Label>
-                  <Input type="number" id="tahun_penerapan" name="tahun_penerapan" defaultValue={new Date().getFullYear()} required />
-                </div>
+                {/* Status badge */}
+                <Badge
+                  variant={k.status === 'Disetujui' ? 'default' : 'secondary'}
+                  className="shrink-0 text-[10px]"
+                >
+                  {k.status}
+                </Badge>
 
-                <div className="space-y-2">
-                  <Label htmlFor="sasaran_strategis">Sasaran Strategis</Label>
-                  <Textarea id="sasaran_strategis" name="sasaran_strategis" rows={3} placeholder="Meningkatkan penyelesaian perkara secara tepat waktu..." required />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="proses_bisnis">Proses Bisnis Utama</Label>
-                  <Textarea id="proses_bisnis" name="proses_bisnis" rows={3} placeholder="Pendaftaran, Persidangan, Minutasi..." required />
-                </div>
-
-                <Button type="submit" className="w-full bg-green-800 hover:bg-green-900 mt-4">
-                  Simpan Draft Konteks
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Data List Container */}
-        <div className="lg:col-span-2">
-          <Card className="h-full">
-            <CardHeader className="bg-slate-50 border-b pb-4 mb-0">
-              <CardTitle className="text-lg font-serif">Daftar Dokumen Konteks</CardTitle>
-            </CardHeader>
-            <div className="p-0 border-0">
-              <Table>
-                <TableHeader className="bg-slate-50">
-                  <TableRow>
-                    <TableHead>Tahun</TableHead>
-                    <TableHead>Sakter</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead colSpan={2}></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {konteksList && konteksList.length > 0 ? (
-                    konteksList.map((k) => (
-                      <TableRow key={k.id}>
-                        <TableCell className="font-medium">{k.tahun_penerapan}</TableCell>
-                        <TableCell>
-                           {/* @ts-ignore */}
-                           {k.unit?.nama_unit}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={k.status === 'Disetujui' ? 'default' : 'secondary'}>
-                            {k.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <a
-                            href={`/dashboard/selera-risiko?konteks=${k.id}`}
-                            className={buttonVariants({ variant: "outline", size: "sm" })}
-                            title="Tetapkan ambang batas nilai risiko per kategori"
-                          >
-                            <Target className="w-3.5 h-3.5 mr-1.5" />
-                            Selera Risiko
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          <a href={`/dashboard/identifikasi?konteks=${k.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>Identifikasi Risiko →</a>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                        Belum ada dokumen penetapan konteks.
-                      </TableCell>
-                    </TableRow>
+                {/* Actions */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <a
+                    href={`/dashboard/selera-risiko?konteks=${k.id}`}
+                    className="group relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 hover:text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
+                    title="Tetapkan selera risiko per kategori"
+                  >
+                    <Target className="w-3 h-3" />
+                    Selera
+                  </a>
+                  <a
+                    href={`/dashboard/identifikasi?konteks=${k.id}`}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-indigo-200 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 hover:border-indigo-300 transition-all"
+                  >
+                    Identifikasi Risiko →
+                  </a>
+                  {isAdmin && (
+                    // @ts-ignore
+                    <DeleteKonteksButton id={k.id} unitName={(k.unit as any)?.nama_unit ?? ''} />
                   )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        
-      </div>
+      )}
+
+      {/* ── Form ─────────────────────────────────────────────────────────── */}
+      <KonteksForm units={units ?? []} />
+
     </div>
   )
 }

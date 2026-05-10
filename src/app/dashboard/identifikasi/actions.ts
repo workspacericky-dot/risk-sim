@@ -40,14 +40,16 @@ const KATEGORI_KODE: Record<string, number> = {
 export async function addRisiko(formData: FormData) {
   const supabase = await createClient()
 
-  const konteks_id           = formData.get('konteks_id') as string
-  const indikator_konteks    = (formData.get('indikator_konteks') as string) || null
-  const pernyataan_risiko    = formData.get('pernyataan_risiko') as string
-  const kategori_risiko      = (formData.get('kategori_risiko') as string) || null
-  const dampak_potensial     = (formData.get('dampak_potensial') as string) || null
-  const metode_pencapaian_spip = (formData.get('metode_pencapaian_spip') as string) || null
-  const sumber_risiko        = (formData.get('sumber_risiko') as string) || null
-  const penyebab_risiko      = (formData.get('penyebab_risiko') as string) || null
+  const konteks_id              = formData.get('konteks_id') as string
+  const sasaran_strategis_item  = (formData.get('sasaran_strategis_item') as string) || null
+  const indikator_konteks       = (formData.get('indikator_konteks') as string) || null
+  const proses_bisnis_item      = (formData.get('proses_bisnis_item') as string) || null
+  const pernyataan_risiko       = formData.get('pernyataan_risiko') as string
+  const kategori_risiko         = (formData.get('kategori_risiko') as string) || null
+  const dampak_potensial        = (formData.get('dampak_potensial') as string) || null
+  const metode_pencapaian_spip  = (formData.get('metode_pencapaian_spip') as string) || null
+  const sumber_risiko           = (formData.get('sumber_risiko') as string) || null
+  const penyebab_risiko         = (formData.get('penyebab_risiko') as string) || null
 
   if (!konteks_id || !pernyataan_risiko) {
     return { error: 'Pernyataan risiko wajib diisi' }
@@ -85,7 +87,9 @@ export async function addRisiko(formData: FormData) {
   const { error } = await supabase.from('risiko').insert([{
     konteks_id,
     kode_risiko,
+    sasaran_strategis_item,
     indikator_konteks,
+    proses_bisnis_item,
     pernyataan_risiko,
     kategori_risiko,
     dampak_potensial,
@@ -177,4 +181,27 @@ export async function saveAnalisis(formData: FormData) {
 // ── BACKWARD COMPAT: alias (digunakan laporan/rtp lama) ──────────────────
 export async function addRisikoAnalisis(formData: FormData) {
   return addRisiko(formData)
+}
+
+// ── Update Pejabat Pemilik & Pengelola Risiko per Risiko ──────────────────
+export async function updateRisikoPejabat(formData: FormData) {
+  const supabase = await createClient()
+
+  const risiko_id               = formData.get('risiko_id')               as string
+  const nama_pemilik_risiko     = (formData.get('nama_pemilik_risiko')     as string) ?? ''
+  const jabatan_pemilik_risiko  = (formData.get('jabatan_pemilik_risiko')  as string) ?? ''
+  const nama_pengelola_risiko   = (formData.get('nama_pengelola_risiko')   as string) ?? ''
+  const jabatan_pengelola_risiko= (formData.get('jabatan_pengelola_risiko')as string) ?? ''
+
+  if (!risiko_id) return { error: 'Risiko tidak ditemukan' }
+
+  const { error } = await supabase
+    .from('risiko')
+    .update({ nama_pemilik_risiko, jabatan_pemilik_risiko, nama_pengelola_risiko, jabatan_pengelola_risiko })
+    .eq('id', risiko_id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/identifikasi')
+  return { success: true }
 }

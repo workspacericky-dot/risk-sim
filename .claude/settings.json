@@ -3,6 +3,9 @@
     "allow": [
       "Bash(npx tsc:*)",
       "Bash(npx next:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\ricky\\OneDrive\\Documents\\Mahkamah Agung\\Manajemen Risiko\\Risk-Sim"
     ]
   }
 }

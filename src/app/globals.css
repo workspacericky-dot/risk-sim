@@ -55,6 +55,29 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Raleway';
+  src: url('/fonts/Raleway-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Raleway';
+  src: url('/fonts/Raleway-Variable-Italic.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bookman Old Style';
+  src: url('/fonts/BOOKOS.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -65,6 +88,7 @@
   --font-serif: 'IBM Plex Serif', ui-serif, Georgia, serif;
   --font-mono: 'DM Mono', ui-monospace, 'Cascadia Code', monospace;
   --font-heading: 'IBM Plex Serif', ui-serif, Georgia, serif;
+  --font-button: 'Raleway', ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -196,5 +220,141 @@
   /* DM Mono: labels, badges, uppercase tags, metadata */
   .font-label, .font-mono, code, kbd, pre {
     font-family: var(--font-mono);
+  }
+  /* Raleway: all interactive buttons and badges */
+  button,
+  [role="button"],
+  [data-slot="badge"] {
+    font-family: var(--font-button);
+    letter-spacing: 0.012em;
+  }
+}
+
+/* ─── Screen-only utilities ───────────────────────────────────────────────── */
+.print-only  { display: none !important; }
+.no-print    { /* shown on screen; hidden by @media print below */ }
+
+/* ─── Print / PDF Export ──────────────────────────────────────────────────── */
+@media print {
+  /* Page setup: A4, portrait, comfortable margins */
+  @page {
+    size: A4 portrait;
+    margin: 1.8cm 1.5cm 1.8cm 1.5cm;
+  }
+
+  /* Reset background & enforce white canvas */
+  html, body {
+    background: white !important;
+    color: #111 !important;
+    font-size: 9pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Show print-only elements (inline style="display:none" is overridden by !important) */
+  .print-only,
+  .print-doc-header { display: block !important; }
+
+  /* Hide chrome: sidebar, top header, action buttons, search overlay */
+  aside,
+  header,
+  .no-print,
+  [data-slot="select-icon"],
+  [title="Ekspor halaman ini ke PDF"] {
+    display: none !important;
+  }
+
+  /* Flatten the flex layout so main fills full width */
+  body > div,
+  .flex.min-h-screen { display: block !important; }
+
+  #print-main {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Remove gradient background, shadows, rounded corners that look bad in print */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Content wrapper: remove padding since @page margin handles it */
+  .p-8 { padding: 0 !important; }
+  .max-w-7xl { max-width: 100% !important; }
+
+  /* ── Typography ───────────────────────────────────── */
+  h1, h2, h3 { color: #111 !important; }
+  h2 { font-size: 14pt; margin-bottom: 4pt; }
+  h3 { font-size: 11pt; margin-bottom: 3pt; }
+  p, span, td, th, li { font-size: 8.5pt; line-height: 1.45; }
+
+  /* ── Cards & panels → flat bordered boxes ─────────── */
+  .rounded-2xl, .rounded-xl, .rounded-lg {
+    border-radius: 0 !important;
+  }
+
+  /* ── Tables ──────────────────────────────────────────
+     Force visible borders and compact sizing */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 7.5pt;
+    table-layout: auto;
+  }
+  th, td {
+    border: 0.5pt solid #bbb !important;
+    padding: 3pt 5pt !important;
+    vertical-align: top;
+    color: #111 !important;
+    background: white !important;
+  }
+  thead th {
+    background: #f0f0f0 !important;
+    font-weight: 700;
+  }
+
+  /* Keep table rows together; allow thead to repeat on each page */
+  thead { display: table-header-group; }
+  tbody tr { page-break-inside: avoid; }
+
+  /* ── Badges / pills → plain text boxes ────────────── */
+  [data-slot="badge"],
+  .rounded-full,
+  .px-1\.5.py-0\.5 {
+    background: #f5f5f5 !important;
+    border: 0.5pt solid #ccc !important;
+    color: #333 !important;
+    border-radius: 2pt !important;
+  }
+
+  /* ── Links → plain text ────────────────────────────── */
+  a { color: inherit !important; text-decoration: none !important; }
+
+  /* ── Buttons → hidden (action chrome) ─────────────── */
+  button:not(.print-show) { display: none !important; }
+  a[href]:not(.print-show) {
+    /* keep navigation anchors visible as text, just not underlined */
+  }
+
+  /* ── Heatmap / chart containers ────────────────────── */
+  canvas, svg { max-width: 100% !important; }
+
+  /* ── Page break helpers ─────────────────────────────── */
+  .print-break-before { page-break-before: always; }
+  .print-break-after  { page-break-after:  always; }
+  .print-avoid-break  { page-break-inside: avoid; }
+
+  /* ── Footer: show copyright at bottom of last page ── */
+  .border-t.border-slate-200 { border-top: 0.5pt solid #ddd !important; }
+
+  /* Print document header (injected in layout) */
+  .print-doc-header {
+    margin-bottom: 12pt;
+    font-family: 'Bookman Old Style', 'Bookman', 'URW Bookman L', Georgia, serif !important;
+  }
+  .print-doc-header * {
+    font-family: 'Bookman Old Style', 'Bookman', 'URW Bookman L', Georgia, serif !important;
   }
 }

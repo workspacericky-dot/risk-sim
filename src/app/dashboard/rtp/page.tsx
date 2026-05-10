@@ -1,196 +1,218 @@
-import { createClient } from '@/utils/supabase/server'
-import { addRTP } from './actions'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+'use client'
 
-export default async function RTPPage({ searchParams }: { searchParams: { analisis?: string } }) {
-  const supabase = await createClient()
-  const p = await searchParams;
-  const analisisId = p?.analisis
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight, ClipboardList, AlertOctagon, TrendingUp, Clock } from 'lucide-react'
 
-  // Fetch analysis context
-  const { data: analysisData } = analisisId 
-    ? await supabase.from('analisis_risiko').select(`
-        *,
-        risiko!inner(
-          pernyataan_risiko,
-          dampak_potensial,
-          konteks:penetapan_konteks(tahun_penerapan, selera_risiko, unit:unit_kerja_id(nama_unit))
-        )
-      `).eq('id', analisisId).single()
-    : { data: null }
+const CARDS = [
+  {
+    id: 'monitoring-rtp',
+    icon: ClipboardList,
+    title: 'Monitoring RTP',
+    subtitle: 'Rencana Tindak Pengendalian',
+    description:
+      'Pantau progres implementasi rencana tindak pengendalian atas risiko-risiko prioritas. Lacak status, tenggat waktu, dan persentase penyelesaian per satuan kerja.',
+    gradient: 'from-indigo-500 via-blue-500 to-cyan-400',
+    bg: 'from-indigo-50 to-blue-50',
+    iconColor: 'text-indigo-600',
+    iconBg: 'bg-indigo-100',
+    accentColor: '#6366f1',
+    tag: 'Pengendalian Risiko',
+  },
+  {
+    id: 'monitoring-loss-event',
+    icon: AlertOctagon,
+    title: 'Monitoring Loss Event',
+    subtitle: 'Kejadian Kerugian',
+    description:
+      'Rekam dan analisis kejadian kerugian aktual yang terjadi akibat materilisasi risiko. Hitung frekuensi, besaran kerugian, dan dampak terhadap kinerja organisasi.',
+    gradient: 'from-rose-500 via-red-500 to-orange-400',
+    bg: 'from-rose-50 to-orange-50',
+    iconColor: 'text-rose-600',
+    iconBg: 'bg-rose-100',
+    accentColor: '#f43f5e',
+    tag: 'Kejadian Risiko',
+  },
+  {
+    id: 'monitoring-level-risiko',
+    icon: TrendingUp,
+    title: 'Monitoring Level Risiko',
+    subtitle: 'Tren & Pergerakan Risiko',
+    description:
+      'Visualisasikan tren pergerakan level risiko dari waktu ke waktu. Pantau apakah risiko membaik, stagnan, atau memburuk pasca implementasi pengendalian.',
+    gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
+    bg: 'from-emerald-50 to-teal-50',
+    iconColor: 'text-emerald-600',
+    iconBg: 'bg-emerald-100',
+    accentColor: '#10b981',
+    tag: 'Tren Risiko',
+  },
+]
 
-  // Fetch existing RTPs for this analysis
-  const { data: rtpList } = analisisId
-    ? await supabase.from('rtp').select('*').eq('analisis_id', analisisId)
-    : { data: [] }
+export default function MonitoringRisikoPage() {
+  const [active, setActive] = useState(0)
 
-  if (!analisisId || !analysisData) {
-    return (
-      <div className="p-8 text-center bg-white rounded-lg border shadow-sm">
-        <h3 className="text-xl font-semibold text-slate-700">Manajemen RTP</h3>
-        <p className="text-muted-foreground mt-2">Masuk melalui menu Identifikasi Risiko untuk membuat Rencana Tindak Pengendalian pada risiko prioritas.</p>
-        <a href="/dashboard/konteks" className={buttonVariants({ className: "mt-4 bg-green-800" })}>Lihat Daftar Konteks</a>
-      </div>
-    )
-  }
-
-  // @ts-ignore
-  const risiko = analysisData.risiko
-  // @ts-ignore
-  const konteks = risiko?.konteks
+  const prev = () => setActive(i => (i - 1 + CARDS.length) % CARDS.length)
+  const next = () => setActive(i => (i + 1) % CARDS.length)
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Rencana Tindak Pengendalian (RTP)</h2>
-          <p className="text-muted-foreground">Mitigasi risiko yang berada di atas level toleransi.</p>
-        </div>
+    <div className="space-y-8">
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-800 font-serif">Monitoring Risiko</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Pilih modul monitoring yang ingin diakses — fitur segera hadir
+        </p>
       </div>
 
-      {/* Info Risiko Terpilih */}
-      <Card className="bg-red-50/50 border-red-100">
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="col-span-1 border-r border-red-200">
-             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Unit Kerja</Label>
-             {/* @ts-ignore */}
-             <div className="font-semibold text-sm mt-1">{konteks?.unit?.nama_unit} ({konteks?.tahun_penerapan})</div>
-             {/* @ts-ignore */}
-             <div className="mt-2 text-xs text-red-800 font-bold bg-red-100 w-max px-2 py-1 rounded">Prioritas (Level {analysisData.status_risiko}) &gt; Selera (Level {konteks?.selera_risiko})</div>
-          </div>
-          <div className="col-span-3">
-             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pernyataan Risiko</Label>
-             <div className="font-medium text-slate-800">{risiko.pernyataan_risiko}</div>
-             <p className="text-sm mt-2 text-muted-foreground">Dampak Potensial: {risiko.dampak_potensial}</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Carousel ─────────────────────────────────────────────────────── */}
+      <div className="relative flex items-center justify-center" style={{ minHeight: 480 }}>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Registration Form */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader className="bg-slate-50 border-b pb-4 mb-4">
-              <CardTitle className="text-lg">Buat Aksi RTP</CardTitle>
-              <CardDescription>Rencanakan pengendalian baru</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={async (formData) => { 'use server'; await addRTP(formData) }} className="space-y-4">
-                <input type="hidden" name="analisis_id" value={analisisId} />
-                
-                <div className="space-y-2">
-                  <Label htmlFor="kegiatan_pengendalian">Kegiatan Pengendalian</Label>
-                  <Textarea id="kegiatan_pengendalian" name="kegiatan_pengendalian" placeholder="Misalnya: Pengadaan server backup off-site..." required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="indikator_keluaran">Indikator Keluaran</Label>
-                  <Input id="indikator_keluaran" name="indikator_keluaran" placeholder="Tersedianya 1 unit server backup" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="target_waktu">Target Waktu Pelaksanaan</Label>
-                  <Input type="date" id="target_waktu" name="target_waktu" required />
-                </div>
+        {/* Left arrow */}
+        <button
+          onClick={prev}
+          className="absolute left-0 z-20 flex items-center justify-center w-11 h-11 rounded-full border border-white/60 shadow-lg hover:scale-110 transition-all"
+          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)' }}
+        >
+          <ChevronLeft className="w-5 h-5 text-slate-600" />
+        </button>
 
-                <h4 className="font-semibold pt-4 text-sm border-b pb-1">Proyeksi Penurunan Risiko (Treated Risk)</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="level_kemungkinan_treated">Kemungkinan (1-5)</Label>
-                    <Select name="level_kemungkinan_treated" required>
-                      <SelectTrigger><SelectValue placeholder="Target Level..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 - Sangat Jarang</SelectItem>
-                        <SelectItem value="2">2 - Jarang</SelectItem>
-                        <SelectItem value="3">3 - Mungkin</SelectItem>
-                        <SelectItem value="4">4 - Sering</SelectItem>
-                        <SelectItem value="5">5 - Sangat Sering</SelectItem>
-                      </SelectContent>
-                    </Select>
+        {/* Cards track */}
+        <div className="relative w-full flex items-center justify-center" style={{ height: 480, perspective: '1200px' }}>
+          {CARDS.map((card, idx) => {
+            const offset  = idx - active
+            const absOff  = Math.abs(offset)
+            // Clamp visible range: -1, 0, +1
+            if (absOff > 1) return null
+
+            const isCenter = offset === 0
+            const isLeft   = offset === -1
+            const isRight  = offset === 1
+
+            const translateX = isCenter ? 0 : isLeft ? -300 : 300
+            const scale      = isCenter ? 1 : 0.78
+            const opacity    = isCenter ? 1 : 0.45
+            const zIndex     = isCenter ? 10 : 1
+            const rotateY    = isLeft ? 20 : isRight ? -20 : 0
+            const blur       = isCenter ? 0 : 3
+
+            const Icon = card.icon
+
+            return (
+              <div
+                key={card.id}
+                onClick={() => !isCenter && setActive(idx)}
+                style={{
+                  position:  'absolute',
+                  transform: `translateX(${translateX}px) scale(${scale}) rotateY(${rotateY}deg)`,
+                  opacity,
+                  zIndex,
+                  filter:    blur > 0 ? `blur(${blur}px)` : 'none',
+                  transition: 'all 0.5s cubic-bezier(0.34,1.1,0.64,1)',
+                  cursor:    isCenter ? 'default' : 'pointer',
+                  width:     380,
+                }}
+              >
+                {/* Card */}
+                <div
+                  className={`relative overflow-hidden rounded-3xl border border-white/60 shadow-2xl`}
+                  style={{
+                    background: 'rgba(255,255,255,0.92)',
+                    backdropFilter: 'blur(20px)',
+                    height: 420,
+                  }}
+                >
+                  {/* Gradient top strip */}
+                  <div className={`h-1.5 w-full bg-gradient-to-r ${card.gradient}`} />
+
+                  {/* Decorative blurred orb */}
+                  <div
+                    className="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-10 blur-3xl"
+                    style={{ background: card.accentColor }}
+                  />
+
+                  <div className="p-8 flex flex-col h-full gap-5">
+                    {/* Icon + tag */}
+                    <div className="flex items-start justify-between">
+                      <div className={`w-16 h-16 rounded-2xl ${card.iconBg} flex items-center justify-center shadow-sm`}>
+                        <Icon className={`w-8 h-8 ${card.iconColor}`} />
+                      </div>
+                      <span className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full border bg-gradient-to-r ${card.bg} ${card.iconColor} border-current/20`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {card.tag}
+                      </span>
+                    </div>
+
+                    {/* Text */}
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold font-serif text-slate-800 leading-tight">
+                        {card.title}
+                      </h2>
+                      <p className="text-xs font-semibold text-slate-400 mt-0.5 uppercase tracking-wider">
+                        {card.subtitle}
+                      </p>
+                      <p className="text-sm text-slate-600 mt-4 leading-relaxed">
+                        {card.description}
+                      </p>
+                    </div>
+
+                    {/* Coming soon badge */}
+                    <div
+                      className="flex items-center gap-2 px-4 py-3 rounded-2xl border"
+                      style={{
+                        background: 'rgba(241,245,249,0.8)',
+                        borderColor: 'rgba(226,232,240,0.8)',
+                      }}
+                    >
+                      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">Segera Hadir</p>
+                        <p className="text-[10px] text-slate-400">Fitur ini sedang dalam pengembangan</p>
+                      </div>
+                      <span
+                        className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: card.accentColor + '18', color: card.accentColor }}
+                      >
+                        Coming Soon
+                      </span>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="level_dampak_treated">Dampak (1-5)</Label>
-                    <Select name="level_dampak_treated" required>
-                      <SelectTrigger><SelectValue placeholder="Target Level..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 - Sangat Ringan</SelectItem>
-                        <SelectItem value="2">2 - Ringan</SelectItem>
-                        <SelectItem value="3">3 - Sedang</SelectItem>
-                        <SelectItem value="4">4 - Berat</SelectItem>
-                        <SelectItem value="5">5 - Sangat Berat</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
-
-                <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 mt-6">
-                  Simpan RTP
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              </div>
+            )
+          })}
         </div>
 
-        {/* List RTP */}
-        <div className="lg:col-span-2">
-          <Card className="h-full">
-            <CardHeader className="bg-slate-50 border-b pb-4 mb-0">
-              <CardTitle className="text-lg">Daftar Rencana Tindak Lanjut</CardTitle>
-            </CardHeader>
-            <div className="p-0 border-0">
-              <Table>
-                <TableHeader className="bg-slate-50">
-                  <TableRow>
-                    <TableHead>Kegiatan</TableHead>
-                    <TableHead>Indikator</TableHead>
-                    <TableHead>Tenggat Waktu</TableHead>
-                    <TableHead>Skor Proyeksi</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rtpList && rtpList.length > 0 ? (
-                    rtpList.map((rtp) => (
-                      <TableRow key={rtp.id}>
-                        <TableCell className="font-medium max-w-[200px]">
-                          {rtp.kegiatan_pengendalian}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{rtp.indikator_keluaran}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{rtp.target_waktu}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center font-bold">
-                          <span className={`px-2 py-1 rounded inline-block ${
-                            rtp.status_risiko_treated >= 15 ? 'bg-red-200 text-red-900' :
-                            rtp.status_risiko_treated >= 8 ? 'bg-yellow-200 text-yellow-900' :
-                            'bg-green-200 text-green-900'
-                          }`}>{rtp.status_risiko_treated}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-blue-100 text-blue-800">{rtp.status_rtp}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        Belum ada Rencana Tindak Pengendalian (RTP) untuk risiko ini.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
-        </div>
-        
+        {/* Right arrow */}
+        <button
+          onClick={next}
+          className="absolute right-0 z-20 flex items-center justify-center w-11 h-11 rounded-full border border-white/60 shadow-lg hover:scale-110 transition-all"
+          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)' }}
+        >
+          <ChevronRight className="w-5 h-5 text-slate-600" />
+        </button>
       </div>
+
+      {/* ── Dot indicators ───────────────────────────────────────────────── */}
+      <div className="flex items-center justify-center gap-2.5">
+        {CARDS.map((card, idx) => (
+          <button
+            key={card.id}
+            onClick={() => setActive(idx)}
+            style={{
+              width:      idx === active ? 28 : 8,
+              height:     8,
+              borderRadius: 9999,
+              background: idx === active ? card.accentColor : '#cbd5e1',
+              transition: 'all 0.35s ease',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ── Active card label ─────────────────────────────────────────────── */}
+      <p className="text-center text-xs text-slate-400 font-medium tracking-wider uppercase">
+        {CARDS[active].title}
+      </p>
     </div>
   )
 }

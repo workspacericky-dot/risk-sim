@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { X, Search, Map, Loader2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { RiskMatrix } from '@/components/RiskMatrix'
@@ -23,6 +24,10 @@ export function PetaRisikoSidebarModal({ open, onClose }: Props) {
   const [loadingMap, setLoadingMap] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
+  // Read current page's konteks param to auto-select unit
+  const searchParams = useSearchParams()
+  const currentKonteksId = searchParams.get('konteks')
+
   // Fetch unit_kerja list when modal opens
   useEffect(() => {
     if (!open) return
@@ -39,6 +44,76 @@ export function PetaRisikoSidebarModal({ open, onClose }: Props) {
       })
   }, [open])
 
+  // Auto-select the unit for the current page's konteks when modal opens
+  useEffect(() => {
+    if (!open || !currentKonteksId) return
+    const supabase = createClient()
+    supabase
+      .from('penetapan_konteks')
+      .select('id, tahun_penerapan, unit:unit_kerja_id(id, nama_unit)')
+      .eq('id', currentKonteksId)
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        // @ts-ignore
+        const unit = data.unit as UnitKerja
+        if (unit) {
+          setSelectedUnit(unit)
+          // Load risk map directly for this konteks
+          loadRiskMapForKonteks(data.id, data.tahun_penerapan)
+        }
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currentKonteksId])
+
+  async function loadRiskMapForKonteks(konteksId: string, tahun: number | string) {
+    setRiskPoints([])
+    setUnitInfo(null)
+    setLoadingMap(true)
+    const supabase = createClient()
+    setUnitInfo({ tahun })
+
+    // Step 1: fetch risks for this konteks
+    const { data: risikoList } = await supabase
+      .from('risiko')
+      .select('id, kode_risiko, pernyataan_risiko')
+      .eq('konteks_id', konteksId)
+      .order('created_at', { ascending: true })
+
+    const risikoIds = (risikoList ?? []).map((r) => r.id)
+
+    // Step 2: fetch analisis separately (PostgREST join is unreliable here)
+    const { data: analisisRaw } = risikoIds.length > 0
+      ? await supabase
+          .from('analisis_risiko')
+          .select('risiko_id, residual_kemungkinan, residual_dampak')
+          .in('risiko_id', risikoIds)
+      : { data: [] }
+
+    const analisisMap: Record<string, { residual_kemungkinan: number; residual_dampak: number }> = {}
+    for (const a of analisisRaw ?? []) {
+      analisisMap[a.risiko_id] = a
+    }
+
+    const points: RiskPoint[] = []
+    let idx = 1
+    for (const r of risikoList ?? []) {
+      const a = analisisMap[r.id]
+      if (a?.residual_kemungkinan != null && a?.residual_dampak != null) {
+        points.push({
+          id: r.id,
+          label: r.kode_risiko || String(idx),
+          kemungkinan: a.residual_kemungkinan,
+          dampak: a.residual_dampak,
+          pernyataan: r.pernyataan_risiko,
+        })
+        idx++
+      }
+    }
+    setRiskPoints(points)
+    setLoadingMap(false)
+  }
+
   // Reset on close
   useEffect(() => {
     if (!open) {
@@ -49,7 +124,7 @@ export function PetaRisikoSidebarModal({ open, onClose }: Props) {
     }
   }, [open])
 
-  // Fetch risk map data for selected unit
+  // Fetch risk map data for a unit selected from the list
   async function handleSelectUnit(unit: UnitKerja) {
     setSelectedUnit(unit)
     setRiskPoints([])
@@ -72,37 +147,7 @@ export function PetaRisikoSidebarModal({ open, onClose }: Props) {
       return
     }
 
-    setUnitInfo({ tahun: konteksData.tahun_penerapan })
-
-    // Get all analyzed risks for this konteks
-    const { data: risikoList } = await supabase
-      .from('risiko')
-      .select(`
-        id,
-        kode_risiko,
-        pernyataan_risiko,
-        analisis:analisis_risiko(residual_kemungkinan, residual_dampak)
-      `)
-      .eq('konteks_id', konteksData.id)
-      .order('created_at', { ascending: true })
-
-    const points: RiskPoint[] = []
-    let idx = 1
-    for (const r of risikoList ?? []) {
-      const a = (r as any).analisis?.[0]
-      if (a?.residual_kemungkinan != null && a?.residual_dampak != null) {
-        points.push({
-          id: r.id,
-          label: String(idx++),
-          kemungkinan: a.residual_kemungkinan as number,
-          dampak: a.residual_dampak as number,
-          pernyataan: (r as any).pernyataan_risiko,
-        })
-      }
-    }
-
-    setRiskPoints(points)
-    setLoadingMap(false)
+    await loadRiskMapForKonteks(konteksData.id, konteksData.tahun_penerapan)
   }
 
   const filtered = units.filter((u) =>

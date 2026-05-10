@@ -17,10 +17,12 @@ export function SearchableUnitSelect({
   units,
   name,
   required,
+  onSelect,
 }: {
   units: Unit[]
   name: string
   required?: boolean
+  onSelect?: (unit: Unit) => void
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -161,7 +163,7 @@ export function SearchableUnitSelect({
                 <button
                   key={u.id}
                   type="button"
-                  onClick={() => { setSelected(u); setOpen(false); setSearch('') }}
+                  onClick={() => { setSelected(u); setOpen(false); setSearch(''); onSelect?.(u) }}
                   className={cn(
                     'flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors',
                     selected?.id === u.id && 'bg-accent/50 font-medium'

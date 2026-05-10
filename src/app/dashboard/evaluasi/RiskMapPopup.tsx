@@ -33,6 +33,7 @@ type Props = {
   risks: RiskPoint[]
   unitNama: string
   tahun: number | string
+  iconOnly?: boolean
 }
 
 // ── SVG Heatmap Dimensions ───────────────────────────────────────────────────
@@ -242,20 +243,33 @@ function RiskHeatmap({ risks }: { risks: RiskPoint[] }) {
   )
 }
 
-export function RiskMapPopup({ risks, unitNama, tahun }: Props) {
+export function RiskMapPopup({ risks, unitNama, tahun, iconOnly = false }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
       {/* Trigger button */}
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 shadow-sm transition-all text-sm font-medium"
-        title="Lihat Peta Risiko"
-      >
-        <MapIcon className="w-4 h-4" />
-        <span>Peta Risiko</span>
-      </button>
+      {iconOnly ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="group relative flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-900 shadow-sm transition-all"
+          title="Peta Risiko"
+        >
+          <MapIcon className="w-4 h-4" />
+          <span className="pointer-events-none absolute top-full right-0 mt-1.5 whitespace-nowrap rounded-lg bg-slate-800 text-white text-[10px] font-medium px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+            Peta Risiko
+          </span>
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 shadow-sm transition-all text-sm font-medium"
+          title="Lihat Peta Risiko"
+        >
+          <MapIcon className="w-4 h-4" />
+          <span>Peta Risiko</span>
+        </button>
+      )}
 
       {/* Overlay + Modal */}
       {open && (
