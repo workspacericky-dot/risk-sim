@@ -51,7 +51,8 @@ export default function ProsesBisnisSelect({ options, sasaranList }: Props) {
   const sasaranAuto   = selected?.parentNama ?? ''
   const indikatorAuto = selected?.indikator  ?? ''
 
-  function handleProsesChange(value: string) {
+  function handleProsesChange(value: string | null) {
+    if (!value) return
     // value = "MA-05.03 – Nama sub-proses"
     const kode = value.split(' – ')[0]
     setSelectedKode(kode)
