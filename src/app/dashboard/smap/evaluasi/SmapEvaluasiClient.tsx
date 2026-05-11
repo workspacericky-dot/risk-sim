@@ -440,15 +440,6 @@ export default function SmapEvaluasiClient({
         <SmapPetaRisiko points={petaPoints} residualPoints={petaResidualPoints} />
       </div>
 
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .print\\:hidden { display: none !important; }
-          #__next, #__next * { visibility: visible; }
-          @page { margin: 15mm; size: A4 landscape; }
-        }
-      `}</style>
     </div>
   )
 }

@@ -236,10 +236,10 @@
 
 /* ─── Print / PDF Export ──────────────────────────────────────────────────── */
 @media print {
-  /* Page setup: A4, portrait, comfortable margins */
+  /* Page setup: A4 landscape — wider than portrait, fits multi-column SMAP tables */
   @page {
-    size: A4 portrait;
-    margin: 1.8cm 1.5cm 1.8cm 1.5cm;
+    size: A4 landscape;
+    margin: 1.5cm 1.5cm 1.5cm 1.5cm;
   }
 
   /* Reset background & enforce white canvas */
@@ -264,13 +264,18 @@
     display: none !important;
   }
 
-  /* Flatten the flex layout so main fills full width */
+  /* Flatten the flex layout so main fills full width; strip inline gradient */
   body > div,
-  .flex.min-h-screen { display: block !important; }
+  .flex.min-h-screen {
+    display: block !important;
+    background: white !important;
+    background-image: none !important;
+  }
 
   #print-main {
     display: block !important;
     width: 100% !important;
+    background: white !important;
   }
 
   /* Remove gradient background, shadows, rounded corners that look bad in print */
@@ -295,20 +300,30 @@
     border-radius: 0 !important;
   }
 
+  /* Scroll containers must not clip table width in print */
+  .overflow-x-auto,
+  .overflow-x-scroll {
+    overflow: visible !important;
+  }
+
   /* ── Tables ──────────────────────────────────────────
-     Force visible borders and compact sizing */
+     Remove min-width constraints so tables reflow to page width */
   table {
     width: 100% !important;
+    min-width: 0 !important;
     border-collapse: collapse !important;
-    font-size: 7.5pt;
+    font-size: 7pt;
     table-layout: auto;
   }
   th, td {
     border: 0.5pt solid #bbb !important;
-    padding: 3pt 5pt !important;
+    padding: 3pt 4pt !important;
     vertical-align: top;
     color: #111 !important;
     background: white !important;
+    white-space: normal !important;
+    word-break: break-word;
+    min-width: 0 !important;
   }
   thead th {
     background: #f0f0f0 !important;

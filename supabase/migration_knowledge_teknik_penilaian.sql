@@ -1,0 +1,12 @@
+-- Knowledge: Matriks Teknik/Alat Bantu Penilaian Risiko
+-- Run in Supabase SQL Editor
+
+insert into public.knowledge_items (judul, deskripsi, konten, kategori, tipe, penulis)
+values (
+  'Matriks Teknik dan Alat Bantu Penilaian Risiko',
+  'Kesesuaian penerapan 31 teknik/alat bantu penilaian risiko terhadap setiap tahap proses: Identifikasi Risiko, Analisis Konsekuensi, Analisis Probabilitas, Analisis Tingkat Risiko, dan Evaluasi Risiko. Berdasarkan ISO 31010.',
+  E'## Tabel Jenis Teknik Penilaian Risiko\n\n| Alat Bantu dan Teknik | Identifikasi Risiko | Analisis Risiko: Konsekuensi | Analisis Risiko: Probabilitas | Analisis Risiko: Tingkat Risiko | Evaluasi Risiko |\n| --- | --- | --- | --- | --- | --- |\n| Curah pendapat | SA | | | | |\n| Wawancara terstruktur atau semi-terstruktur | SA | | | | |\n| Delphi | SA | | | | |\n| Daftar periksa | SA | | | | |\n| Analisis pendahuluan potensi bahaya | SA | | | | |\n| Studi potensi bahaya dan operabilitas (HAZOP) | SA | SA | A | A | A |\n| Analisis potensi bahaya dan titik kendali kritis (HACCP) | SA | SA | | | SA |\n| Penilaian risiko lingkungan | SA | SA | SA | SA | SA |\n| Struktur "apa-jika" (SWIFT) | SA | SA | SA | SA | SA |\n| Analisis skenario | SA | SA | A | A | A |\n| Analisis dampak bisnis | A | SA | A | A | A |\n| Analisis akar penyebab | | SA | SA | SA | SA |\n| Analisis modus kegagalan dan dampak | SA | SA | SA | SA | SA |\n| Analisis pohon kesalahan | A | | SA | A | A |\n| Analisis pohon kejadian | A | SA | A | A | |\n| Analisis sebab dan konsekuensi | A | SA | SA | A | A |\n| Analisis sebab-dan-akibat | SA | SA | | | |\n| Analisis lapisan proteksi | A | SA | A | A | |\n| Pohon keputusan | | SA | SA | A | A |\n| Analisis keandalan manusia | SA | SA | SA | SA | A |\n| Analisis dasi kupu-kupu | | A | SA | SA | A |\n| Pemeliharaan yang terpusat pada keandalan | SA | SA | SA | SA | SA |\n| Analisis rangkaian selinap | A | | | | |\n| Analisis Markov | A | SA | | | |\n| Simulasi Monte Carlo | | | | | SA |\n| Statistik Bayesian dan jaring Bayes | | SA | | | SA |\n| Kurva FN | A | SA | SA | A | SA |\n| Indeks risiko | A | SA | SA | A | SA |\n| Matriks Konsekuensi/Probabilitas | SA | SA | SA | SA | A |\n| Analisis biaya/manfaat | A | SA | | A | A |\n| Analisis keputusan multi-kriteria (MCDA) | A | SA | A | SA | A |\n\n**Keterangan:**\n- **SA** — Sangat dapat diterapkan\n- **A** — Dapat diterapkan\n- *(kosong)* — Tidak dapat diterapkan',
+  'SMAP',
+  'Matriks',
+  'Ricky Pramoedya Hermawan'
+);

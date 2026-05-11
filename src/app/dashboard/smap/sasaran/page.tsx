@@ -1,9 +1,9 @@
 import { createClient } from '@/utils/supabase/server'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
-import SmapEvaluasiClient from './SmapEvaluasiClient'
+import SmapSasaranClient from './SmapSasaranClient'
 
-export default async function SmapEvaluasiPage({
+export default async function SmapSasaranPage({
   searchParams,
 }: {
   searchParams: Promise<{ konteks?: string }>
@@ -39,12 +39,18 @@ export default async function SmapEvaluasiPage({
 
   const risikoIds = (risikoList ?? []).map(r => r.id)
 
-  const [{ data: analisisList }, { data: evaluasiList }] = await Promise.all([
+  const [{ data: evaluasiList }, { data: sasaranList }] = await Promise.all([
     risikoIds.length > 0
-      ? supabase.from('smap_analisis').select('risiko_id, status_existing, kemungkinan_existing, dampak_existing').in('risiko_id', risikoIds)
+      ? supabase
+          .from('smap_evaluasi')
+          .select('risiko_id, uraian_penanganan, pic, batas_waktu')
+          .in('risiko_id', risikoIds)
       : { data: [] },
     risikoIds.length > 0
-      ? supabase.from('smap_evaluasi').select('*, efektif_level').in('risiko_id', risikoIds)
+      ? supabase
+          .from('smap_sasaran')
+          .select('risiko_id, indikator_kinerja, sasaran_pencapaian, evaluasi_pelaporan, sanksi_hukuman')
+          .in('risiko_id', risikoIds)
       : { data: [] },
   ])
 
@@ -55,35 +61,28 @@ export default async function SmapEvaluasiPage({
       {/* Header */}
       <div className="flex items-start gap-4">
         <a
-          href={`/dashboard/smap/analisis?konteks=${konteksId}`}
+          href={`/dashboard/smap/evaluasi?konteks=${konteksId}`}
           className="mt-1 flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition-colors shadow-sm shrink-0 print:hidden"
         >
           <ChevronLeft className="w-5 h-5" />
         </a>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold tracking-tight font-serif">Evaluasi Risiko Penyuapan</h2>
+          <h2 className="text-2xl font-bold tracking-tight font-serif">Sasaran Kinerja SMAP</h2>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Form 3 · Tahun <strong>{konteks.tahun}</strong> — <strong>{namaUnit}</strong>
+            Form 4 · Tahun <strong>{konteks.tahun}</strong> — <strong>{namaUnit}</strong>
           </p>
         </div>
-        <a
-          href={`/dashboard/smap/sasaran?konteks=${konteksId}`}
-          className="mt-1 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-semibold transition-colors shadow-sm shrink-0 print:hidden"
-        >
-          Sasaran Kinerja
-          <ChevronRight className="w-4 h-4" />
-        </a>
       </div>
 
-      <SmapEvaluasiClient
+      <SmapSasaranClient
         konteksId={konteksId}
         namaUnit={namaUnit}
         tahun={konteks.tahun}
         namaPemilik={konteks.nama_pemilik_risiko ?? ''}
         jabatanPemilik={konteks.jabatan_pemilik_risiko ?? ''}
         risikoList={(risikoList ?? []) as any}
-        analisisList={(analisisList ?? []) as any}
         evaluasiList={(evaluasiList ?? []) as any}
+        sasaranList={(sasaranList ?? []) as any}
       />
     </div>
   )
