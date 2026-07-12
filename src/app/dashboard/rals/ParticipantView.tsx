@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react'
 import { GraduationCap, LogOut, Clock } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
+import { getScenario, type RalsScenario } from '@/lib/rals-scenarios'
 import { joinSession } from './actions'
+import IdentifikasiForm from './IdentifikasiForm'
+import AnalisisForm from './AnalisisForm'
+import EvaluasiForm from './EvaluasiForm'
 
 type Joined = { participantId: string; sessionId: string; nama: string }
 
@@ -20,6 +24,7 @@ const STORAGE_KEY = 'rals_participant'
 export default function ParticipantView() {
   const [joined, setJoined] = useState<Joined | null>(null)
   const [tahap, setTahap] = useState<string>('lobby')
+  const [scenario, setScenario] = useState<RalsScenario | null>(null)
   const [kode, setKode] = useState('')
   const [nama, setNama] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,14 +36,20 @@ export default function ParticipantView() {
     if (raw) { try { setJoined(JSON.parse(raw)) } catch {} }
   }, [])
 
-  // Ambil tahap awal + berlangganan perubahan tahap (realtime).
+  // Ambil tahap + skenario, berlangganan realtime, dan poll sebagai jaring pengaman.
   useEffect(() => {
     if (!joined) return
     const supabase = createClient()
     let active = true
 
-    supabase.from('rals_session').select('tahap').eq('id', joined.sessionId).single()
-      .then(({ data }) => { if (active && data) setTahap(data.tahap) })
+    async function fetchState() {
+      const { data } = await supabase.from('rals_session').select('tahap, scenario_id').eq('id', joined!.sessionId).single()
+      if (active && data) {
+        setTahap(data.tahap)
+        setScenario(getScenario(data.scenario_id))
+      }
+    }
+    fetchState()
 
     const channel = supabase
       .channel(`rals_session:${joined.sessionId}`)
@@ -47,7 +58,10 @@ export default function ParticipantView() {
         (payload) => setTahap((payload.new as any).tahap))
       .subscribe()
 
-    return () => { active = false; supabase.removeChannel(channel) }
+    // Fallback: realtime kadang tak terkirim — poll tahap tiap 4 detik.
+    const poll = setInterval(fetchState, 4000)
+
+    return () => { active = false; clearInterval(poll); supabase.removeChannel(channel) }
   }, [joined])
 
   async function handleJoin(e: React.FormEvent) {
@@ -98,21 +112,34 @@ export default function ParticipantView() {
     )
   }
 
-  // ── Sudah bergabung: tampilkan tahap aktif (live) ─────────────────────────
+  // ── Sudah bergabung: header + router tahap ────────────────────────────────
+  const isForm = tahap === 'identifikasi' || tahap === 'analisis' || tahap === 'evaluasi'
   return (
-    <div className="max-w-lg mx-auto mt-8 space-y-4">
-      <div className="rounded-2xl border bg-white shadow-sm p-8 text-center space-y-3">
+    <div className={`mx-auto mt-8 space-y-4 ${isForm ? 'max-w-3xl' : 'max-w-lg'}`}>
+      {/* Header: nama + tahap aktif */}
+      <div className="rounded-2xl border bg-white shadow-sm px-5 py-3 flex items-center justify-between gap-3">
         <p className="text-sm text-slate-500">Halo, <span className="font-semibold text-slate-800">{joined.nama}</span> 👋</p>
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-semibold">
-          <Clock className="w-4 h-4" />
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold">
+          <Clock className="w-3.5 h-3.5" />
           {STAGE_LABEL[tahap] ?? tahap}
         </div>
-        <p className="text-xs text-muted-foreground">
-          {tahap === 'lobby'
-            ? 'Layar ini akan otomatis berpindah saat instruktur telah mengizinkan.'
-            : 'Tahap ini sudah dibuka. Form pengisian akan tampil di sini.'}
-        </p>
       </div>
+
+      {/* Body per tahap */}
+      {tahap === 'identifikasi' ? (
+        <IdentifikasiForm sessionId={joined.sessionId} participantId={joined.participantId} scenario={scenario} />
+      ) : tahap === 'analisis' ? (
+        <AnalisisForm participantId={joined.participantId} />
+      ) : tahap === 'evaluasi' ? (
+        <EvaluasiForm participantId={joined.participantId} scenario={scenario} />
+      ) : (
+        <div className="rounded-2xl border bg-white shadow-sm p-8 text-center text-sm text-muted-foreground">
+          {tahap === 'selesai'
+            ? 'Sesi telah selesai. Terima kasih atas partisipasi Anda.'
+            : 'Layar ini akan otomatis berpindah saat instruktur telah mengizinkan.'}
+        </div>
+      )}
+
       <button onClick={handleLeave}
         className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-500 transition-colors mx-auto">
         <LogOut className="w-3.5 h-3.5" /> Keluar dari sesi

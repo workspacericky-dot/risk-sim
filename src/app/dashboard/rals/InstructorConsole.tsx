@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Plus, Trash2 } from 'lucide-react'
+import { GraduationCap, Plus, Trash2, Activity } from 'lucide-react'
 import { RALS_SCENARIOS, getScenario } from '@/lib/rals-scenarios'
 import { createSession, setStage, deleteSession } from './actions'
+import InstructorDashboard from './InstructorDashboard'
 
 type Session = {
   id: string
@@ -29,6 +30,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
   const [scenarioId, setScenarioId] = useState(RALS_SCENARIOS[0]?.id ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [openDash, setOpenDash] = useState<string | null>(null)
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -127,7 +129,15 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
                   {st.label}
                 </button>
               ))}
+              <button onClick={() => setOpenDash((v) => (v === s.id ? null : s.id))}
+                className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold border inline-flex items-center gap-1.5 transition-colors ${
+                  openDash === s.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                }`}>
+                <Activity className="w-3.5 h-3.5" /> {openDash === s.id ? 'Tutup Pantauan' : 'Pantau Live'}
+              </button>
             </div>
+
+            {openDash === s.id && <InstructorDashboard sessionId={s.id} />}
           </div>
         ))}
       </div>
