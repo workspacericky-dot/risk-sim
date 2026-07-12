@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { ShieldAlert } from 'lucide-react'
+import Image from 'next/image'
 import SmapKonteksClient from './SmapKonteksClient'
 
 export default async function SmapPage() {
@@ -18,8 +18,8 @@ export default async function SmapPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-          <ShieldAlert className="w-5 h-5 text-orange-600" />
+        <div className="w-10 h-10 shrink-0 relative">
+          <Image src="/smap-logo.png" alt="SMAP Logo" fill className="object-contain" />
         </div>
         <div>
           <h2 className="text-2xl font-bold tracking-tight font-serif">Khusus SMAP</h2>
