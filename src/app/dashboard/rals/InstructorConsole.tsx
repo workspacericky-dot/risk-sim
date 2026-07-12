@@ -121,10 +121,10 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
               <span className="text-[11px] text-slate-400 mr-1">Tahap aktif:</span>
               {STAGES.map((st) => (
                 <button key={st.key} onClick={() => handleStage(s.id, st.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-helvetica font-medium tracking-tight border transition-colors ${
                     s.tahap === st.key
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                      : 'bg-indigo-50 text-indigo-700 border-transparent hover:bg-indigo-100'
                   }`}>
                   {st.label}
                 </button>

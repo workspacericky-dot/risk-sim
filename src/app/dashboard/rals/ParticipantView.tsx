@@ -119,8 +119,8 @@ export default function ParticipantView() {
       {/* Header: nama + tahap aktif */}
       <div className="rounded-2xl border bg-white shadow-sm px-5 py-3 flex items-center justify-between gap-3">
         <p className="text-sm text-slate-500">Halo, <span className="font-semibold text-slate-800">{joined.nama}</span> 👋</p>
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold">
-          <Clock className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-sm font-helvetica font-medium tracking-tight shadow-sm">
+          <Clock className="w-4 h-4 opacity-70" />
           {STAGE_LABEL[tahap] ?? tahap}
         </div>
       </div>
