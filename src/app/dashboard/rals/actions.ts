@@ -1,0 +1,76 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { createClient } from '@/utils/supabase/server'
+
+type Stage = 'lobby' | 'identifikasi' | 'analisis' | 'evaluasi' | 'selesai'
+
+// Instruktur = pengguna terautentikasi yang BUKAN peserta_diklat.
+async function assertInstruktur() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Tidak terautentikasi.', supabase: null, userId: null }
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
+  if (profile?.role === 'peserta_diklat') return { error: 'Akses ditolak.', supabase: null, userId: null }
+  return { error: null, supabase, userId: user.id }
+}
+
+function genKode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // tanpa karakter ambigu (0/O, 1/I/L)
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+export async function createSession(judul: string, scenarioId: string): Promise<{ error?: string; kode?: string }> {
+  const { error, supabase, userId } = await assertInstruktur()
+  if (error || !supabase) return { error: error ?? 'Akses ditolak.' }
+  if (!judul.trim() || !scenarioId) return { error: 'Judul dan skenario wajib diisi.' }
+
+  // Coba beberapa kali jika kode bentrok (unique).
+  for (let i = 0; i < 5; i++) {
+    const kode = genKode()
+    const { error: insErr } = await supabase.from('rals_session').insert({
+      kode, judul: judul.trim(), scenario_id: scenarioId, created_by: userId,
+    })
+    if (!insErr) {
+      revalidatePath('/dashboard/rals')
+      return { kode }
+    }
+    if (!insErr.message.includes('duplicate')) return { error: insErr.message }
+  }
+  return { error: 'Gagal membuat kode unik, coba lagi.' }
+}
+
+export async function setStage(sessionId: string, tahap: Stage): Promise<{ error?: string }> {
+  const { error, supabase } = await assertInstruktur()
+  if (error || !supabase) return { error: error ?? 'Akses ditolak.' }
+  const { error: updErr } = await supabase.from('rals_session').update({ tahap }).eq('id', sessionId)
+  if (updErr) return { error: updErr.message }
+  revalidatePath('/dashboard/rals')
+  return {}
+}
+
+export async function deleteSession(sessionId: string): Promise<{ error?: string }> {
+  const { error, supabase } = await assertInstruktur()
+  if (error || !supabase) return { error: error ?? 'Akses ditolak.' }
+  const { error: delErr } = await supabase.from('rals_session').delete().eq('id', sessionId)
+  if (delErr) return { error: delErr.message }
+  revalidatePath('/dashboard/rals')
+  return {}
+}
+
+export async function joinSession(kode: string, nama: string): Promise<{ error?: string; participantId?: string; sessionId?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Tidak terautentikasi.' }
+  if (!kode.trim() || !nama.trim()) return { error: 'Kode sesi dan nama wajib diisi.' }
+
+  const { data: session } = await supabase
+    .from('rals_session').select('id').eq('kode', kode.trim().toUpperCase()).single()
+  if (!session) return { error: 'Kode sesi tidak ditemukan.' }
+
+  const { data: participant, error: insErr } = await supabase
+    .from('rals_participant').insert({ session_id: session.id, nama: nama.trim() }).select('id').single()
+  if (insErr || !participant) return { error: insErr?.message ?? 'Gagal bergabung.' }
+
+  return { participantId: participant.id, sessionId: session.id }
+}

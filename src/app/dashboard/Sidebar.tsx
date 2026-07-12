@@ -6,12 +6,12 @@ import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import {
   Home, Settings, Database, Users, LogOut, Briefcase,
-  BarChart2, GaugeCircle, Map, ShieldCheck, ClipboardList, BookOpen,
+  BarChart2, GaugeCircle, Map, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PetaRisikoSidebarModal } from './peta-risiko/PetaRisikoSidebarModal'
 
-export default function Sidebar({ userEmail }: { userEmail: string }) {
+export default function Sidebar({ userEmail, userRole }: { userEmail: string; userRole: string | null }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [petaOpen,   setPetaOpen]   = useState(false)
 
@@ -21,6 +21,50 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
 
   function withKonteks(base: string) {
     return currentKonteksId ? `${base}?konteks=${currentKonteksId}` : base
+  }
+
+  // Peserta diklat only ever see RALS — one menu item, no other MR modules.
+  if (userRole === 'peserta_diklat') {
+    return (
+      <aside
+        className={cn(
+          'bg-white border-r border-slate-200 text-slate-800 flex flex-col transition-all duration-300 ease-in-out relative z-20 shrink-0',
+          isExpanded ? 'w-64' : 'w-[72px]',
+        )}
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+      >
+        <div className={cn('p-4 flex items-center h-16 border-b border-slate-100 transition-all', isExpanded ? 'px-5' : 'justify-center')}>
+          <div className="flex items-center gap-3 truncate">
+            <div className="w-9 h-9 shrink-0 relative">
+              <Image src="/risk-sim-logo.png" alt="RALS" fill className="object-contain" priority />
+            </div>
+            {isExpanded && (
+              <h2 className="font-serif font-bold text-base tracking-tight leading-tight whitespace-nowrap text-slate-800">
+                RALS
+              </h2>
+            )}
+          </div>
+        </div>
+
+        <nav className="flex-1 px-3 space-y-1 mt-6 text-sm font-medium overflow-hidden overflow-y-auto">
+          <NavItem href="/dashboard/rals" icon={<GraduationCap className="w-5 h-5 shrink-0" />} label="RALS" isExpanded={isExpanded} active />
+        </nav>
+
+        <div className="p-3 border-t border-slate-100 mb-2">
+          <form action="/auth/signout" method="post">
+            <button
+              type="submit"
+              className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors text-sm"
+              title="Keluar (Logout)"
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+              {isExpanded && <span className="whitespace-nowrap transition-opacity">Logout</span>}
+            </button>
+          </form>
+        </div>
+      </aside>
+    )
   }
 
   return (
@@ -51,6 +95,7 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
 
           {/* Beranda */}
           <NavItem href="/dashboard" icon={<Home className="w-5 h-5 shrink-0" />} label="Beranda" isExpanded={isExpanded} />
+          <NavItem href="/dashboard/rals" icon={<GraduationCap className="w-5 h-5 shrink-0" />} label="RALS" isExpanded={isExpanded} />
 
           {/* ── MANAJEMEN RISIKO ────────────────────── */}
           <SectionLabel label="Manajemen Risiko" isExpanded={isExpanded} />

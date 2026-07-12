@@ -14,6 +14,7 @@ const ROLE_OPTIONS = [
   { value: 'kepala_apip', label: 'Kepala APIP' },
   { value: 'anggota_apip', label: 'Anggota APIP' },
   { value: 'pemilik_risiko_ma', label: 'Pemilik Risiko MA' },
+  { value: 'peserta_diklat', label: 'Peserta Diklat (RALS)' },
 ]
 
 type User = {

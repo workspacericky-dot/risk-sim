@@ -24,7 +24,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen text-slate-900 font-sans" style={{ background: 'linear-gradient(160deg, #e4edf3 0%, #d6e8f5 45%, #cbe2f4 100%)' }}>
-      <Sidebar userEmail={user.email || ''} />
+      <Sidebar userEmail={user.email || ''} userRole={profile?.role ?? null} />
 
       {/* Main Content */}
       <main className="flex-1 min-w-0 flex flex-col" id="print-main">
