@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Trash2, Plus, Lightbulb } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
-import type { ProbisSelection } from '@/lib/rals-probis'
+import { parseKonteks, type KonteksData } from '@/lib/rals-probis'
 
 type Risk = {
   id: string
@@ -16,9 +16,10 @@ type Risk = {
 }
 
 export default function IdentifikasiForm({
-  sessionId, participantId, probis,
-}: { sessionId: string; participantId: string; probis: ProbisSelection | null }) {
+  sessionId, participantId,
+}: { sessionId: string; participantId: string }) {
   const [risks, setRisks] = useState<Risk[]>([])
+  const [konteks, setKonteks] = useState<KonteksData | null>(null)
   const [pernyataan, setPernyataan] = useState('')
   const [kategori, setKategori] = useState('')
   const [dampak, setDampak] = useState('')
@@ -34,6 +35,13 @@ export default function IdentifikasiForm({
   }, [participantId])
 
   useEffect(() => { loadRisks() }, [loadRisks])
+
+  // Ambil konteks peserta (proses bisnis) untuk banner.
+  useEffect(() => {
+    const sb = createClient()
+    sb.from('rals_participant').select('konteks').eq('id', participantId).single()
+      .then(({ data }) => setKonteks(parseKonteks(data?.konteks)))
+  }, [participantId])
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -64,14 +72,19 @@ export default function IdentifikasiForm({
 
   return (
     <div className="space-y-4">
-      {/* Konteks proses bisnis — bahan untuk mengidentifikasi risiko */}
-      {probis && (
+      {/* Konteks peserta — bahan untuk mengidentifikasi risiko */}
+      {konteks && (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 text-sm">
           <p className="text-[10px] uppercase tracking-widest text-indigo-400 font-semibold">Proses Bisnis</p>
-          <p className="font-serif font-semibold text-indigo-900">{probis.l1Kode} — {probis.l1Nama}</p>
+          <p className="font-serif font-semibold text-indigo-900">{konteks.l1Kode} — {konteks.l1Nama}</p>
           <p className="text-[10px] uppercase tracking-widest text-indigo-400 font-semibold mt-2">Subproses Bisnis</p>
-          <p className="text-slate-700 text-sm font-medium">{probis.l2Kode} — {probis.l2Nama}</p>
-          <p className="text-xs text-slate-500 mt-2">Identifikasi risiko yang mungkin muncul pada subproses ini.</p>
+          <p className="text-slate-700 text-sm font-medium">{konteks.l2Kode} — {konteks.l2Nama}</p>
+          {konteks.pemangkuNama && (
+            <p className="text-xs text-slate-500 mt-2">
+              <span className="font-semibold">Pemangku kepentingan:</span> {konteks.pemangkuNama}
+            </p>
+          )}
+          <p className="text-xs text-slate-500 mt-1">Identifikasi risiko yang mungkin muncul pada subproses ini.</p>
         </div>
       )}
 

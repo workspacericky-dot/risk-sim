@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { GraduationCap, LogOut, Clock } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
-import { parseProbis, type ProbisSelection } from '@/lib/rals-probis'
 import { joinSession } from './actions'
+import KonteksForm from './KonteksForm'
 import IdentifikasiForm from './IdentifikasiForm'
 import AnalisisForm from './AnalisisForm'
 import EvaluasiForm from './EvaluasiForm'
@@ -13,6 +13,7 @@ type Joined = { participantId: string; sessionId: string; nama: string }
 
 const STAGE_LABEL: Record<string, string> = {
   lobby: 'Menunggu instruktur memulai',
+  konteks: 'Penetapan Konteks',
   identifikasi: 'Identifikasi Risiko',
   analisis: 'Analisis Risiko',
   evaluasi: 'Evaluasi Risiko',
@@ -24,7 +25,6 @@ const STORAGE_KEY = 'rals_participant'
 export default function ParticipantView() {
   const [joined, setJoined] = useState<Joined | null>(null)
   const [tahap, setTahap] = useState<string>('lobby')
-  const [probis, setProbis] = useState<ProbisSelection | null>(null)
   const [kode, setKode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,11 +42,8 @@ export default function ParticipantView() {
     let active = true
 
     async function fetchState() {
-      const { data } = await supabase.from('rals_session').select('tahap, scenario_id').eq('id', joined!.sessionId).single()
-      if (active && data) {
-        setTahap(data.tahap)
-        setProbis(parseProbis(data.scenario_id))
-      }
+      const { data } = await supabase.from('rals_session').select('tahap').eq('id', joined!.sessionId).single()
+      if (active && data) setTahap(data.tahap)
     }
     fetchState()
 
@@ -109,7 +106,7 @@ export default function ParticipantView() {
   }
 
   // ── Sudah bergabung: header + router tahap ────────────────────────────────
-  const isForm = tahap === 'identifikasi' || tahap === 'analisis' || tahap === 'evaluasi'
+  const isForm = tahap === 'konteks' || tahap === 'identifikasi' || tahap === 'analisis' || tahap === 'evaluasi'
   return (
     <div className={`mx-auto mt-8 space-y-4 ${isForm ? 'max-w-3xl' : 'max-w-lg'}`}>
       {/* Header: nama + tahap aktif */}
@@ -122,8 +119,10 @@ export default function ParticipantView() {
       </div>
 
       {/* Body per tahap */}
-      {tahap === 'identifikasi' ? (
-        <IdentifikasiForm sessionId={joined.sessionId} participantId={joined.participantId} probis={probis} />
+      {tahap === 'konteks' ? (
+        <KonteksForm participantId={joined.participantId} />
+      ) : tahap === 'identifikasi' ? (
+        <IdentifikasiForm sessionId={joined.sessionId} participantId={joined.participantId} />
       ) : tahap === 'analisis' ? (
         <AnalisisForm participantId={joined.participantId} />
       ) : tahap === 'evaluasi' ? (

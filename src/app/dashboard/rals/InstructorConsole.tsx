@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { GraduationCap, Plus, Trash2, Activity } from 'lucide-react'
-import { PROSES_BISNIS, parseProbis } from '@/lib/rals-probis'
 import { createSession, setStage, deleteSession } from './actions'
 import InstructorDashboard from './InstructorDashboard'
 
@@ -18,6 +17,7 @@ type Session = {
 
 const STAGES: { key: string; label: string }[] = [
   { key: 'lobby',        label: 'Lobby' },
+  { key: 'konteks',      label: 'Konteks' },
   { key: 'identifikasi', label: 'Identifikasi' },
   { key: 'analisis',     label: 'Analisis' },
   { key: 'evaluasi',     label: 'Evaluasi' },
@@ -27,26 +27,17 @@ const STAGES: { key: string; label: string }[] = [
 export default function InstructorConsole({ sessions }: { sessions: Session[] }) {
   const router = useRouter()
   const [judul, setJudul] = useState('')
-  const [l1Kode, setL1Kode] = useState(PROSES_BISNIS[0]?.kode ?? '')
-  const [l2Idx, setL2Idx] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [openDash, setOpenDash] = useState<string | null>(null)
 
-  const currentL1 = PROSES_BISNIS.find((p) => p.kode === l1Kode)
-
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
-    const l1 = PROSES_BISNIS.find((p) => p.kode === l1Kode)
-    const l2 = l2Idx !== '' ? l1?.sub[Number(l2Idx)] : undefined
-    if (!l1 || !l2) { setError('Pilih proses bisnis dan subproses bisnis.'); return }
-    setLoading(true)
-    const probisJson = JSON.stringify({ l1Kode: l1.kode, l1Nama: l1.nama, l2Kode: l2.kode, l2Nama: l2.nama })
-    const res = await createSession(judul, probisJson)
+    setLoading(true); setError(null)
+    const res = await createSession(judul)
     setLoading(false)
     if (res.error) { setError(res.error); return }
-    setJudul(''); setL2Idx('')
+    setJudul('')
     router.refresh()
   }
 
@@ -82,21 +73,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
           <label className="text-xs font-medium text-slate-600">Judul Sesi</label>
           <input value={judul} onChange={(e) => setJudul(e.target.value)} required
             placeholder="mis. Consulting MR Angkatan V" className={inputCls} />
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-600">Proses Bisnis <span className="text-slate-400">(L1)</span></label>
-            <select value={l1Kode} onChange={(e) => { setL1Kode(e.target.value); setL2Idx('') }} className={inputCls + ' bg-white'}>
-              {PROSES_BISNIS.map((p) => <option key={p.kode} value={p.kode}>{p.kode} — {p.nama}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-600">Subproses Bisnis <span className="text-slate-400">(L2)</span></label>
-            <select value={l2Idx} onChange={(e) => setL2Idx(e.target.value)} className={inputCls + ' bg-white'}>
-              <option value="" disabled>Pilih subproses...</option>
-              {currentL1?.sub.map((s, i) => <option key={i} value={i}>{s.kode} — {s.nama}</option>)}
-            </select>
-          </div>
+          <p className="text-[11px] text-slate-400">Proses bisnis & konteks ditetapkan masing-masing peserta pada tahap Konteks.</p>
         </div>
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         <button type="submit" disabled={loading}
@@ -117,9 +94,6 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <h4 className="font-serif font-semibold text-slate-800">{s.judul}</h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {(() => { const pb = parseProbis(s.scenario_id); return pb ? `${pb.l1Nama} › ${pb.l2Kode} ${pb.l2Nama}` : (s.scenario_id || '—') })()}
-                </p>
               </div>
               <div className="flex items-start gap-3">
                 <div className="text-right">

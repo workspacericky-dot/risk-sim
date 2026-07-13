@@ -4,8 +4,11 @@
 export type SubProses = { kode: string; nama: string }      // L2
 export type ProsesBisnis = { kode: string; nama: string; sub: SubProses[] } // L1
 
-// Pilihan yang tersimpan pada sesi (JSON di kolom rals_session.scenario_id).
-export type ProbisSelection = { l1Kode: string; l1Nama: string; l2Kode: string; l2Nama: string }
+// Penetapan konteks per-peserta (JSON di kolom rals_participant.konteks).
+export type KonteksData = {
+  l1Kode: string; l1Nama: string; l2Kode: string; l2Nama: string
+  pemangkuNama: string; harapan: string; kebutuhan: string
+}
 
 export const PROSES_BISNIS: ProsesBisnis[] = [
   { kode: '1.00', nama: 'Administrasi Upaya Hukum pada Kepaniteraan Muda Perkara', sub: [
@@ -93,11 +96,11 @@ export const DEFAULT_SELERA: Record<string, number> = {
   kepatuhan: 10, operasional: 12, kemitraan: 14,
 }
 
-export function parseProbis(json: string | null | undefined): ProbisSelection | null {
+export function parseKonteks(json: string | null | undefined): KonteksData | null {
   if (!json) return null
   try {
     const p = JSON.parse(json)
-    if (p && p.l1Nama && p.l2Nama) return p as ProbisSelection
+    if (p && p.l1Nama && p.l2Nama) return p as KonteksData
   } catch {}
   return null
 }
