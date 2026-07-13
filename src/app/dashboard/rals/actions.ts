@@ -20,16 +20,16 @@ function genKode() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-export async function createSession(judul: string, scenarioId: string): Promise<{ error?: string; kode?: string }> {
+export async function createSession(judul: string, probisJson: string): Promise<{ error?: string; kode?: string }> {
   const { error, supabase, userId } = await assertInstruktur()
   if (error || !supabase) return { error: error ?? 'Akses ditolak.' }
-  if (!judul.trim() || !scenarioId) return { error: 'Judul dan skenario wajib diisi.' }
+  if (!judul.trim() || !probisJson) return { error: 'Judul dan proses bisnis wajib diisi.' }
 
   // Coba beberapa kali jika kode bentrok (unique).
   for (let i = 0; i < 5; i++) {
     const kode = genKode()
     const { error: insErr } = await supabase.from('rals_session').insert({
-      kode, judul: judul.trim(), scenario_id: scenarioId, created_by: userId,
+      kode, judul: judul.trim(), scenario_id: probisJson, created_by: userId,
     })
     if (!insErr) {
       revalidatePath('/dashboard/rals')

@@ -5,12 +5,12 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { RiskMatrix, type RiskPoint } from '@/components/RiskMatrix'
 import { getBesaran, getLevel, getKategoriKey } from '@/lib/risk-engine'
-import type { RalsScenario } from '@/lib/rals-scenarios'
+import { DEFAULT_SELERA } from '@/lib/rals-probis'
 
 type Risk = { id: string; kode: string; pernyataan: string; kategori: string }
 type Analysis = { risk_id: string; k_residu: number | null; d_residu: number | null }
 
-export default function EvaluasiForm({ participantId, scenario }: { participantId: string; scenario: RalsScenario | null }) {
+export default function EvaluasiForm({ participantId }: { participantId: string }) {
   const [risks, setRisks] = useState<Risk[]>([])
   const [analyses, setAnalyses] = useState<Record<string, Analysis>>({})
   const [loading, setLoading] = useState(true)
@@ -48,7 +48,7 @@ export default function EvaluasiForm({ participantId, scenario }: { participantI
     .map(({ risk, a }) => {
       const besaran = getBesaran(a!.k_residu, a!.d_residu)
       const key = getKategoriKey(risk.kategori)
-      const threshold = key && scenario ? scenario.selera[key] ?? null : null
+      const threshold = key ? DEFAULT_SELERA[key] ?? null : null
       return { risk, besaran, threshold, over: besaran != null && threshold != null && besaran > threshold }
     })
     .filter((x) => x.over)

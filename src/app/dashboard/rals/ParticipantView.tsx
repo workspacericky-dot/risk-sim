@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { GraduationCap, LogOut, Clock } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
-import { getScenario, type RalsScenario } from '@/lib/rals-scenarios'
+import { parseProbis, type ProbisSelection } from '@/lib/rals-probis'
 import { joinSession } from './actions'
 import IdentifikasiForm from './IdentifikasiForm'
 import AnalisisForm from './AnalisisForm'
@@ -24,7 +24,7 @@ const STORAGE_KEY = 'rals_participant'
 export default function ParticipantView() {
   const [joined, setJoined] = useState<Joined | null>(null)
   const [tahap, setTahap] = useState<string>('lobby')
-  const [scenario, setScenario] = useState<RalsScenario | null>(null)
+  const [probis, setProbis] = useState<ProbisSelection | null>(null)
   const [kode, setKode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +45,7 @@ export default function ParticipantView() {
       const { data } = await supabase.from('rals_session').select('tahap, scenario_id').eq('id', joined!.sessionId).single()
       if (active && data) {
         setTahap(data.tahap)
-        setScenario(getScenario(data.scenario_id))
+        setProbis(parseProbis(data.scenario_id))
       }
     }
     fetchState()
@@ -123,11 +123,11 @@ export default function ParticipantView() {
 
       {/* Body per tahap */}
       {tahap === 'identifikasi' ? (
-        <IdentifikasiForm sessionId={joined.sessionId} participantId={joined.participantId} scenario={scenario} />
+        <IdentifikasiForm sessionId={joined.sessionId} participantId={joined.participantId} probis={probis} />
       ) : tahap === 'analisis' ? (
         <AnalisisForm participantId={joined.participantId} />
       ) : tahap === 'evaluasi' ? (
-        <EvaluasiForm participantId={joined.participantId} scenario={scenario} />
+        <EvaluasiForm participantId={joined.participantId} />
       ) : (
         <div className="rounded-2xl border bg-white shadow-sm p-8 text-center text-sm text-muted-foreground">
           {tahap === 'selesai'

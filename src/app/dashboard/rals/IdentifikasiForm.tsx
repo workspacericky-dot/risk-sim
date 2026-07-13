@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Trash2, Plus, Lightbulb } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
-import type { RalsScenario } from '@/lib/rals-scenarios'
+import type { ProbisSelection } from '@/lib/rals-probis'
 
 type Risk = {
   id: string
@@ -16,8 +16,8 @@ type Risk = {
 }
 
 export default function IdentifikasiForm({
-  sessionId, participantId, scenario,
-}: { sessionId: string; participantId: string; scenario: RalsScenario | null }) {
+  sessionId, participantId, probis,
+}: { sessionId: string; participantId: string; probis: ProbisSelection | null }) {
   const [risks, setRisks] = useState<Risk[]>([])
   const [pernyataan, setPernyataan] = useState('')
   const [kategori, setKategori] = useState('')
@@ -64,17 +64,14 @@ export default function IdentifikasiForm({
 
   return (
     <div className="space-y-4">
-      {/* Konteks skenario — bahan untuk mengidentifikasi risiko */}
-      {scenario && (
+      {/* Konteks proses bisnis — bahan untuk mengidentifikasi risiko */}
+      {probis && (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 text-sm">
-          <p className="font-serif font-semibold text-indigo-900">{scenario.nama}</p>
-          <p className="text-slate-600 mt-1 text-xs leading-relaxed">{scenario.deskripsiUnit}</p>
-          <p className="text-slate-700 mt-2 text-xs"><span className="font-semibold">Sasaran:</span> {scenario.sasaran}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {scenario.prosesBisnis.map((p) => (
-              <span key={p} className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-indigo-100 text-indigo-700">{p}</span>
-            ))}
-          </div>
+          <p className="text-[10px] uppercase tracking-widest text-indigo-400 font-semibold">Proses Bisnis</p>
+          <p className="font-serif font-semibold text-indigo-900">{probis.l1Kode} — {probis.l1Nama}</p>
+          <p className="text-[10px] uppercase tracking-widest text-indigo-400 font-semibold mt-2">Subproses Bisnis</p>
+          <p className="text-slate-700 text-sm font-medium">{probis.l2Kode} — {probis.l2Nama}</p>
+          <p className="text-xs text-slate-500 mt-2">Identifikasi risiko yang mungkin muncul pada subproses ini.</p>
         </div>
       )}
 
