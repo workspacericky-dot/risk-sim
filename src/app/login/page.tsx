@@ -15,11 +15,17 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('masuk')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setIsLoading(true)
     setError(null)
+    if (mode === 'daftar' && password !== confirmPassword) {
+      setError('Konfirmasi kata sandi tidak cocok.')
+      return
+    }
+    setIsLoading(true)
     const formData = new FormData(event.currentTarget)
     const result = mode === 'masuk' ? await login(formData) : await register(formData)
     if (result?.error) {
@@ -31,6 +37,8 @@ export default function LoginPage() {
   function switchMode(m: Mode) {
     setMode(m)
     setError(null)
+    setPassword('')
+    setConfirmPassword('')
   }
 
   const fieldStyle = {
@@ -115,10 +123,21 @@ export default function LoginPage() {
                 )}
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-slate-600 font-semibold text-xs tracking-wide uppercase">
-                    Email Pengguna
+                  <Label htmlFor="email" className="text-slate-600 font-semibold text-xs tracking-wide uppercase flex items-center gap-1">
+                    {mode === 'masuk' ? 'Email atau Nama Lengkap' : 'Email Pengguna'}
+                    {mode === 'daftar' && (
+                      <span className="relative inline-block group leading-none">
+                        <span className="text-indigo-500 cursor-help align-super text-[13px]">*</span>
+                        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-52 rounded-lg bg-slate-800 text-white text-[10px] font-normal normal-case tracking-normal px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-lg text-center">
+                          Opsional. Tanpa email, Anda login memakai nama lengkap sebagai ID.
+                        </span>
+                      </span>
+                    )}
                   </Label>
-                  <Input id="email" name="email" type="email" placeholder="nama@contoh.go.id" required
+                  <Input id="email" name="email"
+                    type={mode === 'masuk' ? 'text' : 'email'}
+                    required={mode === 'masuk'}
+                    placeholder={mode === 'masuk' ? 'Email atau nama lengkap' : 'nama@contoh.go.id (opsional)'}
                     className="placeholder:text-slate-400 text-slate-700 focus-visible:ring-blue-400/60" style={fieldStyle} />
                 </div>
 
@@ -127,10 +146,26 @@ export default function LoginPage() {
                     Kata Sandi
                   </Label>
                   <Input id="password" name="password" type="password" required
+                    value={password} onChange={(e) => setPassword(e.target.value)}
                     minLength={mode === 'daftar' ? 8 : undefined}
                     placeholder={mode === 'daftar' ? 'Minimal 8 karakter' : undefined}
                     className="text-slate-700 focus-visible:ring-blue-400/60" style={fieldStyle} />
                 </div>
+
+                {mode === 'daftar' && password.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password_confirm" className="text-slate-600 font-semibold text-xs tracking-wide uppercase">
+                      Konfirmasi Kata Sandi
+                    </Label>
+                    <Input id="password_confirm" name="password_confirm" type="password" required
+                      value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Ketik ulang kata sandi"
+                      className="text-slate-700 focus-visible:ring-blue-400/60" style={fieldStyle} />
+                    {confirmPassword.length > 0 && confirmPassword !== password && (
+                      <p className="text-[11px] text-red-600">Belum cocok dengan kata sandi.</p>
+                    )}
+                  </div>
+                )}
 
                 {mode === 'daftar' && (
                   <div className="space-y-1.5">
