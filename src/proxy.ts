@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Peserta diklat (role khusus RALS) hanya boleh berada di /dashboard/rals.
+// Peserta consulting (role khusus RALS) hanya boleh berada di /dashboard/rals.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -14,7 +14,7 @@ export async function proxy(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-      if (profile?.role === 'peserta_diklat') {
+      if (profile?.role === 'peserta_consulting') {
         return NextResponse.redirect(new URL('/dashboard/rals', request.url))
       }
     }

@@ -11,7 +11,7 @@ export default async function RalsPage() {
     ? await supabase.from('users').select('role').eq('id', user.id).single()
     : { data: null }
 
-  if (profile?.role === 'peserta_diklat') {
+  if (profile?.role === 'peserta_consulting') {
     return <ParticipantView />
   }
 

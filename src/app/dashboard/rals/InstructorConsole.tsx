@@ -61,7 +61,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
       <div>
         <h2 className="text-2xl font-bold tracking-tight font-serif">RALS — Konsol Instruktur</h2>
         <p className="text-muted-foreground text-sm mt-0.5">
-          Buat sesi diklat, bagikan kode ke peserta, dan buka tahap penilaian satu per satu.
+          Buat sesi consulting, bagikan kode ke peserta, dan buka tahap penilaian satu per satu.
         </p>
       </div>
 
@@ -74,7 +74,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
           <div className="space-y-1">
             <label className="text-xs font-medium text-slate-600">Judul Sesi</label>
             <input value={judul} onChange={(e) => setJudul(e.target.value)} required
-              placeholder="mis. Diklat MR Angkatan V" className={inputCls} />
+              placeholder="mis. Consulting MR Angkatan V" className={inputCls} />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-slate-600">Skenario</label>

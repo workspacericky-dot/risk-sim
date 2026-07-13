@@ -26,7 +26,6 @@ export default function ParticipantView() {
   const [tahap, setTahap] = useState<string>('lobby')
   const [scenario, setScenario] = useState<RalsScenario | null>(null)
   const [kode, setKode] = useState('')
-  const [nama, setNama] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -67,10 +66,10 @@ export default function ParticipantView() {
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError(null)
-    const res = await joinSession(kode, nama)
+    const res = await joinSession(kode)
     setLoading(false)
     if (res.error || !res.participantId || !res.sessionId) { setError(res.error ?? 'Gagal bergabung.'); return }
-    const j: Joined = { participantId: res.participantId, sessionId: res.sessionId, nama: nama.trim() }
+    const j: Joined = { participantId: res.participantId, sessionId: res.sessionId, nama: res.nama ?? 'Peserta' }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(j))
     setJoined(j)
   }
@@ -78,7 +77,7 @@ export default function ParticipantView() {
   function handleLeave() {
     localStorage.removeItem(STORAGE_KEY)
     setJoined(null)
-    setKode(''); setNama('')
+    setKode('')
   }
 
   const inputCls = 'w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200'
@@ -98,10 +97,7 @@ export default function ParticipantView() {
             <input value={kode} onChange={(e) => setKode(e.target.value.toUpperCase())} required maxLength={6}
               placeholder="mis. K3M9PQ" className={inputCls + ' font-mono tracking-[0.3em] text-center text-lg uppercase'} />
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-600">Nama Anda</label>
-            <input value={nama} onChange={(e) => setNama(e.target.value)} required placeholder="Nama lengkap" className={inputCls} />
-          </div>
+          <p className="text-[11px] text-slate-400">Nama Anda diambil otomatis dari akun. Bila pindah perangkat, cukup masuk lagi dan gabung dengan kode yang sama untuk melanjutkan.</p>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <button type="submit" disabled={loading}
             className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-colors">

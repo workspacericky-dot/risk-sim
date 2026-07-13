@@ -5,13 +5,13 @@ import { createClient } from '@/utils/supabase/server'
 
 type Stage = 'lobby' | 'identifikasi' | 'analisis' | 'evaluasi' | 'selesai'
 
-// Instruktur = pengguna terautentikasi yang BUKAN peserta_diklat.
+// Instruktur = pengguna terautentikasi yang BUKAN peserta_consulting.
 async function assertInstruktur() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi.', supabase: null, userId: null }
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (profile?.role === 'peserta_diklat') return { error: 'Akses ditolak.', supabase: null, userId: null }
+  if (profile?.role === 'peserta_consulting') return { error: 'Akses ditolak.', supabase: null, userId: null }
   return { error: null, supabase, userId: user.id }
 }
 
@@ -58,19 +58,27 @@ export async function deleteSession(sessionId: string): Promise<{ error?: string
   return {}
 }
 
-export async function joinSession(kode: string, nama: string): Promise<{ error?: string; participantId?: string; sessionId?: string }> {
+export async function joinSession(kode: string): Promise<{ error?: string; participantId?: string; sessionId?: string; nama?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi.' }
-  if (!kode.trim() || !nama.trim()) return { error: 'Kode sesi dan nama wajib diisi.' }
+  if (!kode.trim()) return { error: 'Kode sesi wajib diisi.' }
+
+  const { data: profile } = await supabase.from('users').select('nama_lengkap').eq('id', user.id).single()
+  const nama = profile?.nama_lengkap?.trim() || user.email || 'Peserta'
 
   const { data: session } = await supabase
     .from('rals_session').select('id').eq('kode', kode.trim().toUpperCase()).single()
   if (!session) return { error: 'Kode sesi tidak ditemukan.' }
 
+  // Satu peserta = satu baris per sesi → pakai ulang jika sudah ada (lanjut lintas perangkat).
+  const { data: existing } = await supabase
+    .from('rals_participant').select('id').eq('session_id', session.id).eq('user_id', user.id).maybeSingle()
+  if (existing) return { participantId: existing.id, sessionId: session.id, nama }
+
   const { data: participant, error: insErr } = await supabase
-    .from('rals_participant').insert({ session_id: session.id, nama: nama.trim() }).select('id').single()
+    .from('rals_participant').insert({ session_id: session.id, user_id: user.id, nama }).select('id').single()
   if (insErr || !participant) return { error: insErr?.message ?? 'Gagal bergabung.' }
 
-  return { participantId: participant.id, sessionId: session.id }
+  return { participantId: participant.id, sessionId: session.id, nama }
 }

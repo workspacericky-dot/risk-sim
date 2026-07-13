@@ -1,4 +1,4 @@
-// Skenario diklat RALS — konstanta statis (tidak perlu tabel DB).
+// Skenario consulting RALS — konstanta statis (tidak perlu tabel DB).
 // selera: ambang besaran (1–25) per kategori; risiko dengan besaran residu
 // DI ATAS ambang → masuk prioritas saat evaluasi.
 

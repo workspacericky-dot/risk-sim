@@ -23,8 +23,8 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
     return currentKonteksId ? `${base}?konteks=${currentKonteksId}` : base
   }
 
-  // Peserta diklat only ever see RALS — one menu item, no other MR modules.
-  if (userRole === 'peserta_diklat') {
+  // Peserta consulting only ever see RALS — one menu item, no other MR modules.
+  if (userRole === 'peserta_consulting') {
     return (
       <aside
         className={cn(
