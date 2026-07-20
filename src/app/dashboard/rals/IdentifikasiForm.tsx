@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2, Plus, Lightbulb, Sparkles, Users2, MessageCircleQuestion, Users, ChevronDown } from 'lucide-react'
+import { Trash2, Plus, Lightbulb, Sparkles, Users2, MessageCircleQuestion, Users, Waypoints, ChevronDown } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
 import { parseKonteks, type KonteksData } from '@/lib/rals-probis'
@@ -11,6 +11,7 @@ const TEKNIK_OPTIONS = [
   { key: 'brainstorming', label: 'Brainstorming', desc: 'Tangkap ide bersama peserta lain, lalu susun jadi risiko.', icon: Users2 },
   { key: 'structured-interview', label: 'Structured Interview', desc: 'Wawancarai narasumber dengan pertanyaan baku, lalu gali akar masalahnya.', icon: MessageCircleQuestion },
   { key: 'delphi', label: 'Delphi Technique', desc: 'Jadi bagian panel pakar anonim, capai konsensus lewat instruktur.', icon: Users },
+  { key: 'swift', label: 'SWIFT Analysis', desc: 'Petakan proses, lalu triase cepat skenario "bagaimana jika...".', icon: Waypoints },
 ]
 
 type Risk = {
