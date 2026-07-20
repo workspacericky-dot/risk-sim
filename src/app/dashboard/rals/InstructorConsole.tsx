@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Plus, Trash2, Activity, Users } from 'lucide-react'
+import { GraduationCap, Plus, Trash2, Activity, Users, Target } from 'lucide-react'
 import { createSession, setStage, deleteSession } from './actions'
 import InstructorDashboard from './InstructorDashboard'
 import DelphiFacilitatorPanel from './DelphiFacilitatorPanel'
+import SeleraRisikoPanel from './SeleraRisikoPanel'
 
 type Session = {
   id: string
@@ -32,6 +33,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
   const [error, setError] = useState<string | null>(null)
   const [openDash, setOpenDash] = useState<string | null>(null)
   const [openDelphi, setOpenDelphi] = useState<string | null>(null)
+  const [openSelera, setOpenSelera] = useState<string | null>(null)
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -122,6 +124,14 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
                   {st.label}
                 </button>
               ))}
+              {s.tahap === 'lobby' && (
+                <button onClick={() => setOpenSelera((v) => (v === s.id ? null : s.id))}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border inline-flex items-center gap-1.5 transition-colors ${
+                    openSelera === s.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                  }`}>
+                  <Target className="w-3.5 h-3.5" /> {openSelera === s.id ? 'Tutup Selera Risiko' : 'Selera Risiko'}
+                </button>
+              )}
               <button onClick={() => setOpenDelphi((v) => (v === s.id ? null : s.id))}
                 className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold border inline-flex items-center gap-1.5 transition-colors ${
                   openDelphi === s.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
@@ -136,6 +146,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
               </button>
             </div>
 
+            {s.tahap === 'lobby' && openSelera === s.id && <SeleraRisikoPanel sessionId={s.id} />}
             {openDelphi === s.id && <DelphiFacilitatorPanel sessionId={s.id} />}
             {openDash === s.id && <InstructorDashboard sessionId={s.id} />}
           </div>

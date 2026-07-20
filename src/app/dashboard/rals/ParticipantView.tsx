@@ -126,7 +126,7 @@ export default function ParticipantView() {
       ) : tahap === 'analisis' ? (
         <AnalisisForm participantId={joined.participantId} />
       ) : tahap === 'evaluasi' ? (
-        <EvaluasiForm participantId={joined.participantId} />
+        <EvaluasiForm participantId={joined.participantId} sessionId={joined.sessionId} />
       ) : (
         <div className="rounded-2xl border bg-white shadow-sm p-8 text-center text-sm text-muted-foreground">
           {tahap === 'selesai'
