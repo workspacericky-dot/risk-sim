@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Check } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { getBesaran, getLevel, KEMUNGKINAN_LABELS, DAMPAK_LABELS } from '@/lib/risk-engine'
+import { SPIP_UNSUR } from '@/lib/spip-control-library'
 
 type Risk = { id: string; kode: string; pernyataan: string; kategori: string }
 type Analysis = {
@@ -11,6 +12,8 @@ type Analysis = {
   k_inheren: number | null; d_inheren: number | null
   ada_pengendalian: boolean | null; pengendalian_memadai: boolean | null
   k_residu: number | null; d_residu: number | null
+  unsur_spip: string; subunsur_spip: string
+  uraian_pengendalian: string; evidence_keberadaan: string; evidence_kememadaian: string
 }
 
 // ── Selektor skala 1–5 berlabel ─────────────────────────────────────────────
@@ -48,11 +51,19 @@ function AnalisisRow({ risk, initial }: { risk: Risk; initial: Analysis | null }
   const [kI, setKI] = useState<number | null>(initial?.k_inheren ?? null)
   const [dI, setDI] = useState<number | null>(initial?.d_inheren ?? null)
   const [ada, setAda] = useState<boolean | null>(initial?.ada_pengendalian ?? null)
+  const [unsurKode, setUnsurKode] = useState(() => SPIP_UNSUR.find((u) => initial?.unsur_spip?.startsWith(u.kode + ' — '))?.kode ?? '')
+  const [subunsurSpip, setSubunsurSpip] = useState(initial?.subunsur_spip ?? '')
+  const [uraian, setUraian] = useState(initial?.uraian_pengendalian ?? '')
+  const [evidenceAda, setEvidenceAda] = useState(initial?.evidence_keberadaan ?? '')
   const [memadai, setMemadai] = useState<boolean | null>(initial?.pengendalian_memadai ?? null)
+  const [evidenceMemadai, setEvidenceMemadai] = useState(initial?.evidence_kememadaian ?? '')
   const [kR, setKR] = useState<number | null>(initial?.k_residu ?? null)
   const [dR, setDR] = useState<number | null>(initial?.d_residu ?? null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(!!initial)
+
+  const currentUnsur = SPIP_UNSUR.find((u) => u.kode === unsurKode)
+  const unsurLabel = currentUnsur ? `${currentUnsur.kode} — ${currentUnsur.nama}` : ''
 
   async function save() {
     setSaving(true)
@@ -60,6 +71,9 @@ function AnalisisRow({ risk, initial }: { risk: Risk; initial: Analysis | null }
     const { error } = await sb.from('rals_analysis').upsert({
       risk_id: risk.id, k_inheren: kI, d_inheren: dI,
       ada_pengendalian: ada, pengendalian_memadai: memadai,
+      unsur_spip: ada ? unsurLabel : '', subunsur_spip: ada ? subunsurSpip : '',
+      uraian_pengendalian: ada ? uraian.trim() : '', evidence_keberadaan: ada ? evidenceAda.trim() : '',
+      evidence_kememadaian: memadai !== null ? evidenceMemadai.trim() : '',
       k_residu: kR, d_residu: dR, updated_at: new Date().toISOString(),
     }, { onConflict: 'risk_id' })
     setSaving(false)
@@ -86,18 +100,72 @@ function AnalisisRow({ risk, initial }: { risk: Risk; initial: Analysis | null }
       {/* Pengendalian */}
       <div className="rounded-xl bg-amber-50/60 border border-amber-100 p-4 space-y-3">
         <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Pengendalian yang Ada</p>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-600">Sudah ada pengendalian?</span>
-            <Toggle value={ada} onChange={setAda} />
-          </div>
-          {ada && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600">Sudah memadai?</span>
-              <Toggle value={memadai} onChange={setMemadai} />
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-600">Sudah ada pengendalian?</span>
+          <Toggle value={ada} onChange={(v) => { setAda(v); if (!v) { setUnsurKode(''); setSubunsurSpip(''); setUraian(''); setEvidenceAda(''); setMemadai(null); setEvidenceMemadai('') } }} />
         </div>
+
+        {ada && (
+          <div className="space-y-3 pl-1 border-l-2 border-amber-200 ml-1">
+            {/* 1. Unsur & Subunsur SPIP */}
+            <div className="grid sm:grid-cols-2 gap-3 pl-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-600">Unsur SPIP terkait</label>
+                <select value={unsurKode} onChange={(e) => { setUnsurKode(e.target.value); setSubunsurSpip('') }}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-amber-400 bg-white">
+                  <option value="" disabled>Pilih unsur...</option>
+                  {SPIP_UNSUR.map((u) => <option key={u.kode} value={u.kode}>{u.kode}. {u.nama}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-600">Subunsur SPIP terkait</label>
+                <select value={subunsurSpip} onChange={(e) => setSubunsurSpip(e.target.value)} disabled={!currentUnsur}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-amber-400 bg-white disabled:bg-slate-50 disabled:text-slate-400">
+                  <option value="" disabled>{currentUnsur ? 'Pilih subunsur...' : 'Pilih unsur dulu'}</option>
+                  {currentUnsur?.sub.map((s) => (
+                    <option key={s.kode} value={`${s.kode} — ${s.nama}`}>{s.kode} — {s.nama}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 2. Uraian + Evidence keberadaan — hanya muncul setelah unsur & subunsur terpilih */}
+            {subunsurSpip && (
+              <div className="space-y-2 pl-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-600">Uraian Pengendalian yang Ada</label>
+                  <textarea value={uraian} onChange={(e) => setUraian(e.target.value)} rows={2}
+                    placeholder="Jelaskan bentuk pengendalian yang sudah berjalan..."
+                    className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-amber-400" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-600">Evidence Keberadaan</label>
+                  <input value={evidenceAda} onChange={(e) => setEvidenceAda(e.target.value)}
+                    placeholder="Link Google Drive/dokumen lain yang membuktikan pengendalian ini ada"
+                    className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-amber-400" />
+                </div>
+              </div>
+            )}
+
+            {/* 3. Memadai? — hanya muncul setelah uraian & evidence keberadaan terisi */}
+            {subunsurSpip && uraian.trim() && evidenceAda.trim() && (
+              <div className="space-y-2 pl-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-600">Sudah memadai?</span>
+                  <Toggle value={memadai} onChange={setMemadai} />
+                </div>
+                {memadai !== null && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600">Evidence/Bukti Kememadaian</label>
+                    <input value={evidenceMemadai} onChange={(e) => setEvidenceMemadai(e.target.value)}
+                      placeholder="Link bukti yang mendukung penilaian memadai/belum memadai"
+                      className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-amber-400" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <p className="text-[11px] text-amber-700">Pengendalian yang memadai biasanya menurunkan skor risiko residu.</p>
       </div>
 
