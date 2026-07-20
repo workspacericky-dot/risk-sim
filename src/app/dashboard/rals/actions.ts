@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 
-type Stage = 'lobby' | 'identifikasi' | 'analisis' | 'evaluasi' | 'selesai'
+type Stage = 'lobby' | 'konteks' | 'identifikasi' | 'analisis' | 'evaluasi' | 'penanganan' | 'selesai'
 
 // Instruktur = pengguna terautentikasi yang BUKAN peserta_consulting.
 async function assertInstruktur() {

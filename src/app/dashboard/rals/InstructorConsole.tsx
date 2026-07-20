@@ -23,6 +23,7 @@ const STAGES: { key: string; label: string }[] = [
   { key: 'identifikasi', label: 'Identifikasi' },
   { key: 'analisis',     label: 'Analisis' },
   { key: 'evaluasi',     label: 'Evaluasi' },
+  { key: 'penanganan',   label: 'Penanganan' },
   { key: 'selesai',      label: 'Selesai' },
 ]
 

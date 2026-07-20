@@ -8,6 +8,7 @@ import KonteksForm from './KonteksForm'
 import IdentifikasiForm from './IdentifikasiForm'
 import AnalisisForm from './AnalisisForm'
 import EvaluasiForm from './EvaluasiForm'
+import PenangananForm from './PenangananForm'
 
 type Joined = { participantId: string; sessionId: string; nama: string }
 
@@ -17,6 +18,7 @@ const STAGE_LABEL: Record<string, string> = {
   identifikasi: 'Identifikasi Risiko',
   analisis: 'Analisis Risiko',
   evaluasi: 'Evaluasi Risiko',
+  penanganan: 'Penanganan Risiko',
   selesai: 'Sesi Selesai',
 }
 
@@ -106,7 +108,7 @@ export default function ParticipantView() {
   }
 
   // ── Sudah bergabung: header + router tahap ────────────────────────────────
-  const isForm = tahap === 'konteks' || tahap === 'identifikasi' || tahap === 'analisis' || tahap === 'evaluasi'
+  const isForm = tahap === 'konteks' || tahap === 'identifikasi' || tahap === 'analisis' || tahap === 'evaluasi' || tahap === 'penanganan'
   return (
     <div className={`mx-auto mt-8 space-y-4 ${isForm ? 'max-w-3xl' : 'max-w-lg'}`}>
       {/* Header: nama + tahap aktif */}
@@ -127,6 +129,8 @@ export default function ParticipantView() {
         <AnalisisForm participantId={joined.participantId} />
       ) : tahap === 'evaluasi' ? (
         <EvaluasiForm participantId={joined.participantId} sessionId={joined.sessionId} />
+      ) : tahap === 'penanganan' ? (
+        <PenangananForm participantId={joined.participantId} sessionId={joined.sessionId} />
       ) : (
         <div className="rounded-2xl border bg-white shadow-sm p-8 text-center text-sm text-muted-foreground">
           {tahap === 'selesai'
