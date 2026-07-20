@@ -1,0 +1,71 @@
+{
+  "konteks": {
+    "title": "Penetapan Konteks",
+    "columns": [
+      { "header": "Item", "key": "item", "width": 28 },
+      { "header": "Isian", "key": "val", "width": 60 }
+    ]
+  },
+  "identifikasi": {
+    "title": "Identifikasi Risiko",
+    "columns": [
+      { "header": "Kode", "key": "kode", "width": 10 },
+      { "header": "Pernyataan Risiko", "key": "pernyataan", "width": 45 },
+      { "header": "Kategori", "key": "kategori", "width": 20 },
+      { "header": "Uraian Dampak", "key": "dampak_uraian", "width": 35 },
+      { "header": "Penyebab", "key": "penyebab", "width": 35 }
+    ]
+  },
+  "analisis": {
+    "title": "Analisis Risiko",
+    "columns": [
+      { "header": "Kode", "key": "kode", "width": 10 },
+      { "header": "Pernyataan Risiko", "key": "pernyataan", "width": 40 },
+      { "header": "K Inheren", "key": "kI", "width": 10 },
+      { "header": "D Inheren", "key": "dI", "width": 10 },
+      { "header": "Besaran Inheren", "key": "besInheren", "width": 14 },
+      { "header": "Level Inheren", "key": "lvlInheren", "width": 14 },
+      { "header": "Ada Pengendalian", "key": "ada", "width": 14 },
+      { "header": "Unsur SPIP", "key": "unsur", "width": 30 },
+      { "header": "Subunsur SPIP", "key": "subunsur", "width": 35 },
+      { "header": "Uraian Pengendalian", "key": "uraian", "width": 35 },
+      { "header": "Evidence Keberadaan", "key": "evAda", "width": 30 },
+      { "header": "Memadai", "key": "memadai", "width": 12 },
+      { "header": "Evidence Kememadaian", "key": "evMemadai", "width": 30 },
+      { "header": "K Residu", "key": "kR", "width": 10 },
+      { "header": "D Residu", "key": "dR", "width": 10 },
+      { "header": "Besaran Residu", "key": "besResidu", "width": 14 },
+      { "header": "Level Residu", "key": "lvlResidu", "width": 14 }
+    ]
+  },
+  "evaluasi": {
+    "title": "Evaluasi Risiko",
+    "columns": [
+      { "header": "Kode", "key": "kode", "width": 10 },
+      { "header": "Pernyataan Risiko", "key": "pernyataan", "width": 45 },
+      { "header": "Kategori", "key": "kategori", "width": 20 },
+      { "header": "Besaran Residu", "key": "besaran", "width": 14 },
+      { "header": "Level Residu", "key": "level", "width": 14 },
+      { "header": "Selera Kategori", "key": "threshold", "width": 14 },
+      { "header": "Status", "key": "status", "width": 16 }
+    ]
+  },
+  "penanganan": {
+    "title": "Penanganan Risiko",
+    "columns": [
+      { "header": "Kode", "key": "kode", "width": 10 },
+      { "header": "Pernyataan Risiko", "key": "pernyataan", "width": 40 },
+      { "header": "Respons Risiko", "key": "respon", "width": 18 },
+      { "header": "Kegiatan Pengendalian", "key": "kegiatan", "width": 35 },
+      { "header": "Unsur SPIP", "key": "unsur", "width": 30 },
+      { "header": "Subunsur SPIP", "key": "subunsur", "width": 35 },
+      { "header": "Penanggung Jawab", "key": "pic", "width": 20 },
+      { "header": "Indikator Keluaran", "key": "indikator", "width": 30 },
+      { "header": "Target Waktu", "key": "target", "width": 16 },
+      { "header": "Rencana K", "key": "rK", "width": 10 },
+      { "header": "Rencana D", "key": "rD", "width": 10 },
+      { "header": "Besaran Rencana", "key": "besRencana", "width": 14 },
+      { "header": "Level Rencana", "key": "lvlRencana", "width": 14 }
+    ]
+  }
+}
