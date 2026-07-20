@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Check } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { getBesaran, getLevel, KEMUNGKINAN_LABELS, DAMPAK_LABELS } from '@/lib/risk-engine'
@@ -62,6 +62,13 @@ function AnalisisRow({ risk, initial }: { risk: Risk; initial: Analysis | null }
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(!!initial)
 
+  // Tandai "belum tersimpan" begitu ada field yang berubah — kecuali pada render pertama (saat data awal dimuat).
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return }
+    setSaved(false)
+  }, [kI, dI, ada, unsurKode, subunsurSpip, uraian, evidenceAda, memadai, evidenceMemadai, kR, dR])
+
   const currentUnsur = SPIP_UNSUR.find((u) => u.kode === unsurKode)
   const unsurLabel = currentUnsur ? `${currentUnsur.kode} — ${currentUnsur.nama}` : ''
 
@@ -77,7 +84,7 @@ function AnalisisRow({ risk, initial }: { risk: Risk; initial: Analysis | null }
       k_residu: kR, d_residu: dR, updated_at: new Date().toISOString(),
     }, { onConflict: 'risk_id' })
     setSaving(false)
-    if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+    if (!error) setSaved(true)
   }
 
   return (
