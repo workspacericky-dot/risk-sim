@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
 import { PROSES_BISNIS } from '@/lib/rals-probis'
 import {
-  SWIFT_MAX_NODES, SWIFT_GUIDEWORDS, SWIFT_PRIORITIES, isHighPriority,
+  SWIFT_MAX_NODES, SWIFT_GUIDEWORDS, SWIFT_PRIORITIES, isHighPriority, toDeclarativeStatement,
   type SwiftSession, type SwiftNode, type SwiftScenario, type SwiftPriority,
 } from '@/lib/rals-swift'
 
@@ -132,7 +132,7 @@ export default function SwiftFlow({ sessionId, participantId }: { sessionId: str
     const sb = createClient()
     const { data: risk, error } = await sb.from('rals_risk').insert({
       session_id: sessionId, participant_id: participantId,
-      pernyataan: scenario.what_if_scenario, kategori,
+      pernyataan: toDeclarativeStatement(scenario.what_if_scenario), kategori,
       penyebab: scenario.immediate_impact, dampak_uraian: scenario.final_outcome,
     }).select('id').single()
     if (!error && risk) {
@@ -357,7 +357,9 @@ function DraftList({ scenarios, onPromote }: { scenarios: SwiftScenario[]; onPro
                 {s.promoted_risk_id ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 pl-9"><Check className="w-3.5 h-3.5" /> Di register</span>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-1.5 pl-9">
+                  <div className="pl-9 space-y-1.5">
+                    <p className="text-[11px] text-slate-400 italic">Tersimpan ke register sebagai: &quot;{toDeclarativeStatement(s.what_if_scenario)}&quot;</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
                     {KATEGORI_RISIKO.map((k) => (
                       <button key={k.key} onClick={() => setKategoriMap((m) => ({ ...m, [s.id]: k.label }))}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors ${
@@ -368,6 +370,7 @@ function DraftList({ scenarios, onPromote }: { scenarios: SwiftScenario[]; onPro
                       className="ml-auto px-3 py-1 rounded-lg bg-green-700 text-white text-[11px] font-semibold hover:bg-green-800 disabled:opacity-50 transition-colors">
                       {promotingId === s.id ? 'Menambahkan...' : 'Tambahkan ke Register Saya'}
                     </button>
+                    </div>
                   </div>
                 )}
               </div>

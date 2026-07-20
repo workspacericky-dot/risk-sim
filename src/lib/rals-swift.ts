@@ -66,3 +66,16 @@ export const SWIFT_PRIORITIES: { key: SwiftPriority; color: string }[] = [
 export function isHighPriority(p: SwiftPriority): boolean {
   return p === 'Med High' || p === 'High'
 }
+
+// Konversi struktural "Bagaimana jika [klausa]?" -> "[Klausa]." — melepas
+// bingkai pertanyaan eksplorasi SWIFT jadi kalimat berita untuk register
+// risiko, tanpa mengubah kata atau makna sedikit pun. Setiap template di
+// SWIFT_GUIDEWORDS sengaja ditulis agar klausa setelah "Bagaimana jika"
+// sudah gramatikal berdiri sendiri sebagai kalimat berita.
+export function toDeclarativeStatement(text: string): string {
+  const match = text.trim().match(/^bagaimana jika\s+(.+?)\s*\??\s*$/i)
+  if (!match) return text.trim()
+  const clause = match[1].trim()
+  const capitalized = clause.charAt(0).toUpperCase() + clause.slice(1)
+  return capitalized.endsWith('.') ? capitalized : `${capitalized}.`
+}
