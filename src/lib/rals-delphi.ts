@@ -23,6 +23,7 @@ export type DelphiResponse = {
   ronde: 'eksplorasi' | 'konvergensi'
   opini: string
   konsensus_skor: number | null
+  kemungkinan: number | null
   severitas: number | null
   revisi: string
   created_at: string

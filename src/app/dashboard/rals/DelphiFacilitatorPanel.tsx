@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Lock, Plus, Trash2, Users } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
-import { KATEGORI_RISIKO, DAMPAK_LABELS } from '@/lib/risk-engine'
+import { KATEGORI_RISIKO, DAMPAK_LABELS, KEMUNGKINAN_LABELS, getBesaran, getLevel } from '@/lib/risk-engine'
 import { AGREEMENT_LABELS, type DelphiTopic, type DelphiResponse } from '@/lib/rals-delphi'
 
 export default function DelphiFacilitatorPanel({ sessionId }: { sessionId: string }) {
@@ -135,6 +135,9 @@ function DelphiTopicCard({ topic, responses, promoCount, onDelete, onOpenRound2,
 
   const avgKonsensus = round2.length ? (round2.reduce((s, r) => s + (r.konsensus_skor ?? 0), 0) / round2.length) : null
   const avgSeveritas = round2.length ? Math.round(round2.reduce((s, r) => s + (r.severitas ?? 0), 0) / round2.length) : null
+  const avgKemungkinan = round2.length ? Math.round(round2.reduce((s, r) => s + (r.kemungkinan ?? 0), 0) / round2.length) : null
+  const suggestedBesaran = avgKemungkinan && avgSeveritas ? getBesaran(avgKemungkinan, avgSeveritas) : null
+  const suggestedLevel = getLevel(suggestedBesaran)
 
   return (
     <div className="rounded-xl border bg-white p-4 space-y-3">
@@ -206,7 +209,14 @@ function DelphiTopicCard({ topic, responses, promoCount, onDelete, onOpenRound2,
             <input value={penyebab} onChange={(e) => setPenyebab(e.target.value)} placeholder="Sebab" className={inputCls} />
             <input value={pernyataan} onChange={(e) => setPernyataan(e.target.value)} placeholder="Kejadian (pernyataan risiko)" className={inputCls} />
             <input value={dampak} onChange={(e) => setDampak(e.target.value)} placeholder="Dampak" className={inputCls} />
-            {avgSeveritas && <p className="text-[11px] text-slate-400">Rata-rata estimasi severitas pakar: {avgSeveritas} — {DAMPAK_LABELS[avgSeveritas]}</p>}
+            {avgKemungkinan && <p className="text-[11px] text-slate-400">Rata-rata estimasi kemungkinan pakar: {avgKemungkinan} — {KEMUNGKINAN_LABELS[avgKemungkinan]}</p>}
+            {avgSeveritas && <p className="text-[11px] text-slate-400">Rata-rata estimasi dampak pakar: {avgSeveritas} — {DAMPAK_LABELS[avgSeveritas]}</p>}
+            {suggestedBesaran && (
+              <p className="text-xs font-semibold inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit"
+                style={{ color: suggestedLevel.color, borderColor: suggestedLevel.color + '55', background: suggestedLevel.color + '11' }}>
+                Perkiraan besaran konsensus: {suggestedBesaran} · {suggestedLevel.label}
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-1.5">
               {KATEGORI_RISIKO.map((k) => (
                 <button type="button" key={k.key} onClick={() => setKategori(k.label)}

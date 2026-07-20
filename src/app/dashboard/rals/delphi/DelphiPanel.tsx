@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
-import { DAMPAK_LABELS } from '@/lib/risk-engine'
+import { DAMPAK_LABELS, KEMUNGKINAN_LABELS, getBesaran, getLevel } from '@/lib/risk-engine'
 import { AGREEMENT_LABELS, type DelphiTopic, type DelphiResponse } from '@/lib/rals-delphi'
 
 export default function DelphiPanel({ sessionId, participantId }: { sessionId: string; participantId: string }) {
@@ -86,6 +86,7 @@ function TopicCard({ topic, myRound1, myRound2, promoted, onPromote, onSaved, pa
 }) {
   const [opini, setOpini] = useState(myRound1?.opini ?? '')
   const [konsensus, setKonsensus] = useState<number | null>(myRound2?.konsensus_skor ?? null)
+  const [kemungkinan, setKemungkinan] = useState<number | null>(myRound2?.kemungkinan ?? null)
   const [severitas, setSeveritas] = useState<number | null>(myRound2?.severitas ?? null)
   const [revisi, setRevisi] = useState(myRound2?.revisi ?? '')
   const [saving, setSaving] = useState(false)
@@ -113,7 +114,7 @@ function TopicCard({ topic, myRound1, myRound2, promoted, onPromote, onSaved, pa
     setSaving(true)
     const sb = createClient()
     await sb.from('rals_delphi_response').upsert(
-      { topic_id: topic.id, participant_id: participantId, ronde: 'konvergensi', konsensus_skor: konsensus, severitas, revisi: revisi.trim(), updated_at: new Date().toISOString() },
+      { topic_id: topic.id, participant_id: participantId, ronde: 'konvergensi', konsensus_skor: konsensus, kemungkinan, severitas, revisi: revisi.trim(), updated_at: new Date().toISOString() },
       { onConflict: 'topic_id,participant_id,ronde' },
     )
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
@@ -165,6 +166,19 @@ function TopicCard({ topic, myRound1, myRound2, promoted, onPromote, onSaved, pa
           </div>
 
           <div>
+            <label className="text-xs font-semibold text-slate-600">Estimasi Kemungkinan</label>
+            <div className="flex gap-1 mt-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} type="button" onClick={() => setKemungkinan(n)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
+                    kemungkinan === n ? 'bg-sky-600 text-white border-sky-600' : 'bg-white text-slate-600 border-slate-200 hover:border-sky-300'
+                  }`}>{n}</button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">{kemungkinan ? KEMUNGKINAN_LABELS[kemungkinan] : ' '}</p>
+          </div>
+
+          <div>
             <label className="text-xs font-semibold text-slate-600">Estimasi Dampak (severitas)</label>
             <div className="flex gap-1 mt-1">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -176,6 +190,17 @@ function TopicCard({ topic, myRound1, myRound2, promoted, onPromote, onSaved, pa
             </div>
             <p className="text-[11px] text-slate-500 mt-1">{severitas ? DAMPAK_LABELS[severitas] : ' '}</p>
           </div>
+
+          {kemungkinan && severitas && (() => {
+            const besaran = getBesaran(kemungkinan, severitas)
+            const lvl = getLevel(besaran)
+            return (
+              <p className="text-xs font-semibold inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border w-fit"
+                style={{ color: lvl.color, borderColor: lvl.color + '55', background: lvl.color + '11' }}>
+                Perkiraan besaran {besaran} · {lvl.label}
+              </p>
+            )
+          })()}
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-600">Revisi Pandangan <span className="text-slate-400 font-normal">(opsional)</span></label>
