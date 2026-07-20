@@ -7,14 +7,18 @@ export type Bowtie = {
   id: string
   session_id: string
   participant_id: string
-  l1_kode: string
-  l1_nama: string
-  l2_kode: string
-  l2_nama: string
-  top_event: string
-  kategori: string
-  promoted_risk_id: string | null
+  risk_id: string
   created_at: string
+}
+
+// Risiko yang sudah ada di register — Top Event bowtie diambil dari sini.
+export type BowtieRisk = {
+  id: string
+  kode: string | null
+  pernyataan: string
+  kategori: string | null
+  penyebab: string | null
+  dampak_uraian: string | null
 }
 
 export type BowtieElement = {

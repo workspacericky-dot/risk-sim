@@ -1,29 +1,31 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, ChevronLeft, ChevronsLeftRight, Plus, Shield, Trash2, X, Zap } from 'lucide-react'
+import { AlertTriangle, Check, ChevronLeft, ChevronsLeftRight, Plus, Shield, Trash2, X, Zap } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
-import { KATEGORI_RISIKO } from '@/lib/risk-engine'
-import type { Bowtie, BowtieElement, BowtieBarrier, BowtieEscalation, BowtieElementType } from '@/lib/rals-bowtie'
+import type { Bowtie, BowtieElement, BowtieBarrier, BowtieEscalation, BowtieElementType, BowtieRisk } from '@/lib/rals-bowtie'
 
-export default function BowtieCanvas({ bowtieId, sessionId, participantId, onBack }: {
+export default function BowtieCanvas({ bowtieId, onBack }: {
   bowtieId: string; sessionId: string; participantId: string; onBack: () => void
 }) {
   const [bowtie, setBowtie] = useState<Bowtie | null>(null)
+  const [risk, setRisk] = useState<BowtieRisk | null>(null)
   const [elements, setElements] = useState<BowtieElement[]>([])
   const [barriers, setBarriers] = useState<BowtieBarrier[]>([])
   const [escalations, setEscalations] = useState<BowtieEscalation[]>([])
-  const [topEventDraft, setTopEventDraft] = useState('')
   const [editingBarrierId, setEditingBarrierId] = useState<string | null>(null)
-  const [kategori, setKategori] = useState('')
-  const [promoting, setPromoting] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const fetchGraph = useCallback(async () => {
     const sb = createClient()
     const { data: bt } = await sb.from('rals_bowtie').select('*').eq('id', bowtieId).single()
     setBowtie(bt as Bowtie)
-    setTopEventDraft((bt as Bowtie)?.top_event ?? '')
-    setKategori((bt as Bowtie)?.kategori ?? '')
+
+    if ((bt as Bowtie)?.risk_id) {
+      const { data: rk } = await sb.from('rals_risk').select('id, kode, pernyataan, kategori, penyebab, dampak_uraian').eq('id', (bt as Bowtie).risk_id).single()
+      setRisk(rk as BowtieRisk)
+    }
 
     const { data: els } = await sb.from('rals_bowtie_element').select('*').eq('bowtie_id', bowtieId).order('created_at', { ascending: true })
     const elRows = (els ?? []) as BowtieElement[]
@@ -49,11 +51,6 @@ export default function BowtieCanvas({ bowtieId, sessionId, participantId, onBac
 
   const sb = () => createClient()
 
-  async function saveTopEvent() {
-    if (!bowtie || topEventDraft.trim() === bowtie.top_event) return
-    await sb().from('rals_bowtie').update({ top_event: topEventDraft.trim() }).eq('id', bowtieId)
-    fetchGraph()
-  }
   async function addElement(tipe: BowtieElementType, deskripsi: string) {
     await sb().from('rals_bowtie_element').insert({ bowtie_id: bowtieId, tipe, deskripsi })
     fetchGraph()
@@ -67,28 +64,23 @@ export default function BowtieCanvas({ bowtieId, sessionId, participantId, onBac
     fetchGraph()
   }
 
-  async function handlePromote() {
-    if (!bowtie) return
-    setPromoting(true)
-    const client = sb()
-    const { data: risk, error } = await client.from('rals_risk').insert({
-      session_id: sessionId, participant_id: participantId,
-      pernyataan: bowtie.top_event, kategori,
-      penyebab: threats.map((t) => t.deskripsi).join('; '),
-      dampak_uraian: consequences.map((c) => c.deskripsi).join('; '),
-    }).select('id').single()
-    if (!error && risk) {
-      await client.from('rals_bowtie').update({ promoted_risk_id: risk.id, kategori }).eq('id', bowtieId)
-    }
-    setPromoting(false)
+  async function handleSaveAnalysis() {
+    if (!risk || !bowtie) return
+    const newPenyebab = threats.map((t) => t.deskripsi).join('; ')
+    const newDampak = consequences.map((c) => c.deskripsi).join('; ')
+    const overwriting = (risk.penyebab && risk.penyebab !== newPenyebab) || (risk.dampak_uraian && risk.dampak_uraian !== newDampak)
+    if (overwriting && !confirm('Ini akan mengganti isi Penyebab & Dampak yang sudah ada pada risiko ini dengan hasil analisis bowtie. Lanjutkan?')) return
+    setSaving(true)
+    await sb().from('rals_risk').update({ penyebab: newPenyebab, dampak_uraian: newDampak }).eq('id', risk.id)
+    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
     fetchGraph()
   }
 
   const inputCls = 'w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200'
-  const canPromote = !!bowtie?.top_event && threats.length > 0 && consequences.length > 0 && !!kategori
+  const canSave = threats.length > 0 && consequences.length > 0
   const editingBarrier = barriers.find((b) => b.id === editingBarrierId) ?? null
 
-  if (!bowtie) return <div className="rounded-2xl border bg-white shadow-sm p-8 text-center text-sm text-muted-foreground">Memuat...</div>
+  if (!bowtie || !risk) return <div className="rounded-2xl border bg-white shadow-sm p-8 text-center text-sm text-muted-foreground">Memuat...</div>
 
   return (
     <div className="space-y-4">
@@ -96,7 +88,7 @@ export default function BowtieCanvas({ bowtieId, sessionId, participantId, onBac
         <button onClick={onBack} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800">
           <ChevronLeft className="w-4 h-4" /> Daftar Bowtie
         </button>
-        <p className="text-[11px] font-semibold text-indigo-600">#{bowtie.l2_nama.replace(/\s+/g, '')}</p>
+        {risk.kode && <p className="text-[11px] font-mono font-semibold text-indigo-600">{risk.kode}</p>}
       </div>
 
       {/* Kanvas Bowtie */}
@@ -123,8 +115,8 @@ export default function BowtieCanvas({ bowtieId, sessionId, participantId, onBac
             <ChevronsLeftRight className="hidden lg:block w-5 h-5 text-red-300" />
             <div className="rounded-2xl bg-red-600 text-white shadow-lg px-4 py-4 text-center w-full lg:w-56 border-4 border-red-200">
               <p className="text-[10px] uppercase tracking-widest text-red-100 font-bold mb-1">Kejadian Utama</p>
-              <textarea value={topEventDraft} onChange={(e) => setTopEventDraft(e.target.value)} onBlur={saveTopEvent}
-                rows={3} className="w-full bg-transparent text-white text-sm font-semibold text-center placeholder-red-200 outline-none resize-none" />
+              <p className="text-sm font-semibold">{risk.pernyataan}</p>
+              {risk.kategori && <p className="text-[10px] text-red-100 mt-1.5">{risk.kategori}</p>}
             </div>
           </div>
 
@@ -153,28 +145,16 @@ export default function BowtieCanvas({ bowtieId, sessionId, participantId, onBac
 
       {/* Promote */}
       <div className="rounded-2xl border bg-white shadow-sm p-5 space-y-3">
-        {bowtie.promoted_risk_id ? (
-          <p className="text-sm font-semibold text-green-700 inline-flex items-center gap-1.5">
-            <Shield className="w-4 h-4" /> Bowtie ini sudah ditambahkan ke register Anda.
-          </p>
-        ) : (
-          <>
-            <p className="text-xs font-semibold text-slate-600">Kategori Risiko (untuk register)</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              {KATEGORI_RISIKO.map((k) => (
-                <button key={k.key} type="button" onClick={() => setKategori(k.label)} title={k.hint}
-                  className={`text-left rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all ${
-                    kategori === k.label ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-white hover:border-indigo-300'
-                  }`}>{k.label}</button>
-              ))}
-            </div>
-            <button onClick={handlePromote} disabled={!canPromote || promoting}
-              className="px-5 py-2 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800 disabled:opacity-50 transition-colors">
-              {promoting ? 'Menambahkan...' : 'Tambahkan ke Register Saya'}
-            </button>
-            {!canPromote && <p className="text-[11px] text-slate-400">Butuh minimal 1 ancaman, 1 dampak, dan kategori terpilih.</p>}
-          </>
-        )}
+        <p className="text-xs font-semibold text-slate-600">Simpan Hasil Analisis</p>
+        <p className="text-[11px] text-slate-500 -mt-2">
+          Ancaman akan mengisi kolom <span className="font-semibold">Penyebab</span>, dan Dampak akan mengisi kolom{' '}
+          <span className="font-semibold">Uraian Dampak</span> pada risiko &quot;{risk.pernyataan}&quot; di register Anda.
+        </p>
+        <button onClick={handleSaveAnalysis} disabled={!canSave || saving}
+          className="px-5 py-2 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800 disabled:opacity-50 transition-colors inline-flex items-center gap-2">
+          {saved ? <><Check className="w-4 h-4" /> Tersimpan</> : saving ? 'Menyimpan...' : 'Simpan Analisis ke Risiko'}
+        </button>
+        {!canSave && <p className="text-[11px] text-slate-400">Butuh minimal 1 ancaman dan 1 dampak.</p>}
       </div>
 
       {editingBarrier && (
