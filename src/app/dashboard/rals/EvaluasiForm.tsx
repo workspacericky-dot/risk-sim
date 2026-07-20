@@ -7,6 +7,7 @@ import { RiskMatrix, type RiskPoint } from '@/components/RiskMatrix'
 import { getBesaran, getLevel, getKategoriKey } from '@/lib/risk-engine'
 import { DEFAULT_SELERA } from '@/lib/rals-probis'
 import ExportBar from './ExportBar'
+import OrgExportButton from './OrgExportButton'
 
 type Risk = { id: string; kode: string; pernyataan: string; kategori: string }
 type Analysis = { risk_id: string; k_residu: number | null; d_residu: number | null }
@@ -66,6 +67,7 @@ export default function EvaluasiForm({ participantId, sessionId }: { participant
   return (
     <div className="space-y-4">
       <ExportBar participantId={participantId} stage="evaluasi" />
+      <OrgExportButton sessionId={sessionId} stage="evaluasi" />
       {analised.length === 0 ? (
         <div className="rounded-2xl border bg-white shadow-sm p-8 text-center text-sm text-muted-foreground">
           Belum ada risiko yang teranalisis. Selesaikan tahap Analisis lebih dulu.

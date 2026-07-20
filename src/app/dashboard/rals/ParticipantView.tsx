@@ -122,11 +122,11 @@ export default function ParticipantView() {
 
       {/* Body per tahap */}
       {tahap === 'konteks' ? (
-        <KonteksForm participantId={joined.participantId} />
+        <KonteksForm participantId={joined.participantId} sessionId={joined.sessionId} />
       ) : tahap === 'identifikasi' ? (
         <IdentifikasiForm sessionId={joined.sessionId} participantId={joined.participantId} />
       ) : tahap === 'analisis' ? (
-        <AnalisisForm participantId={joined.participantId} />
+        <AnalisisForm participantId={joined.participantId} sessionId={joined.sessionId} />
       ) : tahap === 'evaluasi' ? (
         <EvaluasiForm participantId={joined.participantId} sessionId={joined.sessionId} />
       ) : tahap === 'penanganan' ? (

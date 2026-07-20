@@ -5,8 +5,9 @@ import { Check, Target } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { PROSES_BISNIS, parseKonteks } from '@/lib/rals-probis'
 import ExportBar from './ExportBar'
+import OrgExportButton from './OrgExportButton'
 
-export default function KonteksForm({ participantId }: { participantId: string }) {
+export default function KonteksForm({ participantId, sessionId }: { participantId: string; sessionId: string }) {
   const [l1Kode, setL1Kode] = useState(PROSES_BISNIS[0]?.kode ?? '')
   const [l2Idx, setL2Idx] = useState('')
   const [pemangkuNama, setPemangkuNama] = useState('')
@@ -60,6 +61,7 @@ export default function KonteksForm({ participantId }: { participantId: string }
   return (
     <div className="space-y-4">
       <ExportBar participantId={participantId} stage="konteks" />
+      <OrgExportButton sessionId={sessionId} stage="konteks" />
       <form onSubmit={handleSave} className="space-y-4">
       <div className="rounded-2xl border bg-white shadow-sm p-5 space-y-4">
         <h3 className="font-serif font-semibold text-slate-800 flex items-center gap-2">
