@@ -14,7 +14,6 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
   const [ideas, setIdeas] = useState<BrainstormIdea[]>([])
   const [votes, setVotes] = useState<BrainstormVote[]>([])
   const [drafts, setDrafts] = useState<BrainstormDraft[]>([])
-  const [names, setNames] = useState<Record<string, string>>({})
   const [ideaText, setIdeaText] = useState('')
   const [l1Kode, setL1Kode] = useState(PROSES_BISNIS[0]?.kode ?? '')
   const [l2Idx, setL2Idx] = useState('')
@@ -47,11 +46,6 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
     const { data: draftRows } = await sb.from('rals_brainstorm_draft').select('*')
       .eq('participant_id', participantId).order('created_at', { ascending: false })
     setDrafts((draftRows ?? []) as BrainstormDraft[])
-
-    const { data: participantRows } = await sb.from('rals_participant').select('id, nama').eq('session_id', sessionId)
-    const nameMap: Record<string, string> = {}
-    for (const p of participantRows ?? []) nameMap[p.id] = p.nama
-    setNames(nameMap)
   }, [sessionId, participantId])
 
   useEffect(() => {
@@ -185,7 +179,7 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
                 <Send className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-[11px] text-slate-400">Setiap ide diberi hashtag subproses agar konteksnya jelas. Tulis bebas, tanpa takut dihakimi.</p>
+            <p className="text-[11px] text-slate-400">Papan ini anonim (@anonim) — nama Anda tidak ditampilkan. Setiap ide diberi hashtag subproses agar konteksnya tetap jelas. Tulis bebas, tanpa takut dihakimi.</p>
           </form>
 
           <div className="grid sm:grid-cols-2 gap-3">
@@ -207,7 +201,7 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
                       <p className="text-[11px] font-semibold text-indigo-600">#{idea.l2_nama.replace(/\s+/g, '')}</p>
                     )}
                     <p className="text-sm text-slate-800 leading-snug mt-0.5">{idea.teks}</p>
-                    <p className="text-[11px] text-slate-400 mt-1.5">— {names[idea.participant_id] ?? 'Peserta'}</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5">— @anonim</p>
                   </div>
                 </div>
               )
@@ -235,7 +229,7 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
               </div>
 
               {selectedIdea.l2_nama && (
-                <p className="text-[11px] font-semibold text-indigo-600">#{selectedIdea.l2_nama.replace(/\s+/g, '')} · dari {names[selectedIdea.participant_id] ?? 'Peserta'}</p>
+                <p className="text-[11px] font-semibold text-indigo-600">#{selectedIdea.l2_nama.replace(/\s+/g, '')} · dari @anonim</p>
               )}
 
               <div className="space-y-1.5">
@@ -288,7 +282,7 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
                     <p className="text-[11px] font-semibold text-indigo-600">#{idea.l2_nama.replace(/\s+/g, '')}</p>
                   )}
                   <p className="text-sm text-slate-800 leading-snug mt-0.5">{idea.teks}</p>
-                  <p className="text-[11px] text-slate-400 mt-1.5">— {names[idea.participant_id] ?? 'Peserta'}</p>
+                  <p className="text-[11px] text-slate-400 mt-1.5">— @anonim</p>
                 </div>
                 <button type="button" onClick={() => selectIdea(idea)}
                   className="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-semibold hover:bg-indigo-100 transition-colors">
