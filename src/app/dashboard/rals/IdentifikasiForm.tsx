@@ -56,11 +56,9 @@ export default function IdentifikasiForm({
     if (!kategori) { setError('Pilih satu kategori risiko.'); return }
     setSaving(true); setError(null)
     const sb = createClient()
-    const { count } = await sb.from('rals_risk').select('id', { count: 'exact', head: true })
-      .eq('participant_id', participantId)
-    const kode = `R-${String((count ?? 0) + 1).padStart(2, '0')}`
+    // Kode risiko (R-01, R-02, ...) dihasilkan trigger DB, berurutan per sesi (perspektif organisasi).
     const { error: insErr } = await sb.from('rals_risk').insert({
-      session_id: sessionId, participant_id: participantId, kode,
+      session_id: sessionId, participant_id: participantId,
       pernyataan: pernyataan.trim(), kategori, dampak_uraian: dampak.trim(), penyebab: penyebab.trim(),
     })
     setSaving(false)

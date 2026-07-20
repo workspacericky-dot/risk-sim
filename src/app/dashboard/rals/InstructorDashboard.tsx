@@ -7,7 +7,7 @@ import { KATEGORI_RISIKO } from '@/lib/risk-engine'
 
 type Participant = { id: string; nama: string }
 type Risk = { id: string; kode: string; pernyataan: string; kategori: string; participant_id: string; created_at: string }
-type Analysis = { risk_id: string; k_residu: number | null; d_residu: number | null }
+type Analysis = { risk_id: string; k_residu: number | null; d_residu: number | null; ada_pengendalian: boolean | null }
 
 export default function InstructorDashboard({ sessionId }: { sessionId: string }) {
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -25,7 +25,7 @@ export default function InstructorDashboard({ sessionId }: { sessionId: string }
     const rows = (r ?? []) as Risk[]
     setRisks(rows)
     if (rows.length) {
-      const { data: a } = await sb.from('rals_analysis').select('risk_id, k_residu, d_residu').in('risk_id', rows.map((x) => x.id))
+      const { data: a } = await sb.from('rals_analysis').select('risk_id, k_residu, d_residu, ada_pengendalian').in('risk_id', rows.map((x) => x.id))
       const map: Record<string, Analysis> = {}
       for (const it of (a ?? []) as Analysis[]) map[it.risk_id] = it
       setAnalyses(map)
@@ -52,7 +52,8 @@ export default function InstructorDashboard({ sessionId }: { sessionId: string }
   })
 
   const points: RiskPoint[] = analisedRisks.map((r) => ({
-    id: r.id, label: r.kode, kemungkinan: analyses[r.id].k_residu!, dampak: analyses[r.id].d_residu!, pernyataan: r.pernyataan,
+    id: r.id, label: r.kode, kemungkinan: analyses[r.id].k_residu!, dampak: analyses[r.id].d_residu!,
+    pernyataan: r.pernyataan, pengendalian: analyses[r.id].ada_pengendalian,
   }))
 
   const nama = (pid: string) => participants.find((p) => p.id === pid)?.nama ?? '—'

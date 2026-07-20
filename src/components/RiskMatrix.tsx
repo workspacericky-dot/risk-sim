@@ -34,6 +34,13 @@ export type RiskPoint = {
   kemungkinan: number  // 1–5 (y-axis)
   dampak: number       // 1–5 (x-axis)
   pernyataan?: string  // tooltip
+  pengendalian?: boolean | null // tooltip tambahan: true=sudah ada, false=belum, undefined=tidak ditampilkan
+}
+
+function pointTitle(r: RiskPoint): string {
+  const statusLine = r.pengendalian === true ? 'Pengendalian: Sudah ada'
+    : r.pengendalian === false ? 'Pengendalian: Belum ada' : null
+  return [r.pernyataan ?? r.label, statusLine].filter(Boolean).join('\n')
 }
 
 const K_LABELS: Record<number, string> = {
@@ -119,7 +126,7 @@ export function RiskMatrix({ risks }: { risks: RiskPoint[] }) {
                     <div
                       key={r.id}
                       className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-[10px] font-bold text-slate-800 shadow-md cursor-default select-none z-10 border-2 border-white/80"
-                      title={r.pernyataan ?? r.label}
+                      title={pointTitle(r)}
                     >
                       {r.label}
                     </div>
