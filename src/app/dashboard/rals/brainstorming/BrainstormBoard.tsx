@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowUp, Check, Send, Sparkles, Wand2 } from 'lucide-react'
+import { ArrowUp, Check, Send, Sparkles, Trash2, Wand2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
 import { PROSES_BISNIS } from '@/lib/rals-probis'
@@ -90,6 +90,13 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
   }
 
   const sortedIdeas = [...ideas].sort((a, b) => voteCount(b.id) - voteCount(a.id) || (a.created_at < b.created_at ? 1 : -1))
+
+  async function handleDeleteIdea(ideaId: string) {
+    const sb = createClient()
+    await sb.from('rals_brainstorm_idea').delete().eq('id', ideaId)
+    if (selectedIdea?.id === ideaId) setSelectedIdea(null)
+    fetchAll()
+  }
 
   function selectIdea(idea: BrainstormIdea) {
     setSelectedIdea(idea)
@@ -196,13 +203,19 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
                     <ArrowUp className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-bold">{voteCount(idea.id)}</span>
                   </button>
-                  <div className="pt-1">
+                  <div className="pt-1 flex-1 min-w-0">
                     {idea.l2_nama && (
                       <p className="text-[11px] font-semibold text-indigo-600">#{idea.l2_nama.replace(/\s+/g, '')}</p>
                     )}
                     <p className="text-sm text-slate-800 leading-snug mt-0.5">{idea.teks}</p>
                     <p className="text-[11px] text-slate-400 mt-1.5">— @anonim</p>
                   </div>
+                  {idea.participant_id === participantId && (
+                    <button onClick={() => handleDeleteIdea(idea.id)} title="Hapus ide ini"
+                      className="shrink-0 text-slate-300 hover:text-red-500 transition-colors p-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               )
             })}
@@ -277,17 +290,25 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
             {sortedIdeas.map((idea) => (
               <div key={idea.id} draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', idea.id)}
                 className="rounded-2xl border bg-white shadow-sm p-4 flex items-start justify-between gap-3 cursor-grab active:cursor-grabbing">
-                <div>
+                <div className="flex-1 min-w-0">
                   {idea.l2_nama && (
                     <p className="text-[11px] font-semibold text-indigo-600">#{idea.l2_nama.replace(/\s+/g, '')}</p>
                   )}
                   <p className="text-sm text-slate-800 leading-snug mt-0.5">{idea.teks}</p>
                   <p className="text-[11px] text-slate-400 mt-1.5">— @anonim</p>
                 </div>
-                <button type="button" onClick={() => selectIdea(idea)}
-                  className="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-semibold hover:bg-indigo-100 transition-colors">
-                  Pilih
-                </button>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <button type="button" onClick={() => selectIdea(idea)}
+                    className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-semibold hover:bg-indigo-100 transition-colors">
+                    Pilih
+                  </button>
+                  {idea.participant_id === participantId && (
+                    <button onClick={() => handleDeleteIdea(idea.id)} title="Hapus ide ini"
+                      className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
