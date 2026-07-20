@@ -6,7 +6,6 @@ import { Trash2, Plus, Lightbulb, Sparkles, Users2, MessageCircleQuestion, Users
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
 import { parseKonteks, type KonteksData } from '@/lib/rals-probis'
-import ExportBar from './ExportBar'
 import OrgExportButton from './OrgExportButton'
 
 const TEKNIK_OPTIONS = [
@@ -83,7 +82,6 @@ export default function IdentifikasiForm({
 
   return (
     <div className="space-y-4">
-      <ExportBar participantId={participantId} stage="identifikasi" />
       <OrgExportButton sessionId={sessionId} stage="identifikasi" />
 
       {/* Teknik Identifikasi Risiko — menu bantuan */}

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { EXPORT_STAGES, buildStageExport, STAGE_TITLES, type ExportStage } from '@/lib/rals-export'
+import { EXPORT_STAGES, type ExportStage } from '@/lib/rals-export'
 import { buildOrgStageExport } from '@/lib/rals-org-export'
 import AutoPrint from './AutoPrint'
 
@@ -9,52 +9,29 @@ export const dynamic = 'force-dynamic'
 export default async function RalsPrintPage({
   searchParams,
 }: {
-  searchParams: Promise<{ participantId?: string; sessionId?: string; stage?: string; scope?: string }>
+  searchParams: Promise<{ sessionId?: string; stage?: string }>
 }) {
-  const { participantId, sessionId, stage: stageParam, scope: scopeParam } = await searchParams
+  const { sessionId, stage: stageParam } = await searchParams
   if (!EXPORT_STAGES.includes(stageParam as ExportStage)) {
     return <div className="p-8 text-center text-sm text-muted-foreground">Parameter ekspor tidak valid.</div>
   }
   const stage = stageParam as ExportStage
-  const scope = scopeParam === 'org' ? 'org' : 'own'
+  if (!sessionId) return <div className="p-8 text-center text-sm text-muted-foreground">Parameter ekspor tidak valid.</div>
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  let sheet
-  let headerLine = ''
+  // Siapa pun peserta terdaftar di sesi ini boleh mengekspor rekap organisasi.
+  const { data: membership } = await supabase
+    .from('rals_participant').select('id').eq('session_id', sessionId).eq('user_id', user.id).maybeSingle()
+  if (!membership) return <div className="p-8 text-center text-sm text-muted-foreground">Akses ditolak.</div>
 
-  if (scope === 'org') {
-    if (!sessionId) return <div className="p-8 text-center text-sm text-muted-foreground">Parameter ekspor tidak valid.</div>
-    const { data: membership } = await supabase
-      .from('rals_participant').select('id').eq('session_id', sessionId).eq('user_id', user.id).maybeSingle()
-    if (!membership) return <div className="p-8 text-center text-sm text-muted-foreground">Akses ditolak.</div>
-    sheet = await buildOrgStageExport(supabase, sessionId, stage)
-  } else {
-    if (!participantId) return <div className="p-8 text-center text-sm text-muted-foreground">Parameter ekspor tidak valid.</div>
-    const { data: participant } = await supabase
-      .from('rals_participant').select('id, nama, session_id, user_id, konteks').eq('id', participantId).single()
-    if (!participant || participant.user_id !== user.id) {
-      return <div className="p-8 text-center text-sm text-muted-foreground">Akses ditolak — data ini bukan milik akun Anda.</div>
-    }
-    const { data: session } = await supabase.from('rals_session').select('judul').eq('id', participant.session_id).single()
-    sheet = await buildStageExport(supabase, participant, stage)
-    headerLine = `${session?.judul ?? 'Sesi RALS'} — ${participant.nama} · Dicetak ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-  }
+  const sheet = await buildOrgStageExport(supabase, sessionId, stage)
 
   return (
-    <div className={scope === 'org' ? 'w-full p-6 space-y-3' : 'max-w-4xl mx-auto p-6 space-y-4'}>
+    <div className="w-full p-6 space-y-3">
       <AutoPrint />
-
-      {/* Peserta: judul kecil + konteks. Rekap organisasi: TANPA kop sama sekali — murni tabel. */}
-      {scope === 'own' && (
-        <div className="text-center space-y-1 border-b-2 border-slate-800 pb-3">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400">RALS — Risk Assessment Live Simulator · Khusus Edukasi</p>
-          <h1 className="text-xl font-bold font-serif">{STAGE_TITLES[stage]}</h1>
-          <p className="text-xs text-slate-500">{headerLine}</p>
-        </div>
-      )}
 
       {sheet.rows.length === 0 ? (
         <p className="text-center text-sm text-slate-400 py-10">Belum ada data untuk tahap ini.</p>
