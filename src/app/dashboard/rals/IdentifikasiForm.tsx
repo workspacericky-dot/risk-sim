@@ -1,10 +1,15 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Trash2, Plus, Lightbulb } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Trash2, Plus, Lightbulb, Sparkles, Users2, ChevronDown } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
 import { parseKonteks, type KonteksData } from '@/lib/rals-probis'
+
+const TEKNIK_OPTIONS = [
+  { key: 'brainstorming', label: 'Brainstorming', desc: 'Tangkap ide bersama peserta lain, lalu susun jadi risiko.', icon: Users2 },
+]
 
 type Risk = {
   id: string
@@ -18,8 +23,10 @@ type Risk = {
 export default function IdentifikasiForm({
   sessionId, participantId,
 }: { sessionId: string; participantId: string }) {
+  const router = useRouter()
   const [risks, setRisks] = useState<Risk[]>([])
   const [konteks, setKonteks] = useState<KonteksData | null>(null)
+  const [teknikOpen, setTeknikOpen] = useState(false)
   const [pernyataan, setPernyataan] = useState('')
   const [kategori, setKategori] = useState('')
   const [dampak, setDampak] = useState('')
@@ -72,6 +79,37 @@ export default function IdentifikasiForm({
 
   return (
     <div className="space-y-4">
+      {/* Teknik Identifikasi Risiko — menu bantuan */}
+      <div className="relative flex justify-end">
+        <button type="button" onClick={() => setTeknikOpen((v) => !v)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 text-white text-sm font-helvetica font-medium tracking-tight shadow-sm hover:bg-indigo-700 transition-colors">
+          <Sparkles className="w-4 h-4" /> Coba Teknik Identifikasi Risiko
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${teknikOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {teknikOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setTeknikOpen(false)} />
+            <div className="absolute top-full right-0 mt-2 w-72 rounded-2xl border bg-white shadow-lg overflow-hidden z-20">
+              {TEKNIK_OPTIONS.map((t) => {
+                const Icon = t.icon
+                return (
+                  <button key={t.key} type="button"
+                    onClick={() => router.push(`/dashboard/rals/${t.key}`)}
+                    className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-indigo-50 transition-colors">
+                    <Icon className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{t.label}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{t.desc}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Konteks peserta — bahan untuk mengidentifikasi risiko */}
       {konteks && (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 text-sm">
