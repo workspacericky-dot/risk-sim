@@ -89,7 +89,10 @@ export default function InstructorDashboard({ sessionId }: { sessionId: string }
     const threshold = key ? selera[key] ?? null : null
     return besaran != null && threshold != null && besaran > threshold
   })
-  const prioritasDenganRencana = prioritas.filter((r) => treatments[r.id]?.kegiatan_pengendalian?.trim())
+  // "Punya rencana" = baris rals_treatment sudah tersimpan (peserta mengisi salah satu
+  // field), bukan mensyaratkan kolom Kegiatan Pengendalian spesifik terisi — peserta bisa
+  // mulai dari field lain dulu (PIC, target waktu, dst).
+  const prioritasDenganRencana = prioritas.filter((r) => !!treatments[r.id])
 
   // Kememadaian pengendalian yang ada
   const kememadaianCounts = {
@@ -220,7 +223,9 @@ export default function InstructorDashboard({ sessionId }: { sessionId: string }
                 <div key={r.id} className="flex items-start gap-2 px-4 py-2">
                   <span className="shrink-0 font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1 py-0.5">{r.kode}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-800">{t.kegiatan_pengendalian}</p>
+                    <p className="text-xs text-slate-800">
+                      {t.kegiatan_pengendalian?.trim() || <span className="text-slate-300 italic">(Kegiatan pengendalian belum diisi)</span>}
+                    </p>
                     <p className="text-[10px] text-slate-400 mt-0.5">
                       {nama(r.participant_id)}
                       {t.penanggung_jawab ? ` · PIC: ${t.penanggung_jawab}` : ''}
