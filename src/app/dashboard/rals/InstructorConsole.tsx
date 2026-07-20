@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Plus, Trash2, Activity, Users, Target } from 'lucide-react'
+import { GraduationCap, Plus, Trash2, Activity, Users, Target, Table2 } from 'lucide-react'
 import { createSession, setStage, deleteSession } from './actions'
 import InstructorDashboard from './InstructorDashboard'
 import DelphiFacilitatorPanel from './DelphiFacilitatorPanel'
 import SeleraRisikoPanel from './SeleraRisikoPanel'
+import LiveTablesPanel from './LiveTablesPanel'
 
 type Session = {
   id: string
@@ -35,6 +36,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
   const [openDash, setOpenDash] = useState<string | null>(null)
   const [openDelphi, setOpenDelphi] = useState<string | null>(null)
   const [openSelera, setOpenSelera] = useState<string | null>(null)
+  const [openTables, setOpenTables] = useState<string | null>(null)
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -133,6 +135,12 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
                   <Target className="w-3.5 h-3.5" /> {openSelera === s.id ? 'Tutup Selera Risiko' : 'Selera Risiko'}
                 </button>
               )}
+              <button onClick={() => setOpenTables((v) => (v === s.id ? null : s.id))}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border inline-flex items-center gap-1.5 transition-colors ${
+                  openTables === s.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                }`}>
+                <Table2 className="w-3.5 h-3.5" /> {openTables === s.id ? 'Tutup Tabel Live' : 'Tabel Live'}
+              </button>
               <button onClick={() => setOpenDelphi((v) => (v === s.id ? null : s.id))}
                 className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold border inline-flex items-center gap-1.5 transition-colors ${
                   openDelphi === s.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
@@ -148,6 +156,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
             </div>
 
             {s.tahap === 'lobby' && openSelera === s.id && <SeleraRisikoPanel sessionId={s.id} />}
+            {openTables === s.id && <LiveTablesPanel sessionId={s.id} />}
             {openDelphi === s.id && <DelphiFacilitatorPanel sessionId={s.id} />}
             {openDash === s.id && <InstructorDashboard sessionId={s.id} />}
           </div>
