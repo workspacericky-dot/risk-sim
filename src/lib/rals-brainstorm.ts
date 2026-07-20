@@ -5,6 +5,10 @@ export type BrainstormIdea = {
   session_id: string
   participant_id: string
   teks: string
+  l1_kode: string
+  l1_nama: string
+  l2_kode: string
+  l2_nama: string
   created_at: string
 }
 

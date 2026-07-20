@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ArrowUp, Check, Send, Sparkles, Wand2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
+import { PROSES_BISNIS } from '@/lib/rals-probis'
 import type { BrainstormDraft, BrainstormIdea, BrainstormVote } from '@/lib/rals-brainstorm'
 
 type Phase = 'dump' | 'refine'
@@ -13,8 +14,12 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
   const [ideas, setIdeas] = useState<BrainstormIdea[]>([])
   const [votes, setVotes] = useState<BrainstormVote[]>([])
   const [drafts, setDrafts] = useState<BrainstormDraft[]>([])
+  const [names, setNames] = useState<Record<string, string>>({})
   const [ideaText, setIdeaText] = useState('')
+  const [l1Kode, setL1Kode] = useState(PROSES_BISNIS[0]?.kode ?? '')
+  const [l2Idx, setL2Idx] = useState('')
   const [posting, setPosting] = useState(false)
+  const currentL1 = PROSES_BISNIS.find((p) => p.kode === l1Kode)
   const [selectedIdea, setSelectedIdea] = useState<BrainstormIdea | null>(null)
   const [pernyataan, setPernyataan] = useState('')
   const [kategori, setKategori] = useState('')
@@ -42,6 +47,11 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
     const { data: draftRows } = await sb.from('rals_brainstorm_draft').select('*')
       .eq('participant_id', participantId).order('created_at', { ascending: false })
     setDrafts((draftRows ?? []) as BrainstormDraft[])
+
+    const { data: participantRows } = await sb.from('rals_participant').select('id, nama').eq('session_id', sessionId)
+    const nameMap: Record<string, string> = {}
+    for (const p of participantRows ?? []) nameMap[p.id] = p.nama
+    setNames(nameMap)
   }, [sessionId, participantId])
 
   useEffect(() => {
@@ -57,10 +67,15 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
 
   async function handlePost(e: React.FormEvent) {
     e.preventDefault()
-    if (!ideaText.trim()) return
+    const l1 = PROSES_BISNIS.find((p) => p.kode === l1Kode)
+    const l2 = l2Idx !== '' ? l1?.sub[Number(l2Idx)] : undefined
+    if (!ideaText.trim() || !l1 || !l2) return
     setPosting(true)
     const sb = createClient()
-    await sb.from('rals_brainstorm_idea').insert({ session_id: sessionId, participant_id: participantId, teks: ideaText.trim() })
+    await sb.from('rals_brainstorm_idea').insert({
+      session_id: sessionId, participant_id: participantId, teks: ideaText.trim(),
+      l1_kode: l1.kode, l1_nama: l1.nama, l2_kode: l2.kode, l2_nama: l2.nama,
+    })
     setPosting(false)
     setIdeaText('')
     fetchAll()
@@ -149,16 +164,28 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
       {phase === 'dump' ? (
         <div className="space-y-4">
           <form onSubmit={handlePost} className="rounded-2xl border bg-white shadow-sm p-4 space-y-3">
-            <p className="text-sm font-medium text-slate-700">Apa yang mengganggu pikiran Anda akhir-akhir ini?</p>
+            <p className="text-sm font-medium text-slate-700">Apa yang mengganggu pikiran Anda di pekerjaan anda akhir-akhir ini?</p>
+
+            <div className="grid sm:grid-cols-2 gap-2">
+              <select value={l1Kode} onChange={(e) => { setL1Kode(e.target.value); setL2Idx('') }}
+                className={inputCls + ' bg-white text-xs'}>
+                {PROSES_BISNIS.map((p) => <option key={p.kode} value={p.kode}>{p.kode} — {p.nama}</option>)}
+              </select>
+              <select value={l2Idx} onChange={(e) => setL2Idx(e.target.value)} className={inputCls + ' bg-white text-xs'}>
+                <option value="" disabled>Pilih subproses untuk hashtag...</option>
+                {currentL1?.sub.map((s, i) => <option key={i} value={i}>{s.kode} — {s.nama}</option>)}
+              </select>
+            </div>
+
             <div className="flex gap-2">
               <input value={ideaText} onChange={(e) => setIdeaText(e.target.value)} maxLength={200}
                 placeholder="Ketik ide singkat lalu kirim..." className={inputCls} />
-              <button type="submit" disabled={posting || !ideaText.trim()}
+              <button type="submit" disabled={posting || !ideaText.trim() || l2Idx === ''}
                 className="shrink-0 px-4 rounded-lg bg-indigo-600 text-white disabled:opacity-50 hover:bg-indigo-700 transition-colors">
                 <Send className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-[11px] text-slate-400">Papan ini anonim — nama Anda tidak ditampilkan. Tulis bebas, tanpa takut dihakimi.</p>
+            <p className="text-[11px] text-slate-400">Setiap ide diberi hashtag subproses agar konteksnya jelas. Tulis bebas, tanpa takut dihakimi.</p>
           </form>
 
           <div className="grid sm:grid-cols-2 gap-3">
@@ -175,7 +202,13 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
                     <ArrowUp className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-bold">{voteCount(idea.id)}</span>
                   </button>
-                  <p className="text-sm text-slate-800 leading-snug pt-1.5">{idea.teks}</p>
+                  <div className="pt-1">
+                    {idea.l2_nama && (
+                      <p className="text-[11px] font-semibold text-indigo-600">#{idea.l2_nama.replace(/\s+/g, '')}</p>
+                    )}
+                    <p className="text-sm text-slate-800 leading-snug mt-0.5">{idea.teks}</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5">— {names[idea.participant_id] ?? 'Peserta'}</p>
+                  </div>
                 </div>
               )
             })}
@@ -200,6 +233,10 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
                 </h3>
                 <button type="button" onClick={() => setSelectedIdea(null)} className="text-xs text-slate-400 hover:text-slate-600">Batal</button>
               </div>
+
+              {selectedIdea.l2_nama && (
+                <p className="text-[11px] font-semibold text-indigo-600">#{selectedIdea.l2_nama.replace(/\s+/g, '')} · dari {names[selectedIdea.participant_id] ?? 'Peserta'}</p>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600">Pernyataan Risiko</label>
@@ -246,7 +283,13 @@ export default function BrainstormBoard({ sessionId, participantId }: { sessionI
             {sortedIdeas.map((idea) => (
               <div key={idea.id} draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', idea.id)}
                 className="rounded-2xl border bg-white shadow-sm p-4 flex items-start justify-between gap-3 cursor-grab active:cursor-grabbing">
-                <p className="text-sm text-slate-800 leading-snug">{idea.teks}</p>
+                <div>
+                  {idea.l2_nama && (
+                    <p className="text-[11px] font-semibold text-indigo-600">#{idea.l2_nama.replace(/\s+/g, '')}</p>
+                  )}
+                  <p className="text-sm text-slate-800 leading-snug mt-0.5">{idea.teks}</p>
+                  <p className="text-[11px] text-slate-400 mt-1.5">— {names[idea.participant_id] ?? 'Peserta'}</p>
+                </div>
                 <button type="button" onClick={() => selectIdea(idea)}
                   className="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-semibold hover:bg-indigo-100 transition-colors">
                   Pilih
