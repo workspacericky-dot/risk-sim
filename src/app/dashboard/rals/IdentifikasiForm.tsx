@@ -6,6 +6,7 @@ import { Trash2, Plus, Lightbulb, Sparkles, Users2, MessageCircleQuestion, Users
 import { createClient } from '@/utils/supabase/client'
 import { KATEGORI_RISIKO } from '@/lib/risk-engine'
 import { parseKonteks, type KonteksData } from '@/lib/rals-probis'
+import ExportBar from './ExportBar'
 
 const TEKNIK_OPTIONS = [
   { key: 'brainstorming', label: 'Brainstorming', desc: 'Tangkap ide bersama peserta lain, lalu susun jadi risiko.', icon: Users2 },
@@ -81,6 +82,8 @@ export default function IdentifikasiForm({
 
   return (
     <div className="space-y-4">
+      <ExportBar participantId={participantId} stage="identifikasi" />
+
       {/* Teknik Identifikasi Risiko — menu bantuan */}
       <div className="relative flex justify-end">
         <button type="button" onClick={() => setTeknikOpen((v) => !v)}

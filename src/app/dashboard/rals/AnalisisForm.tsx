@@ -5,6 +5,7 @@ import { Check } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { getBesaran, getLevel, KEMUNGKINAN_LABELS, DAMPAK_LABELS } from '@/lib/risk-engine'
 import { SPIP_UNSUR } from '@/lib/spip-control-library'
+import ExportBar from './ExportBar'
 
 type Risk = { id: string; kode: string; pernyataan: string; kategori: string }
 type Analysis = {
@@ -237,6 +238,7 @@ export default function AnalisisForm({ participantId }: { participantId: string 
 
   return (
     <div className="space-y-4">
+      <ExportBar participantId={participantId} stage="analisis" />
       <p className="text-sm text-slate-500">Nilai tiap risiko: seberapa besar kemungkinan & dampaknya, lalu setelah dikendalikan.</p>
       {risks.map((r) => <AnalisisRow key={r.id} risk={r} initial={analyses[r.id] ?? null} />)}
     </div>

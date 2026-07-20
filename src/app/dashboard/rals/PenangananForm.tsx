@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { getBesaran, getLevel, getKategoriKey } from '@/lib/risk-engine'
 import { DEFAULT_SELERA } from '@/lib/rals-probis'
 import { SPIP_UNSUR } from '@/lib/spip-control-library'
+import ExportBar from './ExportBar'
 
 type Risk = { id: string; kode: string; pernyataan: string; kategori: string; penyebab: string }
 type Analysis = { risk_id: string; k_residu: number | null; d_residu: number | null }
@@ -69,6 +70,7 @@ export default function PenangananForm({ participantId, sessionId }: { participa
 
   return (
     <div className="space-y-4">
+      <ExportBar participantId={participantId} stage="penanganan" />
       <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 flex items-start gap-2">
         <ClipboardCheck className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
         <p className="text-xs text-slate-600">

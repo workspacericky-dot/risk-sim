@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Check, Target } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { PROSES_BISNIS, parseKonteks } from '@/lib/rals-probis'
+import ExportBar from './ExportBar'
 
 export default function KonteksForm({ participantId }: { participantId: string }) {
   const [l1Kode, setL1Kode] = useState(PROSES_BISNIS[0]?.kode ?? '')
@@ -57,7 +58,9 @@ export default function KonteksForm({ participantId }: { participantId: string }
   const inputCls = 'w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200'
 
   return (
-    <form onSubmit={handleSave} className="space-y-4">
+    <div className="space-y-4">
+      <ExportBar participantId={participantId} stage="konteks" />
+      <form onSubmit={handleSave} className="space-y-4">
       <div className="rounded-2xl border bg-white shadow-sm p-5 space-y-4">
         <h3 className="font-serif font-semibold text-slate-800 flex items-center gap-2">
           <Target className="w-4 h-4 text-indigo-500" /> Penetapan Konteks
@@ -109,6 +112,7 @@ export default function KonteksForm({ participantId }: { participantId: string }
           {saved ? <><Check className="w-4 h-4" /> Tersimpan</> : saving ? 'Menyimpan...' : 'Simpan Konteks'}
         </button>
       </div>
-    </form>
+      </form>
+    </div>
   )
 }
