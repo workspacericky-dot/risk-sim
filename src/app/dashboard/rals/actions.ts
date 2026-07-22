@@ -49,6 +49,15 @@ export async function setStage(sessionId: string, tahap: Stage): Promise<{ error
   return {}
 }
 
+export async function setSessionMode(sessionId: string, mode: 'terkontrol' | 'mandiri'): Promise<{ error?: string }> {
+  const { error, supabase } = await assertInstruktur()
+  if (error || !supabase) return { error: error ?? 'Akses ditolak.' }
+  const { error: updErr } = await supabase.from('rals_session').update({ mode }).eq('id', sessionId)
+  if (updErr) return { error: updErr.message }
+  revalidatePath('/dashboard/rals')
+  return {}
+}
+
 export async function deleteSession(sessionId: string): Promise<{ error?: string }> {
   const { error, supabase } = await assertInstruktur()
   if (error || !supabase) return { error: error ?? 'Akses ditolak.' }

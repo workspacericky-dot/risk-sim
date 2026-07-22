@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { GraduationCap, Plus, Trash2, Activity, Users, Target, Table2, Lock, Unlock } from 'lucide-react'
-import { createSession, setStage, deleteSession } from './actions'
+import { createSession, setStage, setSessionMode, deleteSession } from './actions'
 import InstructorDashboard from './InstructorDashboard'
 import DelphiFacilitatorPanel from './DelphiFacilitatorPanel'
 import SeleraRisikoPanel from './SeleraRisikoPanel'
@@ -52,6 +52,11 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
 
   async function handleStage(sessionId: string, tahap: string) {
     await setStage(sessionId, tahap as any)
+    router.refresh()
+  }
+
+  async function handleToggleMode(sessionId: string, current: string) {
+    await setSessionMode(sessionId, current === 'mandiri' ? 'terkontrol' : 'mandiri')
     router.refresh()
   }
 
@@ -122,12 +127,16 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <h4 className="font-serif font-semibold text-slate-800">{s.judul}</h4>
-                <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                  s.mode === 'mandiri' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-600 border border-slate-200'
-                }`}>
+                <button onClick={() => handleToggleMode(s.id, s.mode)}
+                  title={`Ubah ke mode ${s.mode === 'mandiri' ? 'Terkontrol' : 'Mandiri'}`}
+                  className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-colors ${
+                    s.mode === 'mandiri'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                      : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                  }`}>
                   {s.mode === 'mandiri' ? <Unlock className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
                   {s.mode === 'mandiri' ? 'Mandiri' : 'Terkontrol'}
-                </span>
+                </button>
               </div>
               <div className="flex items-start gap-3">
                 <div className="text-right">
