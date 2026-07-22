@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Plus, Trash2, Activity, Users, Target, Table2 } from 'lucide-react'
+import { GraduationCap, Plus, Trash2, Activity, Users, Target, Table2, Lock, Unlock } from 'lucide-react'
 import { createSession, setStage, deleteSession } from './actions'
 import InstructorDashboard from './InstructorDashboard'
 import DelphiFacilitatorPanel from './DelphiFacilitatorPanel'
@@ -15,6 +15,7 @@ type Session = {
   judul: string
   scenario_id: string
   tahap: string
+  mode: string
   created_at: string
 }
 
@@ -31,6 +32,7 @@ const STAGES: { key: string; label: string }[] = [
 export default function InstructorConsole({ sessions }: { sessions: Session[] }) {
   const router = useRouter()
   const [judul, setJudul] = useState('')
+  const [mode, setMode] = useState<'terkontrol' | 'mandiri'>('terkontrol')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [openDash, setOpenDash] = useState<string | null>(null)
@@ -41,10 +43,10 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError(null)
-    const res = await createSession(judul)
+    const res = await createSession(judul, mode)
     setLoading(false)
     if (res.error) { setError(res.error); return }
-    setJudul('')
+    setJudul(''); setMode('terkontrol')
     router.refresh()
   }
 
@@ -82,6 +84,25 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
             placeholder="mis. Consulting MR Angkatan V" className={inputCls} />
           <p className="text-[11px] text-slate-400">Proses bisnis & konteks ditetapkan masing-masing peserta pada tahap Konteks.</p>
         </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-slate-600">Tipe Sesi</label>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <button type="button" onClick={() => setMode('terkontrol')}
+              className={`text-left rounded-xl border p-3 transition-all ${
+                mode === 'terkontrol' ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200' : 'border-slate-200 bg-white hover:border-indigo-300'
+              }`}>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800"><Lock className="w-3.5 h-3.5 text-indigo-500" /> Terkontrol</span>
+              <span className="block text-[11px] text-slate-500 leading-snug mt-0.5">Instruktur membuka tahap satu per satu untuk seluruh peserta.</span>
+            </button>
+            <button type="button" onClick={() => setMode('mandiri')}
+              className={`text-left rounded-xl border p-3 transition-all ${
+                mode === 'mandiri' ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200' : 'border-slate-200 bg-white hover:border-indigo-300'
+              }`}>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800"><Unlock className="w-3.5 h-3.5 text-indigo-500" /> Mandiri</span>
+              <span className="block text-[11px] text-slate-500 leading-snug mt-0.5">Peserta bebas berpindah tahap sendiri — cocok untuk latihan mandiri pasca-pelatihan.</span>
+            </button>
+          </div>
+        </div>
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         <button type="submit" disabled={loading}
           className="px-5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-colors">
@@ -101,6 +122,12 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <h4 className="font-serif font-semibold text-slate-800">{s.judul}</h4>
+                <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                  s.mode === 'mandiri' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                }`}>
+                  {s.mode === 'mandiri' ? <Unlock className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                  {s.mode === 'mandiri' ? 'Mandiri' : 'Terkontrol'}
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="text-right">
@@ -114,20 +141,26 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
               </div>
             </div>
 
-            {/* Kontrol tahap */}
+            {/* Kontrol tahap — hanya relevan untuk sesi terkontrol; sesi mandiri diatur peserta sendiri */}
             <div className="mt-4 flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] text-slate-400 mr-1">Tahap aktif:</span>
-              {STAGES.map((st) => (
-                <button key={st.key} onClick={() => handleStage(s.id, st.key)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-helvetica font-medium tracking-tight border transition-colors ${
-                    s.tahap === st.key
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                      : 'bg-indigo-50 text-indigo-700 border-transparent hover:bg-indigo-100'
-                  }`}>
-                  {st.label}
-                </button>
-              ))}
-              {s.tahap === 'lobby' && (
+              {s.mode === 'mandiri' ? (
+                <span className="text-[11px] text-slate-400">Sesi mandiri — peserta berpindah tahap sendiri, tidak perlu dibuka satu per satu.</span>
+              ) : (
+                <>
+                  <span className="text-[11px] text-slate-400 mr-1">Tahap aktif:</span>
+                  {STAGES.map((st) => (
+                    <button key={st.key} onClick={() => handleStage(s.id, st.key)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-helvetica font-medium tracking-tight border transition-colors ${
+                        s.tahap === st.key
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                          : 'bg-indigo-50 text-indigo-700 border-transparent hover:bg-indigo-100'
+                      }`}>
+                      {st.label}
+                    </button>
+                  ))}
+                </>
+              )}
+              {(s.mode === 'mandiri' || s.tahap === 'lobby') && (
                 <button onClick={() => setOpenSelera((v) => (v === s.id ? null : s.id))}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border inline-flex items-center gap-1.5 transition-colors ${
                     openSelera === s.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
@@ -155,7 +188,7 @@ export default function InstructorConsole({ sessions }: { sessions: Session[] })
               </button>
             </div>
 
-            {s.tahap === 'lobby' && openSelera === s.id && <SeleraRisikoPanel sessionId={s.id} />}
+            {(s.mode === 'mandiri' || s.tahap === 'lobby') && openSelera === s.id && <SeleraRisikoPanel sessionId={s.id} />}
             {openTables === s.id && <LiveTablesPanel sessionId={s.id} />}
             {openDelphi === s.id && <DelphiFacilitatorPanel sessionId={s.id} />}
             {openDash === s.id && <InstructorDashboard sessionId={s.id} />}

@@ -17,7 +17,7 @@ export default async function RalsPage() {
 
   const { data: sessions } = await supabase
     .from('rals_session')
-    .select('id, kode, judul, scenario_id, tahap, created_at')
+    .select('id, kode, judul, scenario_id, tahap, mode, created_at')
     .order('created_at', { ascending: false })
 
   return <InstructorConsole sessions={sessions ?? []} />

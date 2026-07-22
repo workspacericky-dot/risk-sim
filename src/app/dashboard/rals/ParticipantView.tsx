@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { GraduationCap, LogOut, Clock } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
-import { joinSession } from './actions'
+import { joinSession, setParticipantStage } from './actions'
 import KonteksForm from './KonteksForm'
 import IdentifikasiForm from './IdentifikasiForm'
 import AnalisisForm from './AnalisisForm'
@@ -22,11 +22,21 @@ const STAGE_LABEL: Record<string, string> = {
   selesai: 'Sesi Selesai',
 }
 
+const SELF_PACED_STAGES = [
+  { key: 'konteks',      label: 'Konteks' },
+  { key: 'identifikasi', label: 'Identifikasi' },
+  { key: 'analisis',     label: 'Analisis' },
+  { key: 'evaluasi',     label: 'Evaluasi' },
+  { key: 'penanganan',   label: 'Penanganan' },
+  { key: 'selesai',      label: 'Selesai' },
+]
+
 const STORAGE_KEY = 'rals_participant'
 
 export default function ParticipantView() {
   const [joined, setJoined] = useState<Joined | null>(null)
   const [tahap, setTahap] = useState<string>('lobby')
+  const [mode, setMode] = useState<'terkontrol' | 'mandiri'>('terkontrol')
   const [kode, setKode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,16 +54,25 @@ export default function ParticipantView() {
     let active = true
 
     async function fetchState() {
-      const { data } = await supabase.from('rals_session').select('tahap').eq('id', joined!.sessionId).single()
-      if (active && data) setTahap(data.tahap)
+      const { data: session } = await supabase.from('rals_session').select('tahap, mode').eq('id', joined!.sessionId).single()
+      if (!active || !session) return
+      if (session.mode === 'mandiri') {
+        setMode('mandiri')
+        const { data: p } = await supabase.from('rals_participant').select('tahap').eq('id', joined!.participantId).single()
+        if (active) setTahap(p?.tahap ?? 'konteks')
+      } else {
+        setMode('terkontrol')
+        setTahap(session.tahap)
+      }
     }
     fetchState()
 
+    // Sesi mandiri: peserta mengubah tahapnya sendiri, tidak ada perubahan dari instruktur untuk dipantau via realtime.
     const channel = supabase
       .channel(`rals_session:${joined.sessionId}`)
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'rals_session', filter: `id=eq.${joined.sessionId}` },
-        (payload) => setTahap((payload.new as any).tahap))
+        fetchState)
       .subscribe()
 
     // Fallback: realtime kadang tak terkirim — poll tahap tiap 4 detik.
@@ -71,6 +90,11 @@ export default function ParticipantView() {
     const j: Joined = { participantId: res.participantId, sessionId: res.sessionId, nama: res.nama ?? 'Peserta' }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(j))
     setJoined(j)
+  }
+
+  async function handleSelfStage(next: string) {
+    setTahap(next) // optimistis — hanya milik peserta ini sendiri, tak perlu tunggu server
+    if (joined) await setParticipantStage(joined.participantId, next as any)
   }
 
   function handleLeave() {
@@ -119,6 +143,23 @@ export default function ParticipantView() {
           {STAGE_LABEL[tahap] ?? tahap}
         </div>
       </div>
+
+      {/* Sesi mandiri: peserta pilih sendiri tahap yang ingin dilatih, tanpa izin instruktur */}
+      {mode === 'mandiri' && (
+        <div className="rounded-2xl border bg-white shadow-sm px-4 py-3 flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] text-slate-400 mr-1">Pilih tahap:</span>
+          {SELF_PACED_STAGES.map((st) => (
+            <button key={st.key} onClick={() => handleSelfStage(st.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-helvetica font-medium tracking-tight border transition-colors ${
+                tahap === st.key
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  : 'bg-slate-50 text-slate-600 border-transparent hover:bg-slate-100'
+              }`}>
+              {st.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Body per tahap */}
       {tahap === 'konteks' ? (

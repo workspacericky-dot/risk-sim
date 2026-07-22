@@ -20,7 +20,7 @@ function genKode() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-export async function createSession(judul: string): Promise<{ error?: string; kode?: string }> {
+export async function createSession(judul: string, mode: 'terkontrol' | 'mandiri' = 'terkontrol'): Promise<{ error?: string; kode?: string }> {
   const { error, supabase, userId } = await assertInstruktur()
   if (error || !supabase) return { error: error ?? 'Akses ditolak.' }
   if (!judul.trim()) return { error: 'Judul sesi wajib diisi.' }
@@ -29,7 +29,7 @@ export async function createSession(judul: string): Promise<{ error?: string; ko
   for (let i = 0; i < 5; i++) {
     const kode = genKode()
     const { error: insErr } = await supabase.from('rals_session').insert({
-      kode, judul: judul.trim(), created_by: userId,
+      kode, judul: judul.trim(), created_by: userId, mode,
     })
     if (!insErr) {
       revalidatePath('/dashboard/rals')
@@ -81,4 +81,22 @@ export async function joinSession(kode: string): Promise<{ error?: string; parti
   if (insErr || !participant) return { error: insErr?.message ?? 'Gagal bergabung.' }
 
   return { participantId: participant.id, sessionId: session.id, nama }
+}
+
+// Hanya untuk sesi bermode 'mandiri' — peserta berpindah tahap sendiri tanpa izin instruktur.
+export async function setParticipantStage(participantId: string, tahap: Stage): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Tidak terautentikasi.' }
+
+  const { data: participant } = await supabase
+    .from('rals_participant').select('id, user_id, session_id').eq('id', participantId).single()
+  if (!participant || participant.user_id !== user.id) return { error: 'Akses ditolak.' }
+
+  const { data: session } = await supabase.from('rals_session').select('mode').eq('id', participant.session_id).single()
+  if (session?.mode !== 'mandiri') return { error: 'Sesi ini tidak mengizinkan navigasi bebas.' }
+
+  const { error: updErr } = await supabase.from('rals_participant').update({ tahap }).eq('id', participantId)
+  if (updErr) return { error: updErr.message }
+  return {}
 }
