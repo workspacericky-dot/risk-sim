@@ -10,7 +10,10 @@
       "Bash(npx next *)",
       "Bash(git commit -m ' *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(node -e ' *)",
+      "Bash(grep -iE \"^tsx$|ts-node\")",
+      "Bash(node scripts/gen-rals-templates.mjs)"
     ]
   }
 }
