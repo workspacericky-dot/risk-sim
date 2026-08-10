@@ -3,6 +3,10 @@
 # reference assets (not used by the app; fonts live in public/fonts)
 /ref
 
+# sampel data kepegawaian riil (NIP, presensi, golongan) — hanya dipakai lokal
+# oleh scripts/verifikasi-ca-kepeg.ts, tidak pernah menjadi bagian aplikasi
+/CA_Audit_Kepeg
+
 # dependencies
 /node_modules
 /.pnp
