@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { CalendarDays } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
+import { bisaAksesCa } from '@/lib/ca-audit-akses'
 import type { EntriKalender } from '@/lib/ca-kepeg/kalender'
 import CaKepegClient from './CaKepegClient'
 
@@ -13,7 +14,7 @@ export default async function CaKepegawaianPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (profile?.role === 'peserta_consulting') redirect('/dashboard')
+  if (!bisaAksesCa(profile?.role)) redirect('/dashboard')
 
   const { data } = await supabase
     .from('kalender_libur')

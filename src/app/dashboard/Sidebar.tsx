@@ -10,6 +10,7 @@ import {
   UserCheck, CalendarDays, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { bisaAksesCa } from '@/lib/ca-audit-akses'
 import { PetaRisikoSidebarModal } from './peta-risiko/PetaRisikoSidebarModal'
 
 export default function Sidebar({ userEmail, userRole }: { userEmail: string; userRole: string | null }) {
@@ -142,18 +143,22 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
             label="Program Kerja Audit"
             isExpanded={isExpanded}
           />
-          <NavItem
-            href="/dashboard/ca-kepegawaian"
-            icon={<UserCheck className="w-5 h-5 shrink-0" />}
-            label="CA Bid. Kepegawaian"
-            isExpanded={isExpanded}
-          />
-          <NavItem
-            href="/dashboard/ca-keuangan-perkara"
-            icon={<Wallet className="w-5 h-5 shrink-0" />}
-            label="CA Audit Keuangan Perkara"
-            isExpanded={isExpanded}
-          />
+          {bisaAksesCa(userRole) && (
+            <>
+              <NavItem
+                href="/dashboard/ca-kepegawaian"
+                icon={<UserCheck className="w-5 h-5 shrink-0" />}
+                label="CA Bid. Kepegawaian"
+                isExpanded={isExpanded}
+              />
+              <NavItem
+                href="/dashboard/ca-keuangan-perkara"
+                icon={<Wallet className="w-5 h-5 shrink-0" />}
+                label="CA Audit Keuangan Perkara"
+                isExpanded={isExpanded}
+              />
+            </>
+          )}
 
           {/* ── ADMINISTRASI ───────────────────────── */}
           <SectionLabel label="Administrasi" isExpanded={isExpanded} />
