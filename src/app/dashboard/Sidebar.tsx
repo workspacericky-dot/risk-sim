@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import {
   Home, Settings, Database, Users, LogOut, Briefcase,
   BarChart2, GaugeCircle, Map, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
+  UserCheck, CalendarDays, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PetaRisikoSidebarModal } from './peta-risiko/PetaRisikoSidebarModal'
@@ -141,12 +142,25 @@ export default function Sidebar({ userEmail, userRole }: { userEmail: string; us
             label="Program Kerja Audit"
             isExpanded={isExpanded}
           />
+          <NavItem
+            href="/dashboard/ca-kepegawaian"
+            icon={<UserCheck className="w-5 h-5 shrink-0" />}
+            label="CA Bid. Kepegawaian"
+            isExpanded={isExpanded}
+          />
+          <NavItem
+            href="/dashboard/ca-keuangan-perkara"
+            icon={<Wallet className="w-5 h-5 shrink-0" />}
+            label="CA Audit Keuangan Perkara"
+            isExpanded={isExpanded}
+          />
 
           {/* ── ADMINISTRASI ───────────────────────── */}
           <SectionLabel label="Administrasi" isExpanded={isExpanded} />
 
           <NavItem href="/dashboard/master-data/unit-kerja" icon={<Database className="w-5 h-5 shrink-0" />} label="Master Unit Kerja" isExpanded={isExpanded} />
           <NavItem href="/dashboard/master-data/users" icon={<Users className="w-5 h-5 shrink-0" />} label="Manajemen Pengguna" isExpanded={isExpanded} />
+          <NavItem href="/dashboard/master-data/kalender-libur" icon={<CalendarDays className="w-5 h-5 shrink-0" />} label="Master Kalender Libur" isExpanded={isExpanded} />
 
           {/* ── LAINNYA ────────────────────────────── */}
           <SectionLabel label="Lainnya" isExpanded={isExpanded} />
