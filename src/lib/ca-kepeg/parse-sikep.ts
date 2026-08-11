@@ -310,3 +310,124 @@ export function pelanggaranPerPegawai(hasil: HasilSikepBulan): PelanggaranPegawa
 
   return keluaran.sort((a, b) => b.total - a.total)
 }
+
+// ── Peringkat indisipliner lintas bulan ───────────────────────────────────
+
+export type BarisPeringkat = {
+  peringkat: number
+  nip: string
+  nama: string
+  jabatan: string
+  /** Rincian per kode, mis. { TL1: 4, TL2: 1 }. */
+  rincianTl: Record<string, number>
+  rincianPsw: Record<string, number>
+  tl: number
+  psw: number
+  thm: number
+  thp: number
+  tmk: number
+  total: number
+  menitTerlambat: number
+  menitPulangCepat: number
+  /** Jumlah bulan yang memuat sedikitnya satu pelanggaran. */
+  bulanTerdampak: number
+  /** Jumlah bulan pegawai ini muncul di berkas SIKEP. */
+  bulanTerdata: number
+}
+
+/**
+ * Peringkat pelanggaran disiplin presensi seluruh pegawai, diakumulasi dari
+ * seluruh bulan SIKEP yang diproses.
+ *
+ * Sumbernya murni hasil penilaian ulang SIKEP (jam scan vs standar jam kerja),
+ * bukan hasil silang dengan KOMDANAS — jadi angkanya berdiri sendiri terhadap
+ * temuan gap.
+ */
+export function peringkatIndisipliner(bulanan: HasilSikepBulan[]): BarisPeringkat[] {
+  type Akumulasi = Omit<BarisPeringkat, 'peringkat'> & { bulanBerpelanggaran: Set<number> }
+  const perNip = new Map<string, Akumulasi>()
+
+  for (const bulan of bulanan) {
+    for (const p of bulan.pegawai) {
+      if (!p.nip) continue
+
+      let a = perNip.get(p.nip)
+      if (!a) {
+        a = {
+          nip: p.nip, nama: p.nama, jabatan: p.jabatan,
+          rincianTl: {}, rincianPsw: {},
+          tl: 0, psw: 0, thm: 0, thp: 0, tmk: 0, total: 0,
+          menitTerlambat: 0, menitPulangCepat: 0,
+          bulanTerdampak: 0, bulanTerdata: 0,
+          bulanBerpelanggaran: new Set<number>(),
+        }
+        perNip.set(p.nip, a)
+      }
+      // Identitas terbaru menang: jabatan pegawai dapat berubah sepanjang tahun.
+      if (p.nama) a.nama = p.nama
+      if (p.jabatan) a.jabatan = p.jabatan
+      a.bulanTerdata++
+
+      for (const h of Object.values(p.hari)) {
+        let adaPelanggaran = false
+
+        if (h.kode.startsWith('TL')) {
+          a.tl++
+          a.rincianTl[h.kode] = (a.rincianTl[h.kode] ?? 0) + 1
+          a.menitTerlambat += h.menitTerlambat
+          adaPelanggaran = true
+        }
+        if (h.kode === 'TMK') {
+          a.tmk++
+          adaPelanggaran = true
+        }
+        if (h.kodePsw) {
+          a.psw++
+          a.rincianPsw[h.kodePsw] = (a.rincianPsw[h.kodePsw] ?? 0) + 1
+          a.menitPulangCepat += h.menitPulangCepat
+          adaPelanggaran = true
+        }
+        if (h.tidakPresensi === 'THM') {
+          a.thm++
+          adaPelanggaran = true
+        }
+        if (h.tidakPresensi === 'THP') {
+          a.thp++
+          adaPelanggaran = true
+        }
+
+        if (adaPelanggaran) a.bulanBerpelanggaran.add(bulan.bulan)
+      }
+    }
+  }
+
+  const baris = [...perNip.values()].map((a) => ({
+    ...a,
+    total: a.tl + a.psw + a.thm + a.thp + a.tmk,
+    bulanTerdampak: a.bulanBerpelanggaran.size,
+  }))
+
+  // Terbanyak lebih dulu; seri dipecah oleh bobot menit, lalu nama.
+  baris.sort((x, y) =>
+    y.total - x.total
+    || (y.menitTerlambat + y.menitPulangCepat) - (x.menitTerlambat + x.menitPulangCepat)
+    || x.nama.localeCompare(y.nama, 'id'))
+
+  // Peringkat kompetisi ("1224"): nilai yang sama berbagi nomor yang sama, dan
+  // nomor berikutnya melompat. Tanpa ini, puluhan pegawai tanpa pelanggaran
+  // akan tampak berurutan padahal seri sempurna.
+  let nomor = 0
+  let kunciSebelum: string | null = null
+
+  return baris.map((b, i) => {
+    const { bulanBerpelanggaran, ...sisa } = b
+    void bulanBerpelanggaran
+
+    const kunci = `${b.total}|${b.menitTerlambat + b.menitPulangCepat}`
+    if (kunci !== kunciSebelum) {
+      nomor = i + 1
+      kunciSebelum = kunci
+    }
+    return { peringkat: nomor, ...sisa }
+  })
+}

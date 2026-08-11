@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { AlertTriangle, Download, Search } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { AlertTriangle, Download, ImageDown, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -13,12 +13,28 @@ import {
   ISIAN_GAP, JENIS_GAP, LABEL_GAP, URAIAN_GAP, WARNA_GAP,
   namaBulan, type JenisGap,
 } from '@/lib/ca-kepeg/konstanta'
-import { ringkasSikep, pelanggaranPerPegawai, type HasilSikepBulan } from '@/lib/ca-kepeg/parse-sikep'
+import {
+  ringkasSikep, pelanggaranPerPegawai, peringkatIndisipliner,
+  type HasilSikepBulan,
+} from '@/lib/ca-kepeg/parse-sikep'
 import { bangunWorkbook, namaBerkasEkspor } from '@/lib/ca-kepeg/export-excel'
+import { unduhBaganPng, namaBerkasPng } from '@/lib/ca-kepeg/export-png'
 import { BaganGapPegawai, BaganPerBulan, BaganRupiah, BaganSikep } from './Bagan'
 
-const TAB = ['Matriks', 'Detail Gap', 'Per Bulan', 'Akumulasi & Uang Makan', 'SIKEP per Bulan'] as const
+const TAB = [
+  'Matriks', 'Detail Gap', 'Per Bulan', 'Akumulasi & Uang Makan',
+  'SIKEP per Bulan', 'Ranking Pegawai Indisipliner',
+] as const
 type NamaTab = typeof TAB[number]
+
+/** Menit → "3 jam 25 mnt", agar besaran keterlambatan mudah dibaca. */
+function durasi(menit: number): string {
+  if (menit <= 0) return '—'
+  const jam = Math.floor(menit / 60)
+  const sisa = menit % 60
+  if (jam === 0) return `${sisa} mnt`
+  return sisa === 0 ? `${jam} jam` : `${jam} jam ${sisa} mnt`
+}
 
 function rupiah(n: number): string {
   const nilai = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Math.abs(n))
@@ -106,7 +122,65 @@ export default function PanelHasil({
       {tab === 'Detail Gap' && <TabDetail hasil={hasil} />}
       {tab === 'Per Bulan' && <TabPerBulan hasil={hasil} />}
       {tab === 'Akumulasi & Uang Makan' && <TabAkumulasi hasil={hasil} />}
-      {tab === 'SIKEP per Bulan' && <TabSikep sikepBulanan={sikepBulanan} />}
+      {tab === 'SIKEP per Bulan' && <TabSikep sikepBulanan={sikepBulanan} hasil={hasil} />}
+      {tab === 'Ranking Pegawai Indisipliner' && (
+        <TabPeringkat sikepBulanan={sikepBulanan} hasil={hasil} />
+      )}
+    </div>
+  )
+}
+
+// ── Pembungkus bagan + unduh PNG ──────────────────────────────────────────
+
+/**
+ * Kartu bagan dengan tombol unduh PNG. Judul dan subjudul ikut tergambar di
+ * berkas PNG-nya, supaya gambar yang dilepas ke laporan tetap menjelaskan
+ * dirinya sendiri tanpa konteks halaman ini.
+ */
+function KartuBagan({
+  judul, keterangan, dasarBerkas, hasil, children,
+}: {
+  judul: string
+  keterangan?: string
+  dasarBerkas: string
+  hasil: HasilAnalisis
+  children: React.ReactNode
+}) {
+  const wadah = useRef<HTMLDivElement>(null)
+  const [sibuk, setSibuk] = useState(false)
+  const [galat, setGalat] = useState<string | null>(null)
+
+  async function unduh() {
+    if (!wadah.current) return
+    setSibuk(true)
+    setGalat(null)
+    try {
+      await unduhBaganPng(wadah.current, {
+        judul,
+        subjudul: `${hasil.namaSatker} — Tahun ${hasil.tahun}`,
+        namaBerkas: namaBerkasPng(dasarBerkas, hasil.namaSatker, hasil.tahun),
+      })
+    } catch (e) {
+      setGalat(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSibuk(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">{judul}</h3>
+          {keterangan && <p className="text-xs text-slate-500 mt-0.5">{keterangan}</p>}
+          {galat && <p className="text-xs text-red-600 mt-1">{galat}</p>}
+        </div>
+        <Button variant="outline" size="sm" onClick={unduh} disabled={sibuk} title="Unduh bagan sebagai PNG">
+          <ImageDown className="w-4 h-4 mr-1.5" />
+          {sibuk ? 'Menyiapkan…' : 'PNG'}
+        </Button>
+      </div>
+      <div ref={wadah}>{children}</div>
     </div>
   )
 }
@@ -229,13 +303,14 @@ function TabMatriks({ hasil }: { hasil: HasilAnalisis }) {
         </table>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-slate-800 mb-1">Kejadian Gap per Pegawai</h3>
-        <p className="text-xs text-slate-500 mb-3">
-          Angka persis tiap sel tersedia pada tabel matriks di atas.
-        </p>
+      <KartuBagan
+        judul="Kejadian Gap per Pegawai"
+        keterangan="Angka persis tiap sel tersedia pada tabel matriks di atas."
+        dasarBerkas="bagan_gap"
+        hasil={hasil}
+      >
         <BaganGapPegawai data={dataBagan} />
-      </div>
+      </KartuBagan>
     </div>
   )
 }
@@ -406,10 +481,9 @@ function TabPerBulan({ hasil }: { hasil: HasilAnalisis }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-slate-800 mb-3">Sebaran Gap Sepanjang Tahun</h3>
+      <KartuBagan judul="Sebaran Gap Sepanjang Tahun" dasarBerkas="bagan_bulanan" hasil={hasil}>
         <BaganPerBulan data={rekap} />
-      </div>
+      </KartuBagan>
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-x-auto">
         <table className="w-full text-sm">
@@ -477,11 +551,14 @@ function TabAkumulasi({ hasil }: { hasil: HasilAnalisis }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-slate-800 mb-1">Estimasi Rupiah Potongan per Pegawai</h3>
-        <p className="text-xs text-slate-500 mb-3">Tunjangan kinerja sudah di-cap 100% per bulan per pegawai.</p>
+      <KartuBagan
+        judul="Estimasi Rupiah Potongan per Pegawai"
+        keterangan="Tunjangan kinerja sudah di-cap 100% per bulan per pegawai."
+        dasarBerkas="bagan_rupiah"
+        hasil={hasil}
+      >
         <BaganRupiah data={dataRupiah} />
-      </div>
+      </KartuBagan>
 
       <div>
         <h3 className="text-sm font-semibold text-slate-800 mb-2">Akumulasi per Individu</h3>
@@ -573,7 +650,7 @@ function TabAkumulasi({ hasil }: { hasil: HasilAnalisis }) {
 
 // ── Tab: SIKEP per bulan ──────────────────────────────────────────────────
 
-function TabSikep({ sikepBulanan }: { sikepBulanan: HasilSikepBulan[] }) {
+function TabSikep({ sikepBulanan, hasil }: { sikepBulanan: HasilSikepBulan[]; hasil: HasilAnalisis }) {
   const [bulan, setBulan] = useState(sikepBulanan[0]?.bulan ?? 1)
   const terpilih = sikepBulanan.find((s) => s.bulan === bulan)
 
@@ -614,14 +691,199 @@ function TabSikep({ sikepBulanan }: { sikepBulanan: HasilSikepBulan[] }) {
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-slate-800 mb-1">
-          Pelanggaran Disiplin Presensi — {namaBulan(bulan)}
-        </h3>
-        <p className="text-xs text-slate-500 mb-3">
-          Bersumber murni dari SIKEP, sebelum disilangkan dengan KOMDANAS.
-        </p>
+      <KartuBagan
+        judul={`Pelanggaran Disiplin Presensi — ${namaBulan(bulan)}`}
+        keterangan="Bersumber murni dari SIKEP, sebelum disilangkan dengan KOMDANAS."
+        dasarBerkas={`bagan_sikep_${namaBulan(bulan).toLowerCase()}`}
+        hasil={hasil}
+      >
         <BaganSikep data={pelanggaran} />
+      </KartuBagan>
+    </div>
+  )
+}
+
+// ── Tab: ranking pegawai indisipliner ─────────────────────────────────────
+
+function TabPeringkat({
+  sikepBulanan, hasil,
+}: {
+  sikepBulanan: HasilSikepBulan[]
+  hasil: HasilAnalisis
+}) {
+  const [sembunyikanBersih, setSembunyikanBersih] = useState(false)
+  const peringkat = useMemo(() => peringkatIndisipliner(sikepBulanan), [sikepBulanan])
+
+  if (sikepBulanan.length === 0) {
+    return (
+      <p className="text-sm text-slate-500 py-12 text-center">
+        Tidak ada berkas SIKEP yang diproses, sehingga peringkat tidak dapat disusun.
+      </p>
+    )
+  }
+
+  const bulanAda = sikepBulanan.map((s) => s.bulan).sort((a, b) => a - b)
+  const berurutan = bulanAda.every((b, i) => i === 0 || b === bulanAda[i - 1] + 1)
+  const periode = bulanAda.length === 1
+    ? `${namaBulan(bulanAda[0])} ${hasil.tahun}`
+    : berurutan
+      ? `${namaBulan(bulanAda[0])} – ${namaBulan(bulanAda[bulanAda.length - 1])} ${hasil.tahun}`
+      : `${bulanAda.map(namaBulan).join(', ')} ${hasil.tahun}`
+
+  const bermasalah = peringkat.filter((p) => p.total > 0)
+  const totalPelanggaran = bermasalah.reduce((s, p) => s + p.total, 0)
+  const totalMenit = bermasalah.reduce((s, p) => s + p.menitTerlambat + p.menitPulangCepat, 0)
+
+  const tampil = sembunyikanBersih ? bermasalah : peringkat
+  const dataBagan = bermasalah.slice(0, 20).map((p) => ({
+    nama: p.nama,
+    tl: p.tl,
+    psw: p.psw,
+    tidakPresensi: p.thm + p.thp,
+    tmk: p.tmk,
+    total: p.total,
+  }))
+
+  const kartu = [
+    { label: 'Periode Dianalisis', nilai: `${bulanAda.length} bulan`, catatan: periode },
+    {
+      label: 'Pegawai Berpelanggaran',
+      nilai: `${bermasalah.length} / ${peringkat.length}`,
+      catatan: 'dari seluruh pegawai di berkas SIKEP',
+    },
+    { label: 'Total Pelanggaran', nilai: String(totalPelanggaran), catatan: 'TL + PSW + THM + THP + TMK' },
+    { label: 'Akumulasi Menit', nilai: durasi(totalMenit), catatan: 'terlambat + pulang cepat' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+        <p className="text-xs text-sky-900 leading-relaxed">
+          Peringkat disusun dari <strong>hasil penilaian ulang SIKEP</strong> — jam scan
+          masuk/pulang tiap pegawai dibandingkan dengan standar jam kerja yang Anda
+          tetapkan di panel Setup, termasuk penyesuaian Ramadhan dan pengecualian hari
+          libur. Angka di sini <strong>berdiri sendiri</strong> terhadap temuan gap:
+          tidak disilangkan dengan KOMDANAS, sehingga mencerminkan disiplin presensi
+          apa adanya menurut SIKEP.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kartu.map((k) => (
+          <div key={k.label} className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">{k.label}</p>
+            <p className="text-xl font-bold text-slate-900 mt-1 tabular-nums">{k.nilai}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{k.catatan}</p>
+          </div>
+        ))}
+      </div>
+
+      {dataBagan.length > 0 && (
+        <KartuBagan
+          judul={`Peringkat Pelanggaran Disiplin Presensi${dataBagan.length < bermasalah.length ? ' — 20 Teratas' : ''}`}
+          keterangan={`Akumulasi ${periode}. Angka persis seluruh pegawai ada pada tabel di bawah.`}
+          dasarBerkas="ranking_indisipliner"
+          hasil={hasil}
+        >
+          <BaganSikep data={dataBagan} />
+        </KartuBagan>
+      )}
+
+      <div>
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+          <h3 className="text-sm font-semibold text-slate-800">
+            Peringkat Lengkap — {periode}
+          </h3>
+          <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sembunyikanBersih}
+              onChange={(e) => setSembunyikanBersih(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            Sembunyikan pegawai tanpa pelanggaran ({peringkat.length - bermasalah.length})
+          </label>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-800 text-white">
+              <tr>
+                <th className="text-center font-semibold px-3 py-2 w-12">#</th>
+                <th className="text-left font-semibold px-3 py-2">Nama</th>
+                <th className="text-left font-semibold px-3 py-2">Jabatan</th>
+                <th className="text-center font-semibold px-3 py-2" title="Terlambat">TL</th>
+                <th className="text-center font-semibold px-3 py-2" title="Pulang sebelum waktunya">PSW</th>
+                <th className="text-center font-semibold px-3 py-2" title="Tidak Hadir Masuk">THM</th>
+                <th className="text-center font-semibold px-3 py-2" title="Tidak Hadir Pulang">THP</th>
+                <th className="text-center font-semibold px-3 py-2" title="Izin Tidak Masuk Kantor">TMK</th>
+                <th className="text-center font-semibold px-3 py-2">Total</th>
+                <th className="text-right font-semibold px-3 py-2 whitespace-nowrap">Akumulasi Menit</th>
+                <th className="text-center font-semibold px-3 py-2 whitespace-nowrap">Bulan Terdampak</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tampil.map((p, i) => (
+                <tr
+                  key={p.nip}
+                  className={`border-t border-slate-100 ${
+                    p.total === 0 ? 'bg-emerald-50/40' : i % 2 === 1 ? 'bg-slate-50/60' : ''
+                  }`}
+                >
+                  <td className="px-3 py-1.5 text-center tabular-nums font-bold text-slate-700">
+                    {p.peringkat}
+                  </td>
+                  <td className="px-3 py-1.5 font-medium text-slate-800">{p.nama}</td>
+                  <td className="px-3 py-1.5 text-slate-600">{p.jabatan}</td>
+                  <td
+                    className="px-3 py-1.5 text-center tabular-nums"
+                    title={Object.entries(p.rincianTl).map(([k, v]) => `${k}: ${v}`).join(' · ')}
+                  >
+                    {p.tl || ''}
+                  </td>
+                  <td
+                    className="px-3 py-1.5 text-center tabular-nums"
+                    title={Object.entries(p.rincianPsw).map(([k, v]) => `${k}: ${v}`).join(' · ')}
+                  >
+                    {p.psw || ''}
+                  </td>
+                  <td className="px-3 py-1.5 text-center tabular-nums">{p.thm || ''}</td>
+                  <td className="px-3 py-1.5 text-center tabular-nums">{p.thp || ''}</td>
+                  <td className="px-3 py-1.5 text-center tabular-nums">{p.tmk || ''}</td>
+                  <td
+                    className={`px-3 py-1.5 text-center tabular-nums font-bold ${
+                      p.total === 0 ? 'text-emerald-700' : ''
+                    }`}
+                  >
+                    {p.total}
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums whitespace-nowrap text-slate-600">
+                    {durasi(p.menitTerlambat + p.menitPulangCepat)}
+                  </td>
+                  <td className="px-3 py-1.5 text-center tabular-nums text-slate-600">
+                    {p.bulanTerdampak} / {p.bulanTerdata}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {tampil.length === 0 && (
+            <p className="text-sm text-slate-500 py-8 text-center">
+              Tidak ada pelanggaran disiplin presensi pada periode ini.
+            </p>
+          )}
+        </div>
+
+        <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+          Seluruh pegawai disertakan, termasuk yang tanpa pelanggaran (baris hijau).
+          Urutan ditentukan jumlah pelanggaran; bila seri, dipecah oleh akumulasi menit
+          keterlambatan dan pulang cepat. Nilai yang benar-benar sama{' '}
+          <strong>berbagi nomor peringkat yang sama</strong> dan nomor berikutnya melompat,
+          sehingga pegawai bersih tidak tampak diurutkan padahal setara.
+          Arahkan kursor ke angka TL atau PSW untuk melihat rinciannya per tingkat
+          (TL1–TL4, PSW1–PSW4). <strong>Bulan Terdampak</strong> = jumlah bulan yang
+          memuat pelanggaran, dibanding jumlah bulan pegawai tersebut terdata di SIKEP.
+        </p>
       </div>
     </div>
   )
