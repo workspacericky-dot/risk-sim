@@ -207,7 +207,7 @@ export default async function EvaluasiPengendalianPage({
         {/* Keterangan */}
         <div className="px-5 py-4 border-t bg-slate-50 text-[10px] text-slate-500 leading-relaxed space-y-1">
           <p className="font-semibold text-slate-600 mb-2">Keterangan:</p>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-0.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-0.5">
             <p>Butir (a) : Diisi nama unit pemilik risiko</p>
             <p>Kolom Risiko : Kode dan pernyataan risiko dari register identifikasi</p>
             <p>Butir (b) : Diisi tahun berjalan</p>

@@ -13,6 +13,9 @@ import { klasifikasiBerkas } from '../src/lib/ca-keuangan-perkara/klasifikasi-fi
 import {
   hitungHariKerjaBerlalu, hitungStatus, parseFileKepatuhan, type InputKepatuhan,
 } from '../src/lib/ca-keuangan-perkara/kepatuhan'
+import {
+  barisAlokasiKosong, barisVariansAtkKosong, hitungAlokasi, hitungVariansAtk,
+} from '../src/lib/ca-keuangan-perkara/efisiensi'
 import { keKunciTanggal } from '../src/lib/ca-kepeg/kalender'
 import type { PetaKalender } from '../src/lib/ca-kepeg/konstanta'
 
@@ -76,6 +79,22 @@ const parsedGugatan = parseBerkasJur(bufGugatan, 'Gugatan', 'jur_gugatan.xls')
 const parsedPermohonan = parseBerkasJur(bufPermohonan, 'Permohonan', 'jur_permohonan.xls')
 cek('kedua berkas terbaca tanpa kolom hilang', [...parsedGugatan.kolomHilang, ...parsedPermohonan.kolomHilang], [])
 cek('baris 3/Pdt.G (Sidang) tidak masuk pivot — di luar filter', parsedGugatan.pivot.some((p) => p.nomorPerkara === '3/Pdt.G/2024/MS.Bna'), false)
+cek('tapi baris 3/Pdt.G (Sidang) TETAP masuk semuaNomorPerkara — vouching bukan bagian analisis saldo', parsedGugatan.semuaNomorPerkara.some((p) => p.nomorPerkara === '3/Pdt.G/2024/MS.Bna'), true)
+cek('semuaNomorPerkara memuat ketiga baris Gugatan, bukan cuma yang lolos filter', parsedGugatan.semuaNomorPerkara.length, 3)
+
+// Vouching Transport Eksekusi/PS: harus memuat SELURUH Nomor Perkara Eksekusi
+// apa adanya, termasuk yang Proses Terakhir-nya belum "berakhir" — beda dari
+// pivot Bagian A yang sengaja menyaring hanya perkara berakhir.
+const bufEksekusi = buatWorkbookBuffer({
+  jur_eksekusi: [
+    HEADER_JUR,
+    [1, '5/Pdt.Eks/2025/MS.Bna', 'Eksekusi', 'I', 'J', 'Minutasi', 0, 0, 0, ''],
+    [2, '6/Pdt.Eks/2025/MS.Bna', 'Eksekusi', 'K', 'L', 'Proses Sita Eksekusi', 0, 0, 0, ''],
+  ],
+})
+const parsedEksekusi = parseBerkasJur(bufEksekusi, 'Eksekusi', 'jur_eksekusi.xls')
+cek('vouching Eksekusi memuat kedua perkara, bukan hanya yang berakhir', parsedEksekusi.semuaNomorPerkara.map((p) => p.nomorPerkara).sort(), ['5/Pdt.Eks/2025/MS.Bna', '6/Pdt.Eks/2025/MS.Bna'])
+cek('pivot Bagian A untuk Eksekusi hanya memuat yang berakhir (Minutasi)', parsedEksekusi.pivot.map((p) => p.nomorPerkara), ['5/Pdt.Eks/2025/MS.Bna'])
 
 const analisisA = jalankanAnalisisSaldo([...parsedGugatan.pivot, ...parsedPermohonan.pivot])
 cek('total positif Gugatan = Rp10.118.900', analisisA.ringkasanPositif.totalPerJenis.Gugatan, 10_118_900)
@@ -130,6 +149,30 @@ cek('kolom wajib lengkap (tidak ada kolom hilang)', hasilB.kolomHilang, [])
 cek('baris 1 tercocokkan by Nomor Perkara', hasilB.data['4/Pdt.P/2025/MS.Bna']?.tglDiberitahukan, '2025-01-08')
 cek('media "elektronik" (huruf kecil) dinormalkan', hasilB.data['1/Pdt.G/2025/MS.Bna']?.media, 'Elektronik')
 cek('tanggal serial Excel 44927 → 2023-01-01', hasilB.data['1/Pdt.G/2025/MS.Bna']?.tglPutusan, '2023-01-01')
+
+// ── Efisiensi Biaya Proses — reproduksi contoh Analisis_Efisiensi_Biaya Proses.md ──
+console.log('\nEfisiensi Biaya Proses')
+
+// "Overhead Allocated: 1.000 perkara x Rp65.000 = Rp65.000.000."
+const skenarioA = hitungAlokasi({ ...barisAlokasiKosong('a', 2025), tarifPerPerkara: 65_000, jumlahPerkaraDiterima: 1000, pengeluaranRiil: 40_000_000 })
+cek('Skenario A — Total Alokasi = Rp65.000.000', skenarioA.totalAlokasi, 65_000_000)
+cek('Skenario A — surplus Rp25.000.000 (overallocated)', skenarioA.selisih, 25_000_000)
+cek('Skenario A — status Overallocated (Tarif Terlalu Mahal)', skenarioA.status, 'Overallocated (Tarif Terlalu Mahal)')
+
+const skenarioB = hitungAlokasi({ ...barisAlokasiKosong('b', 2025), tarifPerPerkara: 65_000, jumlahPerkaraDiterima: 1000, pengeluaranRiil: 80_000_000 })
+cek('Skenario B — defisit Rp15.000.000 (underallocated)', skenarioB.selisih, -15_000_000)
+cek('Skenario B — status Underallocated (Tarif Terlalu Rendah)', skenarioB.status, 'Underallocated (Tarif Terlalu Rendah)')
+
+// "Varians Efisiensi = (750 rim - 500 rim) x Rp50.000 = Rp12.500.000 Unfavorable."
+const variansKertas = hitungVariansAtk({
+  ...barisVariansAtkKosong('c', 2025),
+  namaItem: 'Kertas', standarPerPerkara: 0.5, jumlahPerkaraDiputus: 1000,
+  saldoAwal: 100, pembelian: 800, saldoAkhirOpname: 150, hargaStandar: 50_000,
+})
+cek('Varians ATK — kuantitas standar 500 rim', variansKertas.kuantitasStandar, 500)
+cek('Varians ATK — kuantitas aktual terpakai 750 rim', variansKertas.kuantitasAktual, 750)
+cek('Varians ATK — Rp12.500.000 Unfavorable', variansKertas.variansEfisiensi, 12_500_000)
+cek('Varians ATK — status Unfavorable (Tidak Efisien)', variansKertas.status, 'Unfavorable (Tidak Efisien)')
 
 console.log(gagal === 0 ? '\nSemua pemeriksaan lolos.' : `\n${gagal} pemeriksaan gagal.`)
 process.exit(gagal === 0 ? 0 : 1)

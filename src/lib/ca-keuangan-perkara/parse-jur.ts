@@ -6,6 +6,11 @@
  *
  * Setara PDF A.2–A.4: PivotTable rows=Nomor Perkara, values=Sum of Sisa,
  * filter=Proses Terakhir ∈ Filters, ditambah kolom Tahun dari Nomor Perkara.
+ *
+ * Selain pivot (terfilter), fungsi ini juga mengembalikan seluruh Nomor
+ * Perkara pada berkas apa adanya (tanpa filter Proses Terakhir) — dipakai
+ * checklist Vouching Transport Eksekusi/PS, yang bukan bagian dari analisis
+ * sisa panjar sehingga tidak boleh ikut tersaring oleh filter A.1.
  */
 import * as XLSX from 'xlsx'
 import { bacaMatriks, teksSel } from '../ca-kepeg/baca-excel'
@@ -18,12 +23,20 @@ export type BarisPivot = {
   tahun: number | null
 }
 
+export type NomorPerkaraMentah = {
+  jenis: JenisPerkara
+  nomorPerkara: string
+  tahun: number | null
+}
+
 export type HasilParseBerkas = {
   jenis: JenisPerkara
   namaBerkas: string
   jumlahBarisData: number
   jumlahBarisTerfilter: number
   pivot: BarisPivot[]
+  /** Seluruh Nomor Perkara unik pada berkas, tanpa filter Proses Terakhir. */
+  semuaNomorPerkara: NomorPerkaraMentah[]
   /** Kolom wajib yang tidak ditemukan di header — kosong bila berkas terbaca sepenuhnya. */
   kolomHilang: string[]
 }
@@ -55,7 +68,7 @@ export function parseBerkasJur(buf: ArrayBuffer, jenis: JenisPerkara, namaBerkas
   const matriks = namaSheet ? bacaMatriks(buf, false, namaSheet) : []
 
   const kosong = (kolomHilang: string[]): HasilParseBerkas =>
-    ({ jenis, namaBerkas, jumlahBarisData: 0, jumlahBarisTerfilter: 0, pivot: [], kolomHilang })
+    ({ jenis, namaBerkas, jumlahBarisData: 0, jumlahBarisTerfilter: 0, pivot: [], semuaNomorPerkara: [], kolomHilang })
 
   if (matriks.length === 0) return kosong(['(berkas atau sheet pertama kosong)'])
 
@@ -67,8 +80,11 @@ export function parseBerkasJur(buf: ArrayBuffer, jenis: JenisPerkara, namaBerkas
   const kolomHilang = KOLOM_WAJIB.filter((_, i) => [idxNomor, idxProses, idxSisa][i] === -1)
   if (kolomHilang.length > 0) return kosong(kolomHilang)
 
-  // Agregasi Sum of Sisa per Nomor Perkara terfilter (setara SUMIFS A.3).
+  // Agregasi Sum of Sisa per Nomor Perkara terfilter (setara SUMIFS A.3),
+  // plus daftar seluruh Nomor Perkara unik tanpa filter apa pun.
   const agregat = new Map<string, number>()
+  const nomorDilihat = new Set<string>()
+  const semuaNomorPerkara: NomorPerkaraMentah[] = []
   let jumlahBarisData = 0
   let jumlahBarisTerfilter = 0
 
@@ -76,6 +92,11 @@ export function parseBerkasJur(buf: ArrayBuffer, jenis: JenisPerkara, namaBerkas
     const nomorPerkara = teksSel(baris[idxNomor])
     if (nomorPerkara === '') continue
     jumlahBarisData++
+
+    if (!nomorDilihat.has(nomorPerkara)) {
+      nomorDilihat.add(nomorPerkara)
+      semuaNomorPerkara.push({ jenis, nomorPerkara, tahun: ekstrakTahun(nomorPerkara) })
+    }
 
     const prosesTerakhir = teksSel(baris[idxProses])
     if (!FILTER_SET.has(prosesTerakhir.toLowerCase())) continue
@@ -89,5 +110,5 @@ export function parseBerkasJur(buf: ArrayBuffer, jenis: JenisPerkara, namaBerkas
     jenis, nomorPerkara, sisa, tahun: ekstrakTahun(nomorPerkara),
   }))
 
-  return { jenis, namaBerkas, jumlahBarisData, jumlahBarisTerfilter, pivot, kolomHilang: [] }
+  return { jenis, namaBerkas, jumlahBarisData, jumlahBarisTerfilter, pivot, semuaNomorPerkara, kolomHilang: [] }
 }

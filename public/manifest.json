@@ -1,0 +1,14 @@
+{
+  "name": "E-Perjadin Bawas",
+  "short_name": "E-Perjadin",
+  "description": "Presensi & perjalanan dinas pengawasan — Badan Pengawasan Mahkamah Agung RI",
+  "start_url": "/dashboard/e-perjadin",
+  "scope": "/dashboard/e-perjadin",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/risk-sim-logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/risk-sim-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

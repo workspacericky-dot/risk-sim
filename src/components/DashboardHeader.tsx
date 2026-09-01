@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Bell, Search, ChevronDown, X, User, Users, Printer } from 'lucide-react'
+import { Bell, Search, ChevronDown, X, User, Users, Printer, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMobileNav } from '@/app/dashboard/MobileNav'
 
 // --- Role label map ---
 const ROLE_LABELS: Record<string, string> = {
@@ -118,6 +119,7 @@ const YEARS = [currentYear - 1, currentYear, currentYear + 1]
 
 // --- Main component ---
 export function DashboardHeader({ userEmail, userName, userRole, initialYear }: Props) {
+  const { setOpen: setNavOpen } = useMobileNav()
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [matchCount, setMatchCount] = useState<number | null>(null)
@@ -180,7 +182,7 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
     <>
       {/* Search bar overlay */}
       {searchOpen && (
-        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center h-16 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm px-8">
+        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center h-16 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm px-4 sm:px-8">
           <div className="flex items-center gap-3 w-full max-w-2xl">
             <Search className="size-4 text-slate-400 shrink-0" />
             <input
@@ -207,14 +209,23 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
       )}
 
       {/* Actual header */}
-      <header className="bg-[#F8F9FA] px-8 h-16 flex items-center justify-between sticky top-0 z-10 border-b border-slate-200">
-        <div className="flex items-center gap-6">
-          <span className="font-serif font-semibold text-lg tracking-tight text-slate-800 hidden sm:block">
+      <header className="bg-[#F8F9FA] px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between sticky top-0 z-10 border-b border-slate-200">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          {/* Hamburger — buka drawer navigasi di layar sempit */}
+          <button
+            onClick={() => setNavOpen(true)}
+            className="md:hidden -ml-1 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-200 transition-colors shrink-0"
+            title="Buka menu"
+            aria-label="Buka menu navigasi"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="font-serif font-semibold text-lg tracking-tight text-slate-800 hidden md:block truncate">
             Risk Management Sim.
           </span>
         </div>
 
-        <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
+        <div className="flex items-center gap-1.5 sm:gap-3 lg:gap-4 text-sm font-medium text-slate-600">
           {/* Search button */}
           <button
             onClick={() => setSearchOpen(true)}
@@ -227,11 +238,11 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
           {/* Print / Export PDF button */}
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 text-slate-600 hover:text-slate-800 text-xs font-semibold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 text-slate-600 hover:text-slate-800 text-xs font-semibold transition-all shadow-sm"
             title="Ekspor halaman ini ke PDF"
           >
             <Printer className="w-3.5 h-3.5" />
-            Ekspor PDF
+            <span className="hidden lg:inline">Ekspor PDF</span>
           </button>
 
           {/* Notification button */}
@@ -247,7 +258,7 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 top-10 w-72 rounded-xl bg-white border border-slate-200 shadow-lg z-50 overflow-hidden">
+              <div className="absolute right-0 top-10 w-72 max-w-[calc(100vw-2rem)] rounded-xl bg-white border border-slate-200 shadow-lg z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b bg-slate-50 flex items-center justify-between">
                   <span className="text-sm font-semibold text-slate-700">Notifikasi</span>
                   <span className="text-xs text-muted-foreground">0 baru</span>
@@ -266,21 +277,21 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
             )}
           </div>
 
-          <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+          <div className="h-4 w-[1px] bg-slate-300 mx-1 hidden sm:block" />
 
           {/* Year selector */}
           <div ref={yearRef} className="relative">
             <button
               onClick={() => setYearOpen((o) => !o)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-slate-700 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-slate-700 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 whitespace-nowrap"
               title="Pilih Tahun Periode MR"
             >
-              Tahun Periode: <strong className="text-slate-700">{selectedYear}</strong>
+              <span className="hidden md:inline">Tahun Periode:&nbsp;</span><strong className="text-slate-700">{selectedYear}</strong>
               <ChevronDown className="size-3.5 text-muted-foreground" />
             </button>
 
             {yearOpen && (
-              <div className="absolute right-0 top-10 w-44 rounded-xl bg-white border border-slate-200 shadow-lg z-50 overflow-hidden">
+              <div className="absolute right-0 top-10 w-44 max-w-[calc(100vw-2rem)] rounded-xl bg-white border border-slate-200 shadow-lg z-50 overflow-hidden">
                 <div className="px-3 py-2 border-b bg-slate-50">
                   <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Pilih Tahun MR</span>
                 </div>
@@ -310,17 +321,17 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
           <div ref={profileRef} className="relative">
             <button
               onClick={() => setProfileOpen((o) => !o)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-full hover:bg-slate-800 transition-all shadow-sm"
+              className="flex items-center gap-2 bg-slate-900 text-white pl-1 pr-1 sm:pl-1.5 sm:pr-3 py-1 sm:py-1.5 rounded-full hover:bg-slate-800 transition-all shadow-sm"
               title="Profil Akun"
             >
               <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-white shrink-0">
                 {initials}
               </div>
-              <span className="text-sm font-medium">{displayName}</span>
+              <span className="text-sm font-medium hidden sm:block max-w-[9rem] truncate">{displayName}</span>
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 top-11 w-72 rounded-xl bg-white border border-slate-200 shadow-lg z-50 overflow-hidden">
+              <div className="absolute right-0 top-11 w-72 max-w-[calc(100vw-2rem)] rounded-xl bg-white border border-slate-200 shadow-lg z-50 overflow-hidden">
                 <div className="px-4 py-4 flex items-center gap-3 border-b bg-slate-50">
                   <div className="w-11 h-11 rounded-full bg-slate-900 flex items-center justify-center text-sm font-bold text-white shrink-0">
                     {initials}

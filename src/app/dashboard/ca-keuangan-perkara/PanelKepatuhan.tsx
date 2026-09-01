@@ -27,6 +27,10 @@ function kosong(nomorPerkara: string): InputKepatuhan {
   return { nomorPerkara, media: null, tglPutusan: null, tglUnggahECourt: null, tglDiberitahukan: null }
 }
 
+function rupiah(n: number): string {
+  return `Rp ${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(n)}`
+}
+
 type Props = {
   daftarSaldoPositif: BarisPivot[]
   peta: PetaKalender
@@ -38,6 +42,11 @@ export default function PanelKepatuhan({ daftarSaldoPositif, peta, onHasilBeruba
   const [dataInput, setDataInput] = useState<Record<string, InputKepatuhan>>(() =>
     Object.fromEntries(daftarSaldoPositif.map((p) => [p.nomorPerkara, kosong(p.nomorPerkara)])))
   const [catatanUnggah, setCatatanUnggah] = useState<string | null>(null)
+
+  const petaSisa = useMemo(
+    () => new Map(daftarSaldoPositif.map((p) => [p.nomorPerkara, p.sisa])),
+    [daftarSaldoPositif],
+  )
 
   const hasil = useMemo(
     () => daftarSaldoPositif
@@ -129,6 +138,7 @@ export default function PanelKepatuhan({ daftarSaldoPositif, peta, onHasilBeruba
             <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="text-left font-semibold px-3 py-2">Nomor Perkara</th>
+                <th className="text-right font-semibold px-3 py-2 w-32">Sisa Panjar</th>
                 <th className="text-left font-semibold px-3 py-2 w-28">Media</th>
                 <th className="text-left font-semibold px-3 py-2 w-36">Tgl Putusan</th>
                 <th className="text-left font-semibold px-3 py-2 w-36">Tgl Unggah e-Court</th>
@@ -141,6 +151,9 @@ export default function PanelKepatuhan({ daftarSaldoPositif, peta, onHasilBeruba
               {hasil.map((h) => (
                 <tr key={h.nomorPerkara} className="border-t border-slate-100">
                   <td className="px-3 py-2 text-xs text-slate-700">{h.nomorPerkara}</td>
+                  <td className="px-3 py-2 text-xs text-slate-700 text-right tabular-nums">
+                    {rupiah(petaSisa.get(h.nomorPerkara) ?? 0)}
+                  </td>
                   <td className="px-2 py-2">
                     <select
                       value={h.media ?? ''}

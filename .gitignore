@@ -7,6 +7,10 @@
 # oleh scripts/verifikasi-ca-kepeg.ts, tidak pernah menjadi bagian aplikasi
 /CA_Audit_Kepeg
 
+# sampel laporan keuangan satker riil (PDF SAKTI) — hanya dipakai lokal oleh
+# scripts/verifikasi-ca-laporan-keuangan.ts, tidak pernah menjadi bagian aplikasi
+/CA_Audit Lapkeu/
+
 # dependencies
 /node_modules
 /.pnp
