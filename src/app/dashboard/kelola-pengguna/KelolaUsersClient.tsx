@@ -85,7 +85,7 @@ export default function KelolaUsersClient({
           <div className="px-5 py-3 border-b bg-slate-50/80">
             <h3 className="text-sm font-semibold text-slate-700">Tambah Pengguna Baru</h3>
           </div>
-          <form onSubmit={handleCreate} className="p-5 grid grid-cols-2 gap-4">
+          <form onSubmit={handleCreate} className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-slate-600">Nama Lengkap</label>
               <input name="nama_lengkap" required placeholder="Nama Lengkap" className={inputCls} />
@@ -143,7 +143,8 @@ export default function KelolaUsersClient({
           <h3 className="text-sm font-semibold text-slate-700">Daftar Pengguna</h3>
           <span className="ml-auto text-[11px] text-slate-400">{users.length} pengguna</span>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="border-b bg-slate-50/40">
               {['Nama Lengkap', 'Email', 'Role', 'Unit Kerja', 'Status', ''].map((h) => (
@@ -201,6 +202,7 @@ export default function KelolaUsersClient({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

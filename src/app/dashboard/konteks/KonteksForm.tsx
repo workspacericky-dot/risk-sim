@@ -293,7 +293,7 @@ export default function KonteksForm({ units }: { units: Unit[] }) {
       <div className="p-5 space-y-5">
 
         {/* ── Row 1: Unit Kerja + Tahun ─────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="col-span-2 space-y-1">
             <FieldLabel>Unit Kerja (Pemilik Risiko)</FieldLabel>
             {units.length > 0 ? (
@@ -320,7 +320,7 @@ export default function KonteksForm({ units }: { units: Unit[] }) {
         </div>
 
         {/* ── Row 2: Periode ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <FieldLabel>Periode Mulai</FieldLabel>
             <input type="date" value={periodeMulai} onChange={e => setPeriodeMulai(e.target.value)} className={inputCls} />

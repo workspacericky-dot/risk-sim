@@ -217,7 +217,7 @@ function DelphiTopicCard({ topic, responses, promoCount, onDelete, onOpenRound2,
                 Perkiraan besaran konsensus: {suggestedBesaran} · {suggestedLevel.label}
               </p>
             )}
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {KATEGORI_RISIKO.map((k) => (
                 <button type="button" key={k.key} onClick={() => setKategori(k.label)}
                   className={`text-left rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all ${

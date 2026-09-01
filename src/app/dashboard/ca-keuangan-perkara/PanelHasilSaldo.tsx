@@ -1,12 +1,21 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { AlertTriangle, Search, TrendingUp, TrendingDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { JENIS_PERKARA } from '@/lib/ca-keuangan-perkara/konstanta'
 import type { HasilAnalisisSaldo } from '@/lib/ca-keuangan-perkara/analisis-saldo'
+import type { BarisPivot, NomorPerkaraMentah } from '@/lib/ca-keuangan-perkara/parse-jur'
+import type { BarisKwitansi } from '@/lib/ca-keuangan-perkara/kwitansi'
+import type { HasilEfisiensi } from '@/lib/ca-keuangan-perkara/efisiensi'
 import { BaganMatriks } from './Bagan'
+import TabVouchingEksekusi from './TabVouchingEksekusi'
+import TabEfisiensiBiaya from './TabEfisiensiBiaya'
 
-const TAB = ['Ringkasan Positif', 'Ringkasan Negatif & Anomali', 'Rincian Pivot'] as const
+const TAB = [
+  'Ringkasan Positif', 'Ringkasan Negatif & Anomali', 'Rincian Pivot',
+  'Vouching Transport Eksekusi/PS', 'Efisiensi Biaya Proses',
+] as const
 type NamaTab = typeof TAB[number]
 
 function rupiah(n: number): string {
@@ -14,7 +23,17 @@ function rupiah(n: number): string {
   return `${n < 0 ? '−' : ''}Rp ${nilai}`
 }
 
-export default function PanelHasilSaldo({ hasil }: { hasil: HasilAnalisisSaldo }) {
+type Props = {
+  hasil: HasilAnalisisSaldo
+  daftarEksekusi: NomorPerkaraMentah[]
+  semuaNomorPerkara: NomorPerkaraMentah[]
+  onKwitansiBerubah: (data: BarisKwitansi[]) => void
+  onEfisiensiBerubah: (data: HasilEfisiensi) => void
+}
+
+export default function PanelHasilSaldo({
+  hasil, daftarEksekusi, semuaNomorPerkara, onKwitansiBerubah, onEfisiensiBerubah,
+}: Props) {
   const [tab, setTab] = useState<NamaTab>('Ringkasan Positif')
 
   return (
@@ -80,6 +99,18 @@ export default function PanelHasilSaldo({ hasil }: { hasil: HasilAnalisisSaldo }
       )}
 
       {tab === 'Rincian Pivot' && <TabelPivot hasil={hasil} />}
+
+      {tab === 'Vouching Transport Eksekusi/PS' && (
+        <TabVouchingEksekusi daftar={daftarEksekusi} onHasilBerubah={onKwitansiBerubah} />
+      )}
+
+      {tab === 'Efisiensi Biaya Proses' && (
+        <TabEfisiensiBiaya
+          semuaNomorPerkara={semuaNomorPerkara}
+          pivotBerakhir={hasil.pivot}
+          onHasilBerubah={onEfisiensiBerubah}
+        />
+      )}
     </div>
   )
 }
@@ -161,32 +192,101 @@ function TabelAnomali({ hasil }: { hasil: HasilAnalisisSaldo }) {
   )
 }
 
+type UrutanSisa = '' | 'desc' | 'asc'
+
 function TabelPivot({ hasil }: { hasil: HasilAnalisisSaldo }) {
-  const urut = [...hasil.pivot].sort((a, b) => a.jenis.localeCompare(b.jenis) || a.nomorPerkara.localeCompare(b.nomorPerkara))
+  const [cari, setCari] = useState('')
+  const [filterJenis, setFilterJenis] = useState('')
+  const [filterTahun, setFilterTahun] = useState('')
+  const [urutSisa, setUrutSisa] = useState<UrutanSisa>('')
+
+  const tahunTersedia = useMemo(
+    () => [...new Set(hasil.pivot.map((p) => p.tahun).filter((t): t is number => t !== null))].sort((a, b) => b - a),
+    [hasil.pivot],
+  )
+
+  const baris = useMemo(() => {
+    const kataKunci = cari.trim().toLowerCase()
+    const tersaring = hasil.pivot.filter((p: BarisPivot) => {
+      if (kataKunci && !p.nomorPerkara.toLowerCase().includes(kataKunci)) return false
+      if (filterJenis && p.jenis !== filterJenis) return false
+      if (filterTahun && String(p.tahun) !== filterTahun) return false
+      return true
+    })
+    return [...tersaring].sort((a, b) => {
+      if (urutSisa === 'desc') return b.sisa - a.sisa
+      if (urutSisa === 'asc') return a.sisa - b.sisa
+      return a.jenis.localeCompare(b.jenis) || a.nomorPerkara.localeCompare(b.nomorPerkara)
+    })
+  }, [hasil.pivot, cari, filterJenis, filterTahun, urutSisa])
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 max-h-[32rem] overflow-y-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 sticky top-0">
-          <tr>
-            <th className="text-left font-semibold px-3 py-2">Jenis</th>
-            <th className="text-left font-semibold px-3 py-2">Nomor Perkara</th>
-            <th className="text-left font-semibold px-3 py-2">Tahun</th>
-            <th className="text-right font-semibold px-3 py-2">Sum of Sisa</th>
-          </tr>
-        </thead>
-        <tbody>
-          {urut.map((p) => (
-            <tr key={`${p.jenis}-${p.nomorPerkara}`} className="border-t border-slate-100">
-              <td className="px-3 py-2"><Badge variant="secondary">{p.jenis}</Badge></td>
-              <td className="px-3 py-2 text-slate-700">{p.nomorPerkara}</td>
-              <td className="px-3 py-2 text-slate-700">{p.tahun ?? '—'}</td>
-              <td className={`px-3 py-2 text-right font-semibold tabular-nums ${p.sisa < 0 ? 'text-red-700' : p.sisa > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
-                {rupiah(p.sisa)}
-              </td>
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={cari}
+            onChange={(e) => setCari(e.target.value)}
+            placeholder="Cari Nomor Perkara…"
+            className="pl-7 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 w-52"
+          />
+        </div>
+        <select
+          value={filterJenis}
+          onChange={(e) => setFilterJenis(e.target.value)}
+          className="text-xs rounded-lg border border-slate-200 px-2 py-1.5"
+        >
+          <option value="">Semua Jenis</option>
+          {JENIS_PERKARA.map((j) => <option key={j} value={j}>{j}</option>)}
+        </select>
+        <select
+          value={filterTahun}
+          onChange={(e) => setFilterTahun(e.target.value)}
+          className="text-xs rounded-lg border border-slate-200 px-2 py-1.5"
+        >
+          <option value="">Semua Tahun</option>
+          {tahunTersedia.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select
+          value={urutSisa}
+          onChange={(e) => setUrutSisa(e.target.value as UrutanSisa)}
+          className="text-xs rounded-lg border border-slate-200 px-2 py-1.5"
+        >
+          <option value="">Urutkan: Jenis / Nomor Perkara</option>
+          <option value="desc">Sum of Sisa: Tertinggi → Terendah</option>
+          <option value="asc">Sum of Sisa: Terendah → Tertinggi</option>
+        </select>
+        <span className="text-xs text-slate-500 ml-auto">{baris.length} dari {hasil.pivot.length} baris</span>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-slate-200 max-h-[32rem] overflow-y-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 sticky top-0">
+            <tr>
+              <th className="text-left font-semibold px-3 py-2">Jenis</th>
+              <th className="text-left font-semibold px-3 py-2">Nomor Perkara</th>
+              <th className="text-left font-semibold px-3 py-2">Tahun</th>
+              <th className="text-right font-semibold px-3 py-2">Sum of Sisa</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {baris.length === 0 ? (
+              <tr><td colSpan={4} className="px-3 py-6 text-center text-slate-500">Tidak ada baris yang cocok.</td></tr>
+            ) : baris.map((p) => (
+              <tr key={`${p.jenis}-${p.nomorPerkara}`} className="border-t border-slate-100">
+                <td className="px-3 py-2"><Badge variant="secondary">{p.jenis}</Badge></td>
+                <td className="px-3 py-2 text-slate-700">{p.nomorPerkara}</td>
+                <td className="px-3 py-2 text-slate-700">{p.tahun ?? '—'}</td>
+                <td className={`px-3 py-2 text-right font-semibold tabular-nums ${p.sisa < 0 ? 'text-red-700' : p.sisa > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
+                  {rupiah(p.sisa)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

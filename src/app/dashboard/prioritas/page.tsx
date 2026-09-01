@@ -126,7 +126,7 @@ export default async function PrioritasPage({
       </div>
 
       {/* ── Stats ─────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border shadow-sm p-4 text-center">
           <p className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-1">Total Risiko</p>
           <p className="text-3xl font-bold font-serif text-slate-800">{risikoList?.length || 0}</p>
@@ -271,7 +271,7 @@ export default async function PrioritasPage({
         {/* Keterangan */}
         <div className="px-5 py-4 border-t bg-slate-50 text-[10px] text-slate-500 leading-relaxed">
           <p className="font-semibold text-slate-600 mb-2">Keterangan:</p>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-0.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-0.5">
             <p>Butir (a) : Diisi nama unit pemilik risiko</p>
             <p>Kolom 1 : Kode risiko sebagaimana kolom 5 pada Lampiran 5</p>
             <p>Butir (b) : Diisi tahun berjalan</p>

@@ -6,15 +6,17 @@ import { Button } from '@/components/ui/button'
 import { bangunPetaKalender, type EntriKalender } from '@/lib/ca-kepeg/kalender'
 import { jenisTerpakai } from '@/lib/ca-keuangan-perkara/klasifikasi-file'
 import type { JenisPerkara } from '@/lib/ca-keuangan-perkara/konstanta'
-import { parseBerkasJur, type BarisPivot } from '@/lib/ca-keuangan-perkara/parse-jur'
+import { parseBerkasJur, type BarisPivot, type NomorPerkaraMentah } from '@/lib/ca-keuangan-perkara/parse-jur'
 import { jalankanAnalisisSaldo, type HasilAnalisisSaldo } from '@/lib/ca-keuangan-perkara/analisis-saldo'
 import type { HasilKepatuhan } from '@/lib/ca-keuangan-perkara/kepatuhan'
 import type { BarisKwitansi } from '@/lib/ca-keuangan-perkara/kwitansi'
+import type { HasilEfisiensi } from '@/lib/ca-keuangan-perkara/efisiensi'
 import { bangunWorkbook, namaBerkasEkspor } from '@/lib/ca-keuangan-perkara/export-excel'
 import PanelUnggah, { type BerkasTerpilih } from './PanelUnggah'
 import PanelHasilSaldo from './PanelHasilSaldo'
 import PanelKepatuhan from './PanelKepatuhan'
-import PanelKwitansiEksekusi from './PanelKwitansiEksekusi'
+
+const EFISIENSI_KOSONG: HasilEfisiensi = { alokasi: [], variansAtk: [] }
 
 type Langkah = 'siap' | 'memproses' | 'selesai'
 
@@ -25,14 +27,18 @@ export default function CaKeuanganPerkaraClient({ kalender }: { kalender: EntriK
   const [langkah, setLangkah] = useState<Langkah>('siap')
   const [progres, setProgres] = useState<string[]>([])
   const [hasil, setHasil] = useState<HasilAnalisisSaldo | null>(null)
+  const [semuaNomorPerkara, setSemuaNomorPerkara] = useState<NomorPerkaraMentah[]>([])
+  const [daftarEksekusi, setDaftarEksekusi] = useState<NomorPerkaraMentah[]>([])
   const [kepatuhan, setKepatuhan] = useState<HasilKepatuhan[]>([])
   const [kwitansiEksekusi, setKwitansiEksekusi] = useState<BarisKwitansi[]>([])
+  const [efisiensi, setEfisiensi] = useState<HasilEfisiensi>(EFISIENSI_KOSONG)
   const [galat, setGalat] = useState<string | null>(null)
   const [mengunduh, setMengunduh] = useState(false)
 
   const petaKalender = useMemo(() => bangunPetaKalender(kalender), [kalender])
   const onHasilKepatuhanBerubah = useCallback((h: HasilKepatuhan[]) => setKepatuhan(h), [])
   const onKwitansiBerubah = useCallback((h: BarisKwitansi[]) => setKwitansiEksekusi(h), [])
+  const onEfisiensiBerubah = useCallback((h: HasilEfisiensi) => setEfisiensi(h), [])
 
   const terpakai = berkas.filter(
     (b): b is BerkasTerpilih & { jenis: JenisPerkara } => jenisTerpakai(b.jenis),
@@ -48,11 +54,16 @@ export default function CaKeuanganPerkaraClient({ kalender }: { kalender: EntriK
     setProgres([])
     setGalat(null)
     setHasil(null)
+    setSemuaNomorPerkara([])
+    setDaftarEksekusi([])
     setKepatuhan([])
     setKwitansiEksekusi([])
+    setEfisiensi(EFISIENSI_KOSONG)
 
     try {
       const pivotGabungan: BarisPivot[] = []
+      const semuaMentah = new Map<string, NomorPerkaraMentah>()
+      const eksekusiMentah = new Map<string, NomorPerkaraMentah>()
 
       for (const b of terpakai) {
         // Beri kesempatan browser menggambar ulang progres di antara berkas.
@@ -67,6 +78,11 @@ export default function CaKeuanganPerkaraClient({ kalender }: { kalender: EntriK
 
         catat(`${b.file.name} (${b.jenis}) — ${parsed.jumlahBarisData} baris, ${parsed.jumlahBarisTerfilter} terfilter (perkara berakhir)`)
         pivotGabungan.push(...parsed.pivot)
+
+        for (const p of parsed.semuaNomorPerkara) semuaMentah.set(p.nomorPerkara, p)
+        if (b.jenis === 'Eksekusi') {
+          for (const p of parsed.semuaNomorPerkara) eksekusiMentah.set(p.nomorPerkara, p)
+        }
       }
 
       if (pivotGabungan.length === 0) {
@@ -76,6 +92,8 @@ export default function CaKeuanganPerkaraClient({ kalender }: { kalender: EntriK
       const analisis = jalankanAnalisisSaldo(pivotGabungan)
       catat(`Selesai — ${analisis.daftarSaldoPositif.length} perkara saldo positif, ${analisis.daftarAnomali.length} anomali saldo negatif.`)
       setHasil(analisis)
+      setSemuaNomorPerkara([...semuaMentah.values()])
+      setDaftarEksekusi([...eksekusiMentah.values()])
       setLangkah('selesai')
     } catch (e) {
       setGalat(e instanceof Error ? e.message : String(e))
@@ -86,8 +104,11 @@ export default function CaKeuanganPerkaraClient({ kalender }: { kalender: EntriK
   function ulangi() {
     setLangkah('siap')
     setHasil(null)
+    setSemuaNomorPerkara([])
+    setDaftarEksekusi([])
     setKepatuhan([])
     setKwitansiEksekusi([])
+    setEfisiensi(EFISIENSI_KOSONG)
     setProgres([])
     setGalat(null)
   }
@@ -96,7 +117,7 @@ export default function CaKeuanganPerkaraClient({ kalender }: { kalender: EntriK
     if (!hasil) return
     setMengunduh(true)
     try {
-      const blob = await bangunWorkbook(namaSatker.trim() || 'Satker', hasil, kepatuhan, kwitansiEksekusi)
+      const blob = await bangunWorkbook(namaSatker.trim() || 'Satker', hasil, kepatuhan, kwitansiEksekusi, efisiensi)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -126,13 +147,18 @@ export default function CaKeuanganPerkaraClient({ kalender }: { kalender: EntriK
           </div>
         </div>
 
-        <PanelHasilSaldo hasil={hasil} />
+        <PanelHasilSaldo
+          hasil={hasil}
+          daftarEksekusi={daftarEksekusi}
+          semuaNomorPerkara={semuaNomorPerkara}
+          onKwitansiBerubah={onKwitansiBerubah}
+          onEfisiensiBerubah={onEfisiensiBerubah}
+        />
         <PanelKepatuhan
           daftarSaldoPositif={hasil.daftarSaldoPositif}
           peta={petaKalender}
           onHasilBerubah={onHasilKepatuhanBerubah}
         />
-        <PanelKwitansiEksekusi pivot={hasil.pivot} onHasilBerubah={onKwitansiBerubah} />
       </div>
     )
   }

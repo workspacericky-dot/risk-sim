@@ -255,7 +255,7 @@ export default function SmapFraudHexagon() {
 
               {/* All 6 factors summary cards */}
               {active === null && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {FACTORS.map((f, i) => (
                     <div
                       key={f.id}
