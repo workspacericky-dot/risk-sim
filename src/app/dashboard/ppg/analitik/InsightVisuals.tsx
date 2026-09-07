@@ -1,0 +1,30 @@
+'use client'
+
+import Link from 'next/link'
+import { Bar, BarChart, CartesianGrid, Cell, Legend, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
+import type { PpgAssistedInsight } from '@/lib/ppg/insights'
+
+const colors: Record<PpgAssistedInsight['priority'], string> = {
+  prioritas_nasional: '#e11d48',
+  preventif: '#d97706',
+  perbaikan_kontrol: '#0891b2',
+  monitoring: '#64748b',
+}
+
+export function InsightVisuals({ rows, year, quarter }: { rows: PpgAssistedInsight[]; year: number; quarter: number | null }) {
+  const visible = rows.filter((row) => row.insight_a_score >= 35 || row.affected_satkers > 0).slice(0, 18)
+  const barData = visible.slice(0, 10).map((row) => ({ kode: row.kode, kritis: row.cluster_1_satkers, terbatas: row.cluster_2_satkers, monitoring: row.cluster_3_satkers }))
+  return <div className="space-y-5">
+    <div className="grid gap-5 xl:grid-cols-2">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="font-bold text-slate-900">Matriks prioritas Insight A × Insight B</h3><p className="mt-1 text-xs text-slate-500">Klik kartu di bawah untuk membaca bukti dan membentuk draf. Garis tengah memisahkan sinyal rendah dan tinggi.</p><div className="mt-4 h-[360px]">
+        <ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 18, bottom: 16, left: 4 }}><CartesianGrid strokeDasharray="3 3" /><XAxis type="number" dataKey="insight_b_score" domain={[0, 100]} name="Insight B" unit="" label={{ value: 'Realisasi risiko (B)', position: 'insideBottom', offset: -10 }} /><YAxis type="number" dataKey="insight_a_score" domain={[0, 100]} name="Insight A" label={{ value: 'Indeks paparan berbasis data (A)', angle: -90, position: 'insideLeft' }} /><ReferenceLine x={50} stroke="#94a3b8" strokeDasharray="5 5" /><ReferenceLine y={50} stroke="#94a3b8" strokeDasharray="5 5" /><Tooltip cursor={{ strokeDasharray: '3 3' }} content={<MatrixTooltip />} /><Scatter data={visible}>{visible.map((row) => <Cell key={row.risk_library_id} fill={colors[row.priority]} />)}</Scatter></ScatterChart></ResponsiveContainer>
+      </div><div className="mt-2 flex flex-wrap gap-3 text-[11px]">{Object.entries(colors).map(([key, color]) => <span key={key} className="flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ backgroundColor: color }} />{priorityLabel(key)}</span>)}</div></section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="font-bold text-slate-900">Distribusi klaster per risiko</h3><p className="mt-1 text-xs text-slate-500">Klaster 1 adalah realisasi kritis, Klaster 2 realisasi terbatas, dan Klaster 3 monitoring.</p><div className="mt-4 h-[360px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={barData} layout="vertical" margin={{ left: 10, right: 12 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" /><YAxis type="category" dataKey="kode" width={72} tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="kritis" name="Klaster 1" stackId="cluster" fill="#e11d48" /><Bar dataKey="terbatas" name="Klaster 2" stackId="cluster" fill="#d97706" /><Bar dataKey="monitoring" name="Klaster 3" stackId="cluster" fill="#94a3b8" /></BarChart></ResponsiveContainer></div></section>
+    </div>
+    <section className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5"><h3 className="font-bold text-indigo-950">Kandidat Program PPG hasil fusi analitik</h3><p className="mt-1 text-xs text-indigo-800">Insight dan baseline dibuat mesin. UPG Pusat tetap menetapkan tindakan, kontrol, target, dan keputusan akhir.</p><div className="mt-4 grid gap-3 xl:grid-cols-2">{visible.map((row) => <article key={row.risk_library_id} className="rounded-xl border border-indigo-100 bg-white p-4"><div className="flex flex-wrap items-center justify-between gap-2"><b className="text-sm text-slate-900">{row.kode} · {row.kategori}</b><span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase text-white" style={{ backgroundColor: colors[row.priority] }}>{priorityLabel(row.priority)}</span></div><p className="mt-2 line-clamp-2 text-xs text-slate-600">{row.peristiwa}</p><div className="mt-3 grid gap-2 sm:grid-cols-2"><InsightBox title="Insight A — paparan" text={row.insight_a_narrative} score={row.insight_a_score} /><InsightBox title="Insight B — realisasi" text={row.insight_b_narrative} score={row.insight_b_score} /></div><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Rekomendasi: <b>{row.action_title}</b></p><Link href={`/dashboard/ppg/tindak-lanjut?risk=${row.risk_library_id}${row.action_code ? `&action=${row.action_code}` : ''}&tahun=${year}${quarter ? `&triwulan=${quarter}` : ''}`} className="rounded-lg bg-indigo-700 px-3 py-2 text-xs font-semibold text-white">Buat draf berbantuan</Link></div></article>)}</div></section>
+  </div>
+}
+
+function InsightBox({ title, text, score }: { title: string; text: string; score: number }) { return <div className="rounded-lg bg-slate-50 p-3"><div className="flex justify-between gap-2 text-[11px]"><b>{title}</b><span>{score.toFixed(1)}/100</span></div><div className="mt-2 h-1.5 rounded-full bg-slate-200"><div className="h-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-500" style={{ width: `${Math.max(2, score)}%` }} /></div><p className="mt-2 line-clamp-4 text-[11px] leading-relaxed text-slate-600">{text}</p></div> }
+function priorityLabel(value: string) { return value.replaceAll('_', ' ') }
+function MatrixTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PpgAssistedInsight }> }) { const row = payload?.[0]?.payload; if (!active || !row) return null; return <div className="max-w-72 rounded-lg border bg-white p-3 text-xs shadow-lg"><b>{row.kode}</b><p className="mt-1 text-slate-600">{row.peristiwa}</p><p className="mt-2">A: {row.insight_a_score.toFixed(1)} · B: {row.insight_b_score.toFixed(1)}</p><p>{row.affected_pct.toFixed(1)}% Satker terdampak</p></div> }

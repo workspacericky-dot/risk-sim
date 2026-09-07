@@ -16,6 +16,8 @@ const ROLE_LABELS: Record<string, string> = {
   anggota_apip: 'Anggota APIP',
   pemilik_risiko_ma: 'Pemilik Risiko MA',
   admin_sistem: 'Administrator Sistem',
+  upg_pusat: 'UPG Pusat',
+  upg_satker: 'UPG Satker',
 }
 
 // --- Types ---

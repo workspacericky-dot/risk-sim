@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Peserta consulting (role khusus RALS) hanya boleh berada di /dashboard/rals.
+// Role khusus dibatasi ke modul kerjanya walaupun URL diketik secara langsung.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/rals')) {
+  if (pathname.startsWith('/dashboard')) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -14,8 +14,11 @@ export async function proxy(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-      if (profile?.role === 'peserta_consulting') {
+      if (profile?.role === 'peserta_consulting' && !pathname.startsWith('/dashboard/rals')) {
         return NextResponse.redirect(new URL('/dashboard/rals', request.url))
+      }
+      if (['upg_pusat', 'upg_satker'].includes(profile?.role ?? '') && !pathname.startsWith('/dashboard/ppg')) {
+        return NextResponse.redirect(new URL('/dashboard/ppg', request.url))
       }
     }
   }

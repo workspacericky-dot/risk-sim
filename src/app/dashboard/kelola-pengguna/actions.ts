@@ -4,6 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 
+const ALLOWED_ROLES = new Set([
+  'admin_sistem', 'admin_satker', 'pemilik_risiko', 'pengelola_risiko',
+  'kepala_umr', 'anggota_umr', 'kepala_apip', 'anggota_apip',
+  'pemilik_risiko_ma', 'peserta_consulting', 'upg_pusat', 'upg_satker',
+])
+
 async function assertAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,6 +30,8 @@ export async function createUser(formData: FormData): Promise<{ error?: string; 
   const unit_kerja_id = (formData.get('unit_kerja_id') as string) || null
 
   if (!email || !password || !nama_lengkap || !role) return { error: 'Semua field wajib diisi.' }
+  if (!ALLOWED_ROLES.has(role)) return { error: 'Role pengguna tidak dikenali.' }
+  if (role === 'upg_satker' && !unit_kerja_id) return { error: 'Role UPG Satker wajib dikaitkan dengan unit kerja.' }
 
   const admin = createAdminClient()
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
@@ -55,9 +63,20 @@ export async function deleteUser(userId: string): Promise<{ error?: string; succ
   if (authErr || !supabase) return { error: authErr ?? 'Akses ditolak.' }
   if (callerId === userId) return { error: 'Tidak dapat menghapus akun Anda sendiri.' }
 
+  const admin = createAdminClient()
+  // Pertahankan histori PPG saat akun UPG dihapus; identitas aktor menjadi null,
+  // sementara data kejadian/program tetap utuh untuk audit organisasi.
+  await Promise.all([
+    ...['ppg_risk_library','ppg_control_library','ppg_register','ppg_mitigations','ppg_import_batches','ppg_classification_rules','ppg_analysis_snapshots','ppg_programs','ppg_program_items','ppg_program_updates','ppg_led_limit_versions'].map((table) => admin.from(table).update({ created_by: null }).eq('created_by', userId)),
+    admin.from('ppg_audit_log').update({ actor_id: null }).eq('actor_id', userId),
+    admin.from('ppg_loss_events').update({ created_by: null }).eq('created_by', userId),
+    admin.from('ppg_loss_events').update({ validated_by: null }).eq('validated_by', userId),
+    admin.from('ppg_loss_event_report_links').update({ created_by: null }).eq('created_by', userId),
+    admin.from('ppg_loss_event_report_links').update({ reviewed_by: null }).eq('reviewed_by', userId),
+    admin.from('ppg_risk_library').update({ nonaktif_by: null }).eq('nonaktif_by', userId),
+  ])
   await supabase.from('users').delete().eq('id', userId)
 
-  const admin = createAdminClient()
   const { error } = await admin.auth.admin.deleteUser(userId)
   if (error) return { error: error.message }
 

@@ -49,7 +49,10 @@ export function SearchableUnitSelect({
     if (left + DROPDOWN_WIDTH > vw - 8) {
       left = Math.max(8, vw - DROPDOWN_WIDTH - 8)
     }
-    setPos({ top: rect.bottom + window.scrollY + 4, left, width: DROPDOWN_WIDTH })
+    // Dropdown uses position: fixed, so getBoundingClientRect() already provides
+    // the correct viewport-relative coordinates. Adding scrollY displaced it
+    // downward whenever the page had been scrolled.
+    setPos({ top: rect.bottom + 4, left, width: DROPDOWN_WIDTH })
   }, [])
 
   const openDropdown = useCallback(() => {
@@ -106,7 +109,7 @@ export function SearchableUnitSelect({
         )}
       >
         <span className="truncate flex-1 text-left">
-          {selected ? selected.nama_unit : 'Pilih unit kerja...'}
+          {selected ? `${selected.kode_unit ? `[${selected.kode_unit}] ` : ''}${selected.nama_unit}` : 'Pilih unit kerja...'}
         </span>
         <ChevronDown className={cn('size-4 text-muted-foreground shrink-0 transition-transform', open && 'rotate-180')} />
       </button>
@@ -173,7 +176,7 @@ export function SearchableUnitSelect({
                     ? <Check className="size-3.5 shrink-0 text-primary" />
                     : <span className="size-3.5 shrink-0" />
                   }
-                  <span className="flex-1 leading-snug">{u.nama_unit}</span>
+                  <span className="flex-1 leading-snug"><span className="font-mono text-xs text-indigo-600">{u.kode_unit}</span>{u.kode_unit ? <span className="mx-1.5 text-slate-300">·</span> : null}{u.nama_unit}</span>
                   {u.tingkat !== undefined && (
                     <span className="text-[11px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
                       Lv {u.tingkat}

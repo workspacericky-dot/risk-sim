@@ -1,0 +1,156 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import { parseMoney, parsePpgWorkbook } from '../src/lib/ppg/import-workbook.ts'
+import { ppgAssessment, ppgRiskLevel, ppgScore } from '../src/lib/ppg/scoring.ts'
+import { PPG_ASSESSMENT_PERIODS, PPG_BUSINESS_PROCESSES, PPG_CAUSE_FACTORS, PPG_IMPACT_AREAS, PPG_IMPACT_KNOWLEDGE_ID, PPG_IMPACT_LEVELS, PPG_IMPACT_OPTIONS, PPG_PROBABILITY_OPTIONS, PPG_RISK_CATEGORIES, PPG_RISK_CLASSIFICATIONS, isValidPpgBusinessProcess } from '../src/lib/ppg/references.ts'
+import { analyzePpgReports } from '../src/lib/ppg/analytics.ts'
+import { buildPpgAssistedInsights, calculateInsightA } from '../src/lib/ppg/insights.ts'
+import { matchLossEventReports } from '../src/lib/ppg/led.ts'
+
+assert.equal(ppgRiskLevel(5), 'Sangat Rendah')
+assert.equal(ppgRiskLevel(6), 'Rendah')
+assert.equal(ppgRiskLevel(11), 'Rendah')
+assert.equal(ppgRiskLevel(12), 'Sedang')
+assert.equal(ppgRiskLevel(15), 'Sedang')
+assert.equal(ppgRiskLevel(16), 'Tinggi')
+assert.equal(ppgRiskLevel(19), 'Tinggi')
+assert.equal(ppgRiskLevel(20), 'Sangat Tinggi')
+assert.equal(ppgScore(5, 5), 25)
+assert.deepEqual(ppgAssessment(3, 4), { score: 12, level: 'Sedang' })
+assert.throws(() => ppgScore(0, 5), RangeError)
+assert.equal(PPG_RISK_CLASSIFICATIONS.length, 6)
+assert.equal(PPG_RISK_CATEGORIES.length, 7)
+assert.equal(PPG_BUSINESS_PROCESSES.length, 7)
+assert.equal(PPG_CAUSE_FACTORS.length, 5)
+assert.deepEqual(PPG_PROBABILITY_OPTIONS.map((item) => item.value), [1, 2, 3, 4, 5])
+assert.deepEqual(PPG_IMPACT_OPTIONS.map((item) => item.value), [1, 2, 3, 4, 5])
+assert.equal(PPG_IMPACT_AREAS.length, 6)
+assert.deepEqual(PPG_IMPACT_LEVELS.map((item) => item.value), [1, 2, 3, 4, 5])
+assert.equal(PPG_IMPACT_KNOWLEDGE_ID, '47500000-0000-4000-8000-000000000001')
+assert.equal(PPG_ASSESSMENT_PERIODS.length, 19)
+assert.ok(PPG_ASSESSMENT_PERIODS.includes('Tahunan'))
+assert.ok(PPG_ASSESSMENT_PERIODS.includes('Triwulan IV'))
+assert.ok(PPG_ASSESSMENT_PERIODS.includes('Bulanan - Desember'))
+assert.equal([5, 4, 3, 2, 1].flatMap((k) => [1, 2, 3, 4, 5].map((d) => ppgScore(k, d))).length, 25)
+assert.equal(isValidPpgBusinessProcess('Manajemen Peradilan', ''), true)
+assert.equal(isValidPpgBusinessProcess('Manajemen Peradilan', 'Tidak boleh'), false)
+assert.equal(isValidPpgBusinessProcess('Administrasi Umum', 'SDM'), true)
+assert.equal(isValidPpgBusinessProcess('Administrasi Umum', 'Subproses tambahan'), true)
+assert.equal(parseMoney('50,000'), 50000)
+assert.equal(parseMoney('Rp1.500.000,00'), 1500000)
+
+const rekapitulasi = parsePpgWorkbook(fs.readFileSync('ref/PPG/Rekapitulasi_contoh.xlsx'))
+assert.equal(rekapitulasi.format, 'rekapitulasi_kpk')
+assert.equal(rekapitulasi.sheetName, 'Worksheet')
+assert.equal(rekapitulasi.headerRow, 4)
+assert.equal(rekapitulasi.totalRows, 1)
+assert.equal(rekapitulasi.rows.length, 1)
+assert.equal(rekapitulasi.rows[0].source_row, 5)
+assert.equal(rekapitulasi.rows[0].nilai_penetapan, 50000)
+assert.equal(rekapitulasi.rows[0].tanggal_penerimaan, '2026-07-30')
+assert.equal(rekapitulasi.rows[0].tanggal_pelaporan, '2026-07-31')
+assert.equal('nama' in rekapitulasi.rows[0], false)
+assert.equal('nik' in rekapitulasi.rows[0], false)
+assert.equal('nama_pemberi' in rekapitulasi.rows[0], false)
+
+const worksheetGol = parsePpgWorkbook(fs.readFileSync('ref/PPG/Template_RiskLibrary_Sektor_Publik_Redesign_.xlsx'))
+assert.equal(worksheetGol.format, 'worksheet_gol')
+assert.equal(worksheetGol.sheetName, 'Worksheet (GOL)')
+assert.equal(worksheetGol.headerRow, 1)
+assert.equal(worksheetGol.rows.length, 1079)
+assert.equal(worksheetGol.rows[1].nilai_penetapan, 245000)
+
+const analytics = analyzePpgReports([
+  { nomor_laporan: 'A', tanggal_penerimaan: '2022-04-01', tanggal_pelaporan: '2022-04-10', jabatan_penerima: 'Hakim', objek: 'Uang tunai', nilai_penetapan: 100000, jenis_penerimaan: 'Ditolak' },
+  { nomor_laporan: 'B', tanggal_penerimaan: '2025-12-20', tanggal_pelaporan: '2026-02-01', jabatan_penerima: 'Ketua', objek: 'Parsel hari raya', nilai_penetapan: 250000 },
+  { nomor_laporan: 'C', tanggal_penerimaan: '2026-03-01', tanggal_pelaporan: '2026-03-03', jabatan_penerima: 'Hakim', objek: 'Uang tunai', nilai_penetapan: 500000 },
+  { nomor_laporan: 'C', tanggal_penerimaan: '2026-03-01', tanggal_pelaporan: '2026-03-03', jabatan_penerima: 'Hakim', objek: 'Voucher', nilai_penetapan: 50000 },
+  { nomor_laporan: 'D', tanggal_penerimaan: '2026-03-02', tanggal_pelaporan: '2026-03-03', jabatan_penerima: 'Hakim', objek: 'Uang tunai', nilai_penetapan: 25000 },
+], 2026)
+assert.equal(analytics.summary.uniqueReports, 2)
+assert.equal(analytics.summary.itemCount, 3)
+assert.deepEqual(analytics.coverage.baselineYears, [2022, 2025, 2026])
+assert.equal(analytics.period.programLabel, 'Tahun 2027')
+assert.equal(analytics.objects[0].label, 'Uang & Setara Uang')
+assert.ok(analytics.recommendations.some((item) => item.actionCode === 'PPG-UANG-01'))
+const insightA = calculateInsightA(analytics)
+assert.equal(insightA.components.length, 5)
+assert.equal(insightA.components.reduce((sum, item) => sum + item.weight, 0), 1)
+assert.equal(insightA.score, Math.round(insightA.components.reduce((sum, item) => sum + item.contribution, 0) * 10) / 10)
+assert.ok(insightA.score >= 0 && insightA.score <= 100)
+const assisted = buildPpgAssistedInsights(analytics, [{ risk_library_id: 'risk-1', kode: 'PPG.3.1', kategori: 'Risiko Kecurangan', peristiwa: 'Penerimaan gratifikasi', eligible_satkers: 100, affected_satkers: 12, affected_pct: 12, high_impact_satkers: 4, high_impact_pct: 4, recurring_satkers: 3, recurring_pct: 3, control_failure_satkers: 5, control_failure_pct: 5, cluster_1_satkers: 5, cluster_2_satkers: 7, cluster_3_satkers: 88, data_confidence: 'tinggi' }])
+assert.equal(assisted.length, 1)
+assert.equal(assisted[0].insight_a_method_version, 'exposure-components-v2')
+assert.equal(assisted[0].insight_a_components.length, 5)
+assert.equal(assisted[0].suggested_outcome_b_baseline, 12)
+assert.ok(assisted[0].insight_a_narrative.length > 0)
+assert.ok(assisted[0].suggested_kri.length > 0)
+
+const candidates = matchLossEventReports({
+  unit_nama: 'Pengadilan Negeri Contoh',
+  tanggal_kejadian: '2026-08-11',
+  nama_peristiwa: 'Penerimaan parsel oleh petugas PTSP',
+  kronologi: 'Parsel diberikan setelah pelayanan selesai',
+  jenis_dampak: 'Penurunan Reputasi',
+  level_dampak: 3,
+  uraian_dampak: 'Keluhan dari pemangku kepentingan',
+}, [
+  { id: 'match', unit_nama: 'Pengadilan Negeri Contoh', tanggal_penerimaan: '2026-08-12', label_skenario: 'Pemberian parsel kepada petugas PTSP', objek: 'Parsel', nilai_penetapan: 500000 },
+  { id: 'wrong-unit', unit_nama: 'Pengadilan Negeri Lain', tanggal_penerimaan: '2026-08-12', label_skenario: 'Pemberian parsel kepada petugas PTSP', objek: 'Parsel', nilai_penetapan: 500000 },
+  { id: 'other', unit_nama: 'Pengadilan Tinggi Lain', tanggal_penerimaan: '2025-01-01', label_skenario: 'Pemberian uang kepada hakim', objek: 'Uang', nilai_penetapan: 5000000 },
+])
+assert.equal(candidates.length, 1)
+assert.equal(candidates[0].reportId, 'match')
+assert.ok(candidates[0].score >= 80)
+assert.ok(candidates[0].reasons.includes('satker sama'))
+
+const migration = fs.readFileSync('supabase/migration_ppg.sql', 'utf8')
+const libraryDefinition = migration.slice(migration.indexOf('create table if not exists public.ppg_risk_library'), migration.indexOf('create table if not exists public.ppg_control_library'))
+const registerDefinition = migration.slice(migration.indexOf('create table if not exists public.ppg_register'), migration.indexOf('create table if not exists public.ppg_risk_controls'))
+assert.doesNotMatch(libraryDefinition, /unit_kerja_id|unit_nama/)
+assert.match(registerDefinition, /unit_kerja_id uuid not null/)
+assert.match(registerDefinition, /unit_nama text not null/)
+assert.match(migration, /indikator_program text not null/)
+assert.match(migration, /create table if not exists public\.ppg_loss_events/)
+assert.match(migration, /create table if not exists public\.ppg_loss_event_report_links/)
+assert.match(migration, /ppg-led-bukti/)
+assert.match(migration, /upg_pusat/)
+assert.match(migration, /upg_satker/)
+assert.match(migration, /create policy "ppg register insert"/)
+assert.match(migration, /drop policy if exists "ppg register select"/)
+assert.match(migration, /drop policy if exists "ppg loss select"/)
+assert.match(migration, /role in \('admin_sistem','upg_pusat'\)/)
+assert.match(migration, /unit_kerja_id = public\.ppg_user_unit_id\(\)/)
+assert.match(libraryDefinition, /alasan_nonaktif text not null/)
+assert.match(libraryDefinition, /nonaktif_at timestamptz/)
+assert.match(migration, /control_id uuid references public\.ppg_control_library/)
+assert.match(migration, /ppg_control_library_jenis_check/)
+assert.match(migration, /create table if not exists public\.ppg_library_risk_controls/)
+assert.match(migration, /create table if not exists public\.ppg_program_item_controls/)
+assert.match(migration, /create table if not exists public\.ppg_risk_control_validations/)
+assert.match(migration, /bukti_efektivitas_url text not null/)
+assert.match(migration, /create policy "ppg risk control insert"/)
+assert.match(migration, /ppg_register_periode_check/)
+assert.match(migration, /jenis_dampak text not null/)
+assert.match(migration, /level_dampak smallint not null/)
+assert.match(migration, /uraian_dampak text not null/)
+assert.match(migration, /level_dampak_upper smallint not null/)
+assert.match(migration, new RegExp(PPG_IMPACT_KNOWLEDGE_ID))
+assert.match(migration, /create table if not exists public\.ppg_loss_event_code_counters/)
+assert.match(migration, /create or replace function public\.ppg_assign_loss_event_code\(\)/)
+assert.match(migration, /create trigger ppg_loss_event_code_trigger/)
+assert.match(migration, /new\.kode := 'LED-' \|\| event_year::text/)
+assert.match(migration, /risk_library_id uuid not null references public\.ppg_risk_library\(id\)/)
+assert.match(migration, /ppg_loss_events_primary_risk_required/)
+assert.match(migration, /ppg_program_items_generic_risk_required/)
+assert.match(migration, /create table if not exists public\.ppg_program_clusters/)
+assert.match(migration, /create table if not exists public\.ppg_program_cluster_units/)
+assert.match(migration, /target_cakupan_satker numeric\(5,2\)/)
+assert.match(migration, /kri_indikator text not null/)
+assert.match(migration, /outcome_a_indikator text not null/)
+assert.match(migration, /outcome_b_indikator text not null/)
+assert.match(migration, /catatan_keputusan text not null/)
+assert.doesNotMatch(fs.readFileSync('src/app/dashboard/ppg/actions.ts', 'utf8'), /kode: `LED-\$\{eventDate/)
+assert.doesNotMatch(fs.readFileSync('src/lib/ppg/insights.ts', 'utf8'), /tinggi:\s*82|sedang:\s*58|normal:\s*35/)
+assert.match(fs.readFileSync('src/lib/ppg/data.ts', 'utf8'), /ppg_control_library!ppg_program_items_control_id_fkey/)
+console.log('PPG scoring, workbook import, analytics, LED matching, and migration verification passed.')

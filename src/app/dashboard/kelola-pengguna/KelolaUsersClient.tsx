@@ -15,6 +15,8 @@ const ROLE_OPTIONS = [
   { value: 'anggota_apip', label: 'Anggota APIP' },
   { value: 'pemilik_risiko_ma', label: 'Pemilik Risiko MA' },
   { value: 'peserta_consulting', label: 'Peserta Consulting (RALS)' },
+  { value: 'upg_pusat', label: 'UPG Pusat' },
+  { value: 'upg_satker', label: 'UPG Satker' },
 ]
 
 type User = {
@@ -177,7 +179,7 @@ export default function KelolaUsersClient({
                     </span>
                   </td>
                   <td className="px-5 py-3 text-slate-500">
-                    {(u.unit as any)?.nama_unit ?? <span className="italic text-slate-300">Pusat/Belum diset</span>}
+                    {u.unit?.nama_unit ?? <span className="italic text-slate-300">Pusat/Belum diset</span>}
                   </td>
                   <td className="px-5 py-3">
                     {u.status_aktif ? (
