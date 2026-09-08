@@ -7,9 +7,7 @@ import { createAdminClient } from '@/utils/supabase/admin'
 import { PPG_ASSESSMENT_PERIODS, PPG_RISK_CATEGORIES, PPG_RISK_CATEGORY_CODES, PPG_RISK_CLASSIFICATIONS, PPG_CAUSE_FACTORS, isValidPpgBusinessProcess } from '@/lib/ppg/references'
 import { normalizeRiskText, parsePpgRiskRegisterWorkbook, riskSimilarity, type PpgRiskRegisterImportRow } from '@/lib/ppg/risk-register-workbook'
 import { ppgAssessment } from '@/lib/ppg/scoring'
-
-export type RiskImportActionState = { status: 'idle' | 'success' | 'error'; message: string }
-export const initialRiskImportState: RiskImportActionState = { status: 'idle', message: '' }
+import type { RiskImportActionState } from './risk-import-state'
 
 type ComparableRisk = Pick<PpgRiskRegisterImportRow, 'klasifikasi_risiko' | 'faktor_penyebab' | 'peristiwa' | 'penyebab' | 'dampak'>
 
@@ -198,6 +196,70 @@ export async function createPpgRegisterFromImport(_previous: RiskImportActionSta
   return { status: 'success', message: 'Draf Penilaian Risiko berhasil dibuat. Treated risk tetap kosong sampai Program PPG dilaksanakan.' }
 }
 
+export async function deletePpgRiskImport(_previous: RiskImportActionState, formData: FormData): Promise<RiskImportActionState> {
+  const access = await requirePpgAccess()
+  if (!access.isPusat) return failure('Penghapusan riwayat impor hanya tersedia bagi UPG Pusat dan Admin Sistem.')
+
+  const batchId = field(formData, 'batch_id')
+  if (!isUuid(batchId)) return failure('Riwayat impor tidak valid.')
+
+  const admin = createAdminClient()
+  const { data: batch, error: batchError } = await admin
+    .from('ppg_risk_import_batches')
+    .select('id,nama_file,mode,total_baris')
+    .eq('id', batchId)
+    .single()
+  if (batchError || !batch) return failure('Riwayat impor tidak ditemukan atau sudah dihapus.')
+
+  const { data: rows, error: rowsError } = await admin.from('ppg_risk_import_rows').select('id').eq('batch_id', batchId)
+  if (rowsError) return failure(`Baris sumber gagal diperiksa: ${rowsError.message}`)
+
+  const rowIds = (rows ?? []).map((row) => String(row.id))
+  const candidateIds = new Set<string>()
+  for (const ids of chunks(rowIds, 250)) {
+    const { data: members, error } = await admin.from('ppg_risk_candidate_members').select('candidate_id').in('import_row_id', ids)
+    if (error) return failure(`Relasi kandidat gagal diperiksa: ${error.message}`)
+    for (const member of members ?? []) candidateIds.add(String(member.candidate_id))
+  }
+
+  const rowIdSet = new Set(rowIds)
+  const candidatesWithOtherSources = new Set<string>()
+  const candidateIdList = [...candidateIds]
+  for (const ids of chunks(candidateIdList, 250)) {
+    const { data: relatedMembers, error } = await admin
+      .from('ppg_risk_candidate_members')
+      .select('candidate_id,import_row_id')
+      .in('candidate_id', ids)
+    if (error) return failure(`Keanggotaan kandidat gagal diperiksa: ${error.message}`)
+    for (const member of relatedMembers ?? []) {
+      if (!rowIdSet.has(String(member.import_row_id))) candidatesWithOtherSources.add(String(member.candidate_id))
+    }
+  }
+  const orphanCandidateIds = candidateIdList.filter((id) => !candidatesWithOtherSources.has(id))
+
+  const { error: deleteError } = await admin.from('ppg_risk_import_batches').delete().eq('id', batchId)
+  if (deleteError) return failure(`Riwayat impor gagal dihapus: ${deleteError.message}`)
+
+  await admin.from('ppg_audit_log').insert({
+    actor_id: access.user.id,
+    entity_type: 'ppg_risk_import_batch',
+    entity_id: batchId,
+    action: 'delete',
+    changes: { nama_file: batch.nama_file, mode: batch.mode, total_baris: batch.total_baris },
+  })
+
+  for (const ids of chunks(orphanCandidateIds, 250)) {
+    const { error } = await admin.from('ppg_risk_candidates').delete().in('id', ids).in('status', ['usulan', 'review'])
+    if (error) {
+      revalidatePpgImportPages()
+      return failure(`Riwayat terhapus, tetapi kandidat tanpa sumber gagal dibersihkan: ${error.message}`)
+    }
+  }
+
+  revalidatePpgImportPages()
+  return { status: 'success', message: 'Riwayat impor berhasil dihapus.' }
+}
+
 function bestMatch(source: ComparableRisk, items: Array<Record<string, unknown>>) {
   return items.reduce<{ item: Record<string, unknown>; score: number } | null>((best, item) => {
     const score = riskSimilarity(source, {
@@ -211,6 +273,11 @@ function bestMatch(source: ComparableRisk, items: Array<Record<string, unknown>>
 function field(formData: FormData, name: string) { return String(formData.get(name) || '').trim() }
 function failure(message: string): RiskImportActionState { return { status: 'error', message } }
 function isUuid(value: string) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) }
+function chunks<T>(values: T[], size: number) {
+  const result: T[][] = []
+  for (let start = 0; start < values.length; start += size) result.push(values.slice(start, start + size))
+  return result
+}
 function revalidatePpgImportPages() {
   revalidatePath('/dashboard/ppg/pustaka'); revalidatePath('/dashboard/ppg/penilaian'); revalidatePath('/dashboard/ppg/referensi')
 }

@@ -1,8 +1,8 @@
 # Spesifikasi Teknis Risk Sim — Modul Khusus PPG
 
-**Versi dokumen:** 2.0
+**Versi dokumen:** 2.1
 
-**Tanggal pembaruan:** 7 September 2026
+**Tanggal pembaruan:** 8 September 2026
 
 **Audiens:** Front-end Engineer, Back-end Engineer, Data Analyst, DBA, QA, dan pemilik proses UPG
 
@@ -19,6 +19,8 @@ Prinsip desain utama:
 5. Insight B menggunakan persentase satker agar satu satker dengan volume tinggi tidak mendominasi.
 6. Snapshot menjaga reproduktibilitas basis keputusan.
 7. Istilah bisnis adalah inherent, residual, dan treated risk. Kolom `*_existing` dipertahankan sebagai nama legacy dengan makna residual.
+8. Artefak unduhan adalah template kosong satu-sheet; workbook sumber yang dipakai untuk reverse-engineering format tidak dipublikasikan.
+9. UPG Pusat/Admin dapat menghapus batch impor yang salah atau duplikat tanpa menghapus Risk Library maupun register yang telah dibuat.
 
 ## 2. Tech Stack dan Arsitektur Sistem
 
@@ -57,12 +59,15 @@ Supabase
 
 Server Action terlebih dahulu memanggil `requirePpgAccess()` atau `requirePpgAdmin()`. Operasi biasa memakai client sesi agar RLS berlaku. Admin client hanya dipakai pada alur yang memerlukan orkestrasi lintas tabel setelah otorisasi eksplisit dan pemeriksaan kepemilikan di server.
 
+File dengan directive top-level `'use server'` hanya mengekspor fungsi `async`, sesuai kontrak Next.js 16. State serializable untuk `useActionState`, termasuk `initialRiskImportState`, ditempatkan pada modul netral `risk-import-state.ts`; modul action mengimpor tipenya tanpa mengekspor object runtime.
+
 ### 2.3 Kontrol akses
 
 | Resource | UPG Satker | UPG Pusat | Admin Sistem |
 | --- | --- | --- | --- |
 | Risk/Control Library | Baca risiko/kontrol aktif | CRUD | CRUD |
 | Kandidat impor bottom-up | Tidak | Kurasi | Kurasi |
+| Riwayat impor Risk Register | Tidak | Baca/hapus | Baca/hapus |
 | Register risiko | CRUD unit sendiri | Baca semua | CRUD semua |
 | Bukti kontrol aktual | CRUD register unit sendiri | Baca/validasi | CRUD/validasi |
 | Loss event | CRUD terbatas unit sendiri | Baca dan validasi semua | CRUD semua |
@@ -74,6 +79,8 @@ Server Action terlebih dahulu memanggil `requirePpgAccess()` atau `requirePpgAdm
 
 - Format berkas: `.xlsx`, maksimum 10 MB.
 - Sheet wajib: `Risk Register 2026`.
+- Template publik: `/templates/Template_Risk_Register_PPG_2026_Kosong.xlsx`.
+- Workbook publik hanya memiliki satu sheet, 100 baris input kosong mulai baris 6, dan tidak memuat data sumber/satker.
 - Validasi struktur: judul `A1` mengandung “risk register” dan header `C4` mengandung “potensi”.
 - Tahun dibaca dari `G2`.
 - Triwulan dibaca dari `E2` dan dikonversi menjadi `Triwulan I`–`Triwulan IV`.
@@ -95,6 +102,8 @@ Server Action terlebih dahulu memanggil `requirePpgAccess()` atau `requirePpgAdm
 
 `kategori`, `proses_bisnis`, `subproses_bisnis`, residual K/D, dan treated K/D tetap kosong karena tidak tersedia secara andal pada template. Sistem dilarang merekayasa nilai tersebut.
 
+Template menerapkan validasi Triwulan 1–4, Tahun 2000–2200, probabilitas/dampak 1–5, klasifikasi risiko, dan faktor penyebab. Kolom `L` memuat formula skor `E × G`; parser tetap menghitung dan memvalidasi nilai bisnis secara independen sehingga formula client tidak dipercaya sebagai input otoritatif.
+
 ### 3.2 Dua mode impor
 
 **Bootstrap Library**:
@@ -106,6 +115,16 @@ Server Action terlebih dahulu memanggil `requirePpgAccess()` atau `requirePpgAdm
 5. Sisanya dibandingkan dengan kandidat terbuka.
 6. Similarity ≥ 72 digabung ke kandidat; selain itu dibuat kandidat baru.
 7. UPG Pusat memeriksa evidence members dan mengambil keputusan.
+
+**Penghapusan batch bootstrap/operasional oleh pusat**:
+
+1. Server Action memverifikasi role melalui `requirePpgAccess()` dan menolak selain UPG Pusat/Admin.
+2. UUID batch divalidasi dan metadata batch dibaca sebelum mutasi.
+3. ID source row dan kandidat terkait dihimpun untuk menentukan kandidat yang masih memiliki sumber dari batch lain.
+4. Penghapusan `ppg_risk_import_batches` memicu cascade ke `ppg_risk_import_rows` dan membership terkait.
+5. Kandidat berstatus `usulan`/`review` hanya dihapus bila tidak memiliki sumber lain.
+6. Risk Library, register, dan mitigasi yang sudah dibuat tidak dihapus karena hanya memiliki referensi `ON DELETE SET NULL`/identitas mandiri melalui alur penerbitannya.
+7. Metadata batch yang dihapus ditulis ke `ppg_audit_log`, kemudian halaman pustaka, penilaian, dan referensi direvalidasi.
 
 **Operational Assessment**:
 
@@ -385,6 +404,7 @@ ppg_risk_library 1 ──< ppg_register >── 1 unit_kerja
 | Menunggu hasil | Tampilkan jumlah valid/perlu perbaikan | Match library/kandidat dan simpan lineage. |
 | Expand kandidat | Tampilkan members dan similarity | Query candidate + nested evidence. |
 | Setujui/gabung/tolak | Validasi field wajib | Buat/update Risk Library, update rows, tulis audit log. |
+| Hapus batch salah/duplikat | Konfirmasi target dan dampak | Otorisasi pusat, cascade staging, pertahankan kandidat multisumber, tulis audit log. |
 
 ### 10.2 Assisted generation Program PPG
 
@@ -406,20 +426,23 @@ ppg_risk_library 1 ──< ppg_register >── 1 unit_kerja
 │ Header Khusus PPG + navigasi submenu                         │
 ├───────────────────────────────────────────────────────────────┤
 │ Import Risk Register                                         │
-│ [Unduh template] [Mode ▼] [Pilih .xlsx] [Impor]              │
+│ [Unduh template kosong] [Mode ▼] [Pilih .xlsx] [Impor]       │
 ├───────────────────────────────────────────────────────────────┤
-│ Antrean kurasi bottom-up                                     │
+│ ▸ Antrean kurasi bottom-up (N) — tertutup default            │
 │ ┌ Kandidat + confidence + jumlah satker ─────── [expand] ┐   │
 │ │ evidence sumber                                            │
 │ │ kategori/proses/klasifikasi/faktor/peristiwa/penyebab      │
 │ │ [Setujui baru] [Gabungkan] [Tolak]                         │
 │ └─────────────────────────────────────────────────────────┘   │
 ├───────────────────────────────────────────────────────────────┤
+│ ▸ Riwayat impor Risk Register (N)                             │
+│   file │ mode/periode │ status/jumlah baris │ [Hapus]         │
+├───────────────────────────────────────────────────────────────┤
 │ Form manual library │ tabel Risk Library │ Control Library   │
 └───────────────────────────────────────────────────────────────┘
 ```
 
-Behavior: tombol approve disabled secara fungsional bila field wajib tidak valid; bukti anggota collapsed secara default; field yang tidak diekstrak kosong; duplicate file hash ditolak.
+Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa atribut `open`, sehingga tertutup saat render awal. Tombol approve disabled secara fungsional bila field wajib tidak valid; bukti anggota collapsed secara default; field yang tidak diekstrak kosong; duplicate file hash ditolak. Tombol hapus memakai dialog konfirmasi client dan Server Action dengan otorisasi ulang.
 
 ### 11.2 Penilaian Risiko
 
@@ -458,6 +481,8 @@ Behavior: tombol approve disabled secara fungsional bila field wajib tidak valid
 - Persentase dibatasi 0–100; K/D dibatasi 1–5; progres dibatasi 0–100.
 - Rentang tanggal harus valid dan tanggal mulai tidak boleh melebihi tanggal akhir.
 - File identik pada sheet dan mode yang sama ditolak berdasarkan SHA-256.
+- Batch yang dipastikan salah/duplikat dapat dihapus UPG Pusat/Admin agar hash yang sama dapat diimpor ulang.
+- Modul `'use server'` tidak boleh mengekspor object/non-function; state awal form harus berada di modul client-safe/netral.
 - Batch gagal diberi status `gagal` dan menyimpan catatan error.
 - Constraint migrasi lama ditambahkan secara idempotent menggunakan `IF NOT EXISTS` dan `DROP ... IF EXISTS`.
 - Constraint `NOT VALID` dipakai pada beberapa upgrade agar data historis tidak menggagalkan instalasi, sementara baris baru tetap diperiksa.
@@ -469,6 +494,8 @@ Behavior: tombol approve disabled secara fungsional bila field wajib tidak valid
 - Bukti LED berada pada bucket privat `ppg-led-bukti`, batas 10 MB, MIME PDF/JPEG/PNG/WebP.
 - Link bukti diberikan sebagai signed URL berdurasi terbatas.
 - Source row, source sheet, file hash, raw payload terbatas, similarity, reviewer, dan timestamps menjaga lineage.
+- Workbook asli yang dipakai sebagai referensi format tetap berada di area sumber internal dan tidak disajikan sebagai static asset publik.
+- Penghapusan batch Risk Register mencatat metadata target pada `ppg_audit_log`; data resmi yang telah diterbitkan tidak ikut dihapus.
 - Penghapusan akun mengosongkan actor/reference user tanpa menghapus histori organisasi.
 - Snapshot program tidak boleh dihitung ulang secara diam-diam setelah program ditetapkan.
 
@@ -485,6 +512,8 @@ Behavior: tombol approve disabled secara fungsional bila field wajib tidak valid
 - Insight A menyimpan lima kontribusi yang totalnya sama dengan skor A.
 - Insight B menggunakan distinct satker, bukan event count.
 - Role dan ownership diuji untuk setiap command.
+- Template unduhan diuji memiliki tepat satu sheet, header/metadata baku, formula skor, dan tidak memiliki data risiko pada baris input.
+- Server Action impor diuji melalui build agar tidak mengekspor nilai runtime non-async.
 
 ### 14.2 Acceptance criteria
 
@@ -497,6 +526,8 @@ Behavior: tombol approve disabled secara fungsional bila field wajib tidak valid
 7. Program tidak dapat disimpan tanpa satu risiko generik, tindakan, kontrol, KRI, target, dan tanggal yang valid.
 8. Keanggotaan tiga klaster tersimpan sebagai snapshot.
 9. Build TypeScript dan pengujian PPG lulus.
+10. Antrean kurasi tertutup saat render awal dan dapat dibuka melalui summary/panah.
+11. UPG Pusat/Admin dapat menghapus batch; kandidat multisumber serta data resmi tetap dipertahankan.
 
 ## 15. Operasional Migrasi
 

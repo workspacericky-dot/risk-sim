@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import * as XLSX from 'xlsx'
 import { parseMoney, parsePpgWorkbook } from '../src/lib/ppg/import-workbook.ts'
 import { ppgAssessment, ppgRiskLevel, ppgScore } from '../src/lib/ppg/scoring.ts'
 import { PPG_ASSESSMENT_PERIODS, PPG_BUSINESS_PROCESSES, PPG_CAUSE_FACTORS, PPG_IMPACT_AREAS, PPG_IMPACT_KNOWLEDGE_ID, PPG_IMPACT_LEVELS, PPG_IMPACT_OPTIONS, PPG_PROBABILITY_OPTIONS, PPG_RISK_CATEGORIES, PPG_RISK_CLASSIFICATIONS, isValidPpgBusinessProcess } from '../src/lib/ppg/references.ts'
@@ -74,6 +75,22 @@ assert.equal(riskRegister.rows[0].kemungkinan_residual, null)
 assert.equal(riskRegister.rows[0].kemungkinan_treated, null)
 assert.equal(riskRegister.rows[2].unit_nama_raw, 'Pengadilan Negeri Palembang')
 assert.ok(riskSimilarity(riskRegister.rows[0], riskRegister.rows[0]) >= 99)
+
+const blankTemplate = XLSX.read(fs.readFileSync('public/templates/Template_Risk_Register_PPG_2026_Kosong.xlsx'), { cellFormula: true })
+assert.deepEqual(blankTemplate.SheetNames, ['Risk Register 2026'])
+const blankTemplateSheet = blankTemplate.Sheets['Risk Register 2026']
+assert.equal(blankTemplateSheet.A1?.v, 'FORM RISK REGISTER 2026 — TEMPLATE KOSONG')
+assert.equal(blankTemplateSheet.C4?.v, 'Potensi Terjadinya Gratifikasi')
+assert.equal(blankTemplateSheet.E2?.v, 1)
+assert.equal(blankTemplateSheet.G2?.v, 2026)
+assert.equal(blankTemplateSheet.C6?.v, undefined)
+assert.match(blankTemplateSheet.L6?.f ?? '', /^IF\(/)
+const unexpectedTemplateData = Object.entries(blankTemplateSheet).filter(([address, cell]) => {
+  if (address.startsWith('!')) return false
+  const decoded = XLSX.utils.decode_cell(address)
+  return decoded.r >= 5 && decoded.c !== 11 && cell?.v !== undefined && cell.v !== ''
+})
+assert.deepEqual(unexpectedTemplateData, [])
 
 const analytics = analyzePpgReports([
   { nomor_laporan: 'A', tanggal_penerimaan: '2022-04-01', tanggal_pelaporan: '2022-04-10', jabatan_penerima: 'Hakim', objek: 'Uang tunai', nilai_penetapan: 100000, jenis_penerimaan: 'Ditolak' },
@@ -170,6 +187,9 @@ assert.match(migration, /create table if not exists public\.ppg_risk_import_rows
 assert.match(migration, /create table if not exists public\.ppg_risk_candidates/)
 assert.match(migration, /create table if not exists public\.ppg_risk_candidate_members/)
 assert.match(migration, /kemungkinan_treated smallint/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/risk-import-actions.ts', 'utf8'), /export async function deletePpgRiskImport/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/pustaka/page.tsx', 'utf8'), /Antrean kurasi bottom-up \(\{riskImport\.candidates\.length\}\)/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/pustaka/page.tsx', 'utf8'), /DeleteRiskRegisterImportButton/)
 assert.doesNotMatch(fs.readFileSync('src/app/dashboard/ppg/actions.ts', 'utf8'), /kode: `LED-\$\{eventDate/)
 assert.doesNotMatch(fs.readFileSync('src/lib/ppg/insights.ts', 'utf8'), /tinggi:\s*82|sedang:\s*58|normal:\s*35/)
 assert.match(fs.readFileSync('src/lib/ppg/data.ts', 'utf8'), /ppg_control_library!ppg_program_items_control_id_fkey/)

@@ -3,7 +3,8 @@
 import { useActionState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { PPG_BUSINESS_PROCESSES, PPG_CAUSE_FACTORS, PPG_RISK_CATEGORIES, PPG_RISK_CLASSIFICATIONS } from '@/lib/ppg/references'
-import { initialRiskImportState, reviewPpgRiskCandidate } from './risk-import-actions'
+import { reviewPpgRiskCandidate } from './risk-import-actions'
+import { initialRiskImportState } from './risk-import-state'
 
 type Row = Record<string, unknown>
 

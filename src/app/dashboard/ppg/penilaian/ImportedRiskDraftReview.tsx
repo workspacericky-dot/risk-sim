@@ -2,7 +2,8 @@
 
 import { useActionState } from 'react'
 import { PPG_IMPACT_OPTIONS, PPG_PROBABILITY_OPTIONS } from '@/lib/ppg/references'
-import { createPpgRegisterFromImport, initialRiskImportState } from '../risk-import-actions'
+import { createPpgRegisterFromImport } from '../risk-import-actions'
+import { initialRiskImportState } from '../risk-import-state'
 
 type Row = Record<string, unknown>
 

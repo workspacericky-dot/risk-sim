@@ -1,8 +1,8 @@
 # Panduan Pengguna Risk Sim — Menu Khusus PPG
 
-**Versi dokumen:** 2.0
+**Versi dokumen:** 2.1
 
-**Tanggal pembaruan:** 7 September 2026
+**Tanggal pembaruan:** 8 September 2026
 
 **Sasaran pembaca:** UPG Pusat, UPG Satker, dan Admin Sistem
 
@@ -15,7 +15,7 @@ Sistem membantu mesin melakukan pekerjaan kompilasi dan analisis, tetapi tidak m
 ### 1.1 Submenu dan fungsinya
 
 - **Ringkasan** — menampilkan kondisi umum register risiko, mitigasi, laporan gratifikasi, impor terakhir, dan program yang masih berjalan.
-- **Risk and Control Library** — mengelola risiko generik dan kontrol standar lintas satker. Submenu ini juga memuat impor awal Risk Register dan antrean kurasi bottom-up.
+- **Risk and Control Library** — mengelola risiko generik dan kontrol standar lintas satker. Submenu ini juga memuat impor awal Risk Register, antrean kurasi bottom-up yang tertutup secara default, serta riwayat impor yang dapat dihapus UPG Pusat/Admin.
 - **Penilaian Risiko** — digunakan UPG Satker untuk mengadopsi risiko generik, menilai inherent risk dan residual risk, melihat peta risiko, serta mencatat treated risk setelah Program PPG dilaksanakan.
 - **Loss Event** — mencatat kejadian aktual ketika risiko benar-benar terealisasi, lengkap dengan akar masalah, kontrol yang gagal, dampak, bukti, dan proses validasi UPG Pusat.
 - **Titik Rawan** — mengolah laporan gratifikasi menjadi Insight A, mengolah loss event tervalidasi menjadi Insight B, lalu menyajikan visual fusi keduanya.
@@ -27,8 +27,8 @@ Sistem membantu mesin melakukan pekerjaan kompilasi dan analisis, tetapi tidak m
 | Peran | Kewenangan utama |
 | --- | --- |
 | UPG Satker | Menilai risiko unitnya, mengimpor Risk Register operasional, mencatat loss event, mengajukan kejadian, dan mengisi treated risk pascaprogram. |
-| UPG Pusat | Mengelola Risk and Control Library, mengkurasi kandidat risiko, membaca penilaian seluruh satker, memvalidasi loss event, membaca Insight A/B, menetapkan dan memonitor Program PPG. |
-| Admin Sistem | Memiliki kewenangan koreksi dan pengelolaan penuh untuk kebutuhan administrasi dan pemulihan data. |
+| UPG Pusat | Mengelola Risk and Control Library, mengkurasi kandidat risiko, menghapus riwayat impor Risk Register yang keliru/duplikat, membaca penilaian seluruh satker, memvalidasi loss event, membaca Insight A/B, menetapkan dan memonitor Program PPG. |
+| Admin Sistem | Memiliki kewenangan koreksi dan pengelolaan penuh, termasuk penghapusan riwayat impor Risk Register, untuk kebutuhan administrasi dan pemulihan data. |
 
 ## 2. Gambaran Alur Kerja
 
@@ -55,8 +55,9 @@ Risk Library menjadi bahasa risiko bersama. Penilaian dan loss event tetap memil
 
 | Nama variabel | Jenis data | Sifat | Deskripsi singkat |
 | --- | --- | --- | --- |
-| Mode impor | Dropdown | Wajib | **Bootstrap Risk Library** untuk kurasi awal atau **Penilaian operasional** untuk membuat draf penilaian satker. |
-| File Risk Register | File `.xlsx` | Wajib | Workbook yang mempunyai sheet baku bernama **Risk Register 2026**. Ukuran maksimum 10 MB. |
+| Mode impor | Dropdown | Wajib | Pilih **Susun kandidat Risk Library** untuk kurasi awal atau **Cocokkan untuk Penilaian Risiko** untuk membuat draf penilaian satker. |
+| File Risk Register | File `.xlsx` | Wajib | Gunakan template kosong resmi yang hanya mempunyai satu sheet bernama **Risk Register 2026**. Ukuran maksimum 10 MB. |
+| Nama UPG | Teks | Dianjurkan | Diisi pada area identitas template sebelum data risiko dimasukkan. |
 | Unit kerja | Teks dari Excel | Wajib untuk operasional | Dicocokkan dengan master unit kerja; sel kosong mengikuti unit pada baris sebelumnya. |
 | Tahun | Angka dari Excel | Wajib | Dibaca dari identitas tahun pada sheet. |
 | Periode | Dropdown/hasil ekstraksi | Wajib | Dikonversi menjadi Triwulan I–IV. |
@@ -71,6 +72,8 @@ Risk Library menjadi bahasa risiko bersama. Penilaian dan loss event tetap memil
 | Rencana mitigasi | Teks dari Excel | Opsional | Dapat dibawa menjadi draf mitigasi pada mode operasional. |
 | Residual risk | Angka 1–5 | Diisi manual | Tidak tersedia pada template baku; diisi sebelum draf penilaian dibuat. |
 | Treated risk | Angka 1–5 | Diisi kemudian | Tidak direka oleh mesin; diisi setelah Program PPG dilaksanakan. |
+
+Template yang diunduh dari aplikasi merupakan **template kosong**, bukan salinan workbook sumber yang pernah dipakai untuk membaca format. Template berisi header, petunjuk, validasi input, dan 100 baris kosong mulai baris 6. Jangan menambah sheet lain, mengganti nama sheet, atau menggeser posisi header. Kolom berwarna kuning merupakan area input; kolom **Level Risiko** menghitung skor dari probabilitas × dampak.
 
 ### 3.2 Kurasi kandidat Risk Library
 
@@ -202,24 +205,47 @@ B = min(100,
 
 1. Masuk sebagai **UPG Pusat** atau **Admin Sistem**.
 2. Buka **Khusus PPG → Risk and Control Library**.
-3. Pada area impor, klik **Unduh template baku** jika perlu.
-4. Pastikan workbook menggunakan sheet **Risk Register 2026** tanpa mengubah nama sheet atau susunan kolom.
-5. Pilih mode **Bootstrap Risk Library**.
-6. Pilih file `.xlsx`, lalu klik tombol impor.
-7. Baca ringkasan jumlah baris lengkap dan baris yang perlu dilengkapi.
-8. Buka **Antrean kurasi bottom-up**. Expand bukti sumber untuk melihat satker, nomor baris, peristiwa, penyebab, dampak, kontrol, dan similarity.
-9. Rapikan kategori, proses, klasifikasi, faktor penyebab, peristiwa, penyebab, dan dampak menjadi redaksi generik.
-10. Pilih salah satu keputusan:
+3. Pada area impor, klik **Unduh template kosong**.
+4. Buka file `.xlsx` tersebut. Pastikan hanya terdapat sheet **Risk Register 2026** dan mulai mengisi satu risiko per baris dari baris 6.
+5. Isi nama UPG, triwulan, tahun, serta kolom risiko yang tersedia. Informasi yang belum tersedia boleh dibiarkan kosong untuk dilengkapi di aplikasi.
+6. Jangan mengubah nama sheet, posisi header, atau susunan kolom.
+7. Pilih mode **Susun kandidat Risk Library**.
+8. Pilih file `.xlsx`, lalu klik **Unggah dan analisis**.
+9. Baca ringkasan jumlah baris lengkap dan baris yang perlu dilengkapi.
+10. Panel **Antrean kurasi bottom-up** tertutup secara default. Klik baris judul atau panahnya untuk membuka daftar kandidat.
+11. Pada kandidat yang akan ditinjau, buka **Lihat bukti sumber** untuk melihat satker, nomor baris, peristiwa, penyebab, dampak, kontrol, dan similarity.
+12. Rapikan kategori, proses, klasifikasi, faktor penyebab, peristiwa, penyebab, dan dampak menjadi redaksi generik.
+13. Pilih salah satu keputusan:
     - **Setujui sebagai risiko baru** untuk membuat entri aktif;
     - **Gabungkan ke risiko yang sudah ada** untuk mencegah duplikasi;
     - **Tolak** bila kandidat tidak layak atau bukan risiko PPG.
 
 > Tip: Risiko generik tidak menyebut nama satker, nama pegawai, atau kejadian tunggal. Redaksinya harus dapat digunakan oleh banyak satker.
 
-### 6.2 Mengimpor penilaian operasional satker
+### 6.2 Mengelola riwayat impor dan duplikasi manual
+
+1. Masuk sebagai **UPG Pusat** atau **Admin Sistem**.
+2. Buka **Khusus PPG → Risk and Control Library**.
+3. Klik judul atau panah **Riwayat impor Risk Register** untuk membuka daftar batch.
+4. Bandingkan nama file, mode impor, periode, tahun, status, dan jumlah baris.
+5. Bila suatu batch ternyata salah atau merupakan duplikasi yang baru diketahui secara manual, klik **Hapus** pada batch tersebut.
+6. Baca dialog konfirmasi, lalu setujui hanya jika targetnya benar.
+
+Penghapusan memiliki batas berikut:
+
+- batch dan seluruh baris staging dari file tersebut dihapus;
+- usulan kurasi berstatus menunggu yang hanya mempunyai sumber dari batch tersebut ikut dibersihkan;
+- kandidat yang masih mempunyai sumber dari batch lain tetap dipertahankan;
+- Risk Library yang sudah disetujui, penilaian risiko yang sudah dibuat, dan mitigasi terkait tidak ikut dihapus;
+- tindakan penghapusan dicatat dalam audit log;
+- setelah batch dihapus, file yang sama dapat diimpor kembali karena pengunci hash batch sebelumnya sudah tidak ada.
+
+> Peringatan: tombol **Hapus** tidak tersedia untuk UPG Satker. Pastikan duplikasi telah diperiksa sebelum menghapus karena baris staging yang dibuang tidak dapat dipulihkan dari aplikasi.
+
+### 6.3 Mengimpor penilaian operasional satker
 
 1. Masuk sebagai **UPG Satker** dan buka **Penilaian Risiko**.
-2. Unduh atau gunakan template baku **Risk Register 2026**.
+2. Unduh template kosong `.xlsx` **Risk Register 2026** dari area impor.
 3. Unggah file pada area **Impor penilaian operasional**.
 4. Buka draf staging hasil impor.
 5. Periksa risiko generik yang dicocokkan mesin. Pilih secara manual jika belum cocok.
@@ -228,7 +254,7 @@ B = min(100,
 8. Klik **Buat draf Penilaian Risiko**.
 9. Periksa hasil pada tabel dan peta residual risk.
 
-### 6.3 Menambah penilaian secara manual
+### 6.4 Menambah penilaian secara manual
 
 1. Buka **Penilaian Risiko**.
 2. Pilih **Risiko generik** aktif.
@@ -237,7 +263,7 @@ B = min(100,
 5. Isi probabilitas dan dampak residual berdasarkan kontrol yang berjalan.
 6. Klik **Simpan penilaian**.
 
-### 6.4 Mencatat dan mengajukan loss event
+### 6.5 Mencatat dan mengajukan loss event
 
 1. Buka **Loss Event**.
 2. Pilih satu **Risiko generik utama**.
@@ -248,7 +274,7 @@ B = min(100,
 7. Simpan sebagai draf, periksa kembali, kemudian ajukan ke UPG Pusat.
 8. UPG Pusat meninjau dan menetapkan status tervalidasi, perlu perbaikan, atau tindak lanjut.
 
-### 6.5 Membaca analisis titik rawan
+### 6.6 Membaca analisis titik rawan
 
 1. UPG Pusat membuka **Titik Rawan**.
 2. Pilih tahun dan, bila perlu, triwulan.
@@ -259,7 +285,7 @@ B = min(100,
 7. Expand rincian formula pada kandidat yang akan dipakai.
 8. Klik **Buat draf berbantuan** pada risiko yang relevan.
 
-### 6.6 Menetapkan Program PPG
+### 6.7 Menetapkan Program PPG
 
 1. Buka **Program PPG** dari kandidat analitik.
 2. Pastikan **Risiko generik utama** benar. Satu program hanya mempunyai satu risiko utama.
@@ -275,7 +301,7 @@ B = min(100,
 9. Isi catatan keputusan bila rekomendasi disesuaikan.
 10. Klik **Simpan rancangan Program PPG nasional berklaster**.
 
-### 6.7 Monitoring dan treated risk
+### 6.8 Monitoring dan treated risk
 
 1. Buka program yang sedang berjalan.
 2. Catat tanggal pembaruan, status, progres, realisasi indikator, output, outcome, catatan, dan tautan bukti.
