@@ -6,6 +6,7 @@ import { PPG_ASSESSMENT_PERIODS, PPG_BUSINESS_PROCESSES, PPG_CAUSE_FACTORS, PPG_
 import { analyzePpgReports } from '../src/lib/ppg/analytics.ts'
 import { buildPpgAssistedInsights, calculateInsightA } from '../src/lib/ppg/insights.ts'
 import { matchLossEventReports } from '../src/lib/ppg/led.ts'
+import { parsePpgRiskRegisterWorkbook, riskSimilarity } from '../src/lib/ppg/risk-register-workbook.ts'
 
 assert.equal(ppgRiskLevel(5), 'Sangat Rendah')
 assert.equal(ppgRiskLevel(6), 'Rendah')
@@ -59,6 +60,20 @@ assert.equal(worksheetGol.sheetName, 'Worksheet (GOL)')
 assert.equal(worksheetGol.headerRow, 1)
 assert.equal(worksheetGol.rows.length, 1079)
 assert.equal(worksheetGol.rows[1].nilai_penetapan, 245000)
+
+const riskRegister = parsePpgRiskRegisterWorkbook(fs.readFileSync('ref/PPG/Template_RiskLibrary_Sektor_Publik_Redesign_.xlsx'))
+assert.equal(riskRegister.format, 'risk_register_2026')
+assert.equal(riskRegister.sheetName, 'Risk Register 2026')
+assert.equal(riskRegister.tahun, 2026)
+assert.equal(riskRegister.periode, 'Triwulan III')
+assert.ok(riskRegister.rows.length >= 29)
+assert.equal(riskRegister.rows[0].unit_nama_raw, 'Pengadilan Negeri Palembang')
+assert.equal(riskRegister.rows[0].kemungkinan_inherent, 1)
+assert.equal(riskRegister.rows[0].dampak_inherent, 2)
+assert.equal(riskRegister.rows[0].kemungkinan_residual, null)
+assert.equal(riskRegister.rows[0].kemungkinan_treated, null)
+assert.equal(riskRegister.rows[2].unit_nama_raw, 'Pengadilan Negeri Palembang')
+assert.ok(riskSimilarity(riskRegister.rows[0], riskRegister.rows[0]) >= 99)
 
 const analytics = analyzePpgReports([
   { nomor_laporan: 'A', tanggal_penerimaan: '2022-04-01', tanggal_pelaporan: '2022-04-10', jabatan_penerima: 'Hakim', objek: 'Uang tunai', nilai_penetapan: 100000, jenis_penerimaan: 'Ditolak' },
@@ -150,6 +165,11 @@ assert.match(migration, /kri_indikator text not null/)
 assert.match(migration, /outcome_a_indikator text not null/)
 assert.match(migration, /outcome_b_indikator text not null/)
 assert.match(migration, /catatan_keputusan text not null/)
+assert.match(migration, /create table if not exists public\.ppg_risk_import_batches/)
+assert.match(migration, /create table if not exists public\.ppg_risk_import_rows/)
+assert.match(migration, /create table if not exists public\.ppg_risk_candidates/)
+assert.match(migration, /create table if not exists public\.ppg_risk_candidate_members/)
+assert.match(migration, /kemungkinan_treated smallint/)
 assert.doesNotMatch(fs.readFileSync('src/app/dashboard/ppg/actions.ts', 'utf8'), /kode: `LED-\$\{eventDate/)
 assert.doesNotMatch(fs.readFileSync('src/lib/ppg/insights.ts', 'utf8'), /tinggi:\s*82|sedang:\s*58|normal:\s*35/)
 assert.match(fs.readFileSync('src/lib/ppg/data.ts', 'utf8'), /ppg_control_library!ppg_program_items_control_id_fkey/)

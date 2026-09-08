@@ -1,5 +1,5 @@
 import { addPpgControl, addPpgRiskLibrary } from '../actions'
-import { getPpgLibraryWorkspace } from '@/lib/ppg/data'
+import { getPpgLibraryWorkspace, getPpgRiskImportWorkspace } from '@/lib/ppg/data'
 import { PPG_CAUSE_FACTORS, PPG_RISK_CATEGORIES, PPG_RISK_CLASSIFICATIONS } from '@/lib/ppg/references'
 import { SectionHeading } from '../_components'
 import { ProcessBusinessFields } from '../ProcessBusinessFields'
@@ -7,12 +7,14 @@ import { PpgCombobox } from '../PpgCombobox'
 import { PpgMultiCombobox } from '../PpgMultiCombobox'
 import { ManagedDataTable } from '../ManagedDataTable'
 import { requirePpgAccess } from '@/lib/ppg/access'
+import { RiskRegisterImportForm } from '../RiskRegisterImportForm'
+import { RiskCandidateReview } from '../RiskCandidateReview'
 
 const input = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
 
 export default async function PustakaPage() {
   const access = await requirePpgAccess()
-  const { risk, control, links, error } = await getPpgLibraryWorkspace()
+  const [{ risk, control, links, error }, riskImport] = await Promise.all([getPpgLibraryWorkspace(), getPpgRiskImportWorkspace()])
   const riskById = new Map(risk.rows.map((row) => [String(row.id), row]))
   const controlById = new Map(control.rows.map((row) => [String(row.id), row]))
   const selectableRisks = risk.rows.filter((row) => String(row.status) !== 'nonaktif')
@@ -27,6 +29,10 @@ export default async function PustakaPage() {
   return <div className="space-y-6">
     <SectionHeading eyebrow="Referensi UPG Pusat" title="Risk and Control Library" description="Himpunan risiko dan kontrol generik lintas satker. Pemetaan library menjadi referensi; penerapan dan efektivitas aktual tetap dinilai oleh masing-masing satker." />
     {error && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Skema relasi risiko–kontrol belum tersedia. Jalankan migration_ppg.sql terbaru.</div>}
+    {riskImport.error && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Skema impor Risk Register belum tersedia: {riskImport.error}. Jalankan migration_ppg.sql terbaru.</div>}
+    <RiskRegisterImportForm />
+    <section className="space-y-3"><div><h3 className="font-bold text-slate-900">Antrean kurasi bottom-up</h3><p className="mt-1 text-sm text-slate-500">Mesin mengusulkan pengelompokan. UPG Pusat atau Admin Sistem tetap menentukan redaksi dan keputusan akhirnya.</p></div><RiskCandidateReview candidates={riskImport.candidates} libraries={riskImport.libraries} /></section>
+    {riskImport.batches.length ? <details className="rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer font-bold text-slate-800">Riwayat impor Risk Register ({riskImport.batches.length})</summary><div className="mt-3 space-y-2">{riskImport.batches.map((batch) => <div key={String(batch.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 p-3 text-sm"><div><b>{String(batch.nama_file)}</b><p className="text-xs text-slate-500">{String(batch.mode)} · {String(batch.periode || 'periode belum terbaca')} {String(batch.tahun || '')}</p></div><span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{String(batch.status)} · {String(batch.total_baris)} baris</span></div>)}</div></details> : null}
     <div className="grid gap-5 xl:grid-cols-2">
       <form action={addPpgRiskLibrary} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="font-bold">Tambah draf risiko</h3>

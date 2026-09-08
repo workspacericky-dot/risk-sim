@@ -49,7 +49,7 @@ export function PpgRiskMatrixExplorer({ units, risks, fixedUnitId }: { units: Un
   }
 
   return <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-    <div className="border-b border-slate-200 p-5"><h3 className="font-bold text-slate-900">Peta Risiko PPG per Satker</h3><p className="mt-1 text-xs text-slate-500">Pilih satker, tahun, dan periode untuk menampilkan posisi setiap risiko pada matriks 5×5.</p></div>
+    <div className="border-b border-slate-200 p-5"><h3 className="font-bold text-slate-900">Peta Residual Risk PPG per Satker</h3><p className="mt-1 text-xs text-slate-500">Pilih satker, tahun, dan periode untuk menampilkan posisi risiko setelah kontrol yang berjalan pada matriks 5×5.</p></div>
     <div className="grid min-h-[520px] lg:grid-cols-[260px_1fr]">
       <aside className="border-b border-slate-200 lg:border-b-0 lg:border-r">
         {!fixedUnitId && <div className="border-b p-3"><label className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2"><Search className="h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama satker..." className="min-w-0 flex-1 bg-transparent text-xs outline-none" /></label></div>}

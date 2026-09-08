@@ -137,9 +137,10 @@ export async function addPpgRegister(formData: FormData) {
   const access = await requirePpgAccess()
   if (!access.isAdmin && !access.isSatker) return
   const admin = createAdminClient()
-  const kemungkinan = integer(formData, 'kemungkinan'); const dampak = integer(formData, 'dampak')
-  let assessment
-  try { assessment = ppgAssessment(kemungkinan, dampak) } catch { return }
+  const kemungkinanInherent = integer(formData, 'kemungkinan_inherent'); const dampakInherent = integer(formData, 'dampak_inherent')
+  const kemungkinanResidual = integer(formData, 'kemungkinan_residual'); const dampakResidual = integer(formData, 'dampak_residual')
+  let inherentAssessment; let residualAssessment
+  try { inherentAssessment = ppgAssessment(kemungkinanInherent, dampakInherent); residualAssessment = ppgAssessment(kemungkinanResidual, dampakResidual) } catch { return }
   const libraryId = text(formData, 'risk_library_id')
   const periode = text(formData, 'periode')
   const unitId = access.isSatker ? access.unitId : text(formData, 'unit_kerja_id')
@@ -156,12 +157,36 @@ export async function addPpgRegister(formData: FormData) {
     const { data: mapped } = await admin.from('ppg_library_risk_controls').select('control_id,control:ppg_control_library!inner(status)').eq('risk_library_id', library.id).in('control_id', controlIds).eq('control.status', 'aktif')
     if (!mapped || mapped.length !== controlIds.length) return
   }
-  const { data: register } = await admin.from('ppg_register').insert({ risk_library_id: library.id, kode: library.kode, tahun: integer(formData, 'tahun', new Date().getFullYear()), periode, unit_kerja_id: unit.id, unit_nama: unit.nama_unit, kategori: library.kategori, proses_bisnis: library.proses_bisnis, subproses_bisnis: library.subproses_bisnis, klasifikasi_risiko: library.klasifikasi_risiko, faktor_penyebab: library.faktor_penyebab, peristiwa: library.peristiwa, penyebab: library.penyebab, dampak: library.dampak, kemungkinan_inherent: kemungkinan, dampak_inherent: dampak, skor_inherent: assessment.score, level_inherent: assessment.level, kemungkinan_existing: kemungkinan, dampak_existing: dampak, skor_existing: assessment.score, level_existing: assessment.level, status: 'draft', created_by: access.user.id }).select('id').single()
+  const { data: register } = await admin.from('ppg_register').insert({ risk_library_id: library.id, kode: library.kode, tahun: integer(formData, 'tahun', new Date().getFullYear()), periode, unit_kerja_id: unit.id, unit_nama: unit.nama_unit, kategori: library.kategori, proses_bisnis: library.proses_bisnis, subproses_bisnis: library.subproses_bisnis, klasifikasi_risiko: library.klasifikasi_risiko, faktor_penyebab: library.faktor_penyebab, peristiwa: library.peristiwa, penyebab: library.penyebab, dampak: library.dampak, kemungkinan_inherent: kemungkinanInherent, dampak_inherent: dampakInherent, skor_inherent: inherentAssessment.score, level_inherent: inherentAssessment.level, kemungkinan_existing: kemungkinanResidual, dampak_existing: dampakResidual, skor_existing: residualAssessment.score, level_existing: residualAssessment.level, status: 'draft', created_by: access.user.id }).select('id').single()
   if (!register) return
   if (controls.length) {
     const { error } = await admin.from('ppg_risk_controls').insert(controls.map((control) => ({ risk_id: register.id, control_id: control.controlId, efektivitas: control.efektivitas, bukti_efektivitas_url: control.bukti, created_by: access.user.id })))
     if (error) { await admin.from('ppg_register').delete().eq('id', register.id); return }
   }
+  revalidatePath('/dashboard/ppg/penilaian')
+  revalidatePath('/dashboard/ppg')
+}
+
+export async function updatePpgTreatedRisk(formData: FormData) {
+  const access = await requirePpgAccess()
+  if (!access.isAdmin && !access.isSatker) return
+  const registerId = text(formData, 'register_id')
+  if (!isUuid(registerId)) return
+  const kemungkinanTreated = integer(formData, 'kemungkinan_treated')
+  const dampakTreated = integer(formData, 'dampak_treated')
+  let treatedAssessment
+  try { treatedAssessment = ppgAssessment(kemungkinanTreated, dampakTreated) } catch { return }
+
+  const admin = createAdminClient()
+  const { data: register } = await admin.from('ppg_register').select('id,unit_kerja_id').eq('id', registerId).single()
+  if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return
+  await admin.from('ppg_register').update({
+    kemungkinan_treated: kemungkinanTreated,
+    dampak_treated: dampakTreated,
+    skor_treated: treatedAssessment.score,
+    level_treated: treatedAssessment.level,
+    updated_at: new Date().toISOString(),
+  }).eq('id', registerId)
   revalidatePath('/dashboard/ppg/penilaian')
   revalidatePath('/dashboard/ppg')
 }

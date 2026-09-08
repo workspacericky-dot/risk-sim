@@ -64,6 +64,10 @@ create table if not exists public.ppg_register (
   dampak_existing smallint not null check (dampak_existing between 1 and 5),
   skor_existing smallint not null check (skor_existing = kemungkinan_existing * dampak_existing),
   level_existing text not null check (level_existing in ('Sangat Rendah','Rendah','Sedang','Tinggi','Sangat Tinggi')),
+  kemungkinan_treated smallint check (kemungkinan_treated between 1 and 5),
+  dampak_treated smallint check (dampak_treated between 1 and 5),
+  skor_treated smallint check (skor_treated is null or skor_treated = kemungkinan_treated * dampak_treated),
+  level_treated text check (level_treated is null or level_treated in ('Sangat Rendah','Rendah','Sedang','Tinggi','Sangat Tinggi')),
   status text not null default 'draft' check (status in ('draft','review','aktif','ditutup')),
   source_sheet text, source_row integer, created_by uuid references auth.users(id),
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
@@ -152,6 +156,58 @@ create table if not exists public.ppg_analysis_snapshots (
   summary jsonb not null default '{}', recommendations jsonb not null default '[]',
   created_by uuid references auth.users(id), created_at timestamptz not null default now(),
   check (analysis_start <= analysis_end), check (baseline_start <= baseline_end)
+);
+
+-- Impor Risk Register baku merupakan staging berjejak, bukan jalur langsung ke
+-- library. Data sumber tetap dipertahankan ketika beberapa variasi satker
+-- digabungkan menjadi satu usulan risiko generik.
+create table if not exists public.ppg_risk_import_batches (
+  id uuid primary key default gen_random_uuid(), nama_file text not null, file_hash text not null,
+  source_sheet text not null default 'Risk Register 2026',
+  mode text not null default 'bootstrap_library' check (mode in ('bootstrap_library','operasional_assessment')),
+  tahun integer check (tahun between 2000 and 2200), periode text not null default '',
+  status text not null default 'diproses' check (status in ('diproses','siap_dikurasi','selesai_dengan_error','gagal')),
+  total_baris integer not null default 0, baris_valid integer not null default 0, baris_perlu_perbaikan integer not null default 0,
+  catatan text not null default '', created_by uuid references auth.users(id),
+  created_at timestamptz not null default now(), completed_at timestamptz,
+  unique(file_hash, source_sheet, mode)
+);
+
+create table if not exists public.ppg_risk_import_rows (
+  id uuid primary key default gen_random_uuid(), batch_id uuid not null references public.ppg_risk_import_batches(id) on delete cascade,
+  source_row integer not null, unit_kerja_id uuid references public.unit_kerja(id) on delete set null,
+  unit_nama_raw text not null default '', tahun integer check (tahun between 2000 and 2200), periode text not null default '',
+  klasifikasi_risiko text not null default '', kategori text not null default '',
+  proses_bisnis text not null default '', subproses_bisnis text not null default '', faktor_penyebab text not null default '',
+  peristiwa text not null, penyebab text not null default '', dampak text not null default '',
+  kemungkinan_inherent smallint check (kemungkinan_inherent between 1 and 5), dampak_inherent smallint check (dampak_inherent between 1 and 5),
+  kemungkinan_residual smallint check (kemungkinan_residual between 1 and 5), dampak_residual smallint check (dampak_residual between 1 and 5),
+  kemungkinan_treated smallint check (kemungkinan_treated between 1 and 5), dampak_treated smallint check (dampak_treated between 1 and 5),
+  control_text text not null default '', mitigation_text text not null default '',
+  normalized_signature text not null, validation_errors text[] not null default '{}', raw_payload jsonb not null default '{}',
+  match_status text not null default 'belum_diproses' check (match_status in ('belum_diproses','kandidat_baru','kandidat_tergabung','cocok_library','perlu_review','register_dibuat','diabaikan')),
+  matched_library_id uuid references public.ppg_risk_library(id) on delete set null,
+  created_register_id uuid references public.ppg_register(id) on delete set null,
+  created_at timestamptz not null default now(), unique(batch_id, source_row)
+);
+
+create table if not exists public.ppg_risk_candidates (
+  id uuid primary key default gen_random_uuid(),
+  klasifikasi_risiko text not null default '', kategori text not null default '',
+  proses_bisnis text not null default '', subproses_bisnis text not null default '', faktor_penyebab text not null default '',
+  peristiwa text not null, penyebab text not null default '', dampak text not null default '', normalized_signature text not null,
+  confidence numeric(5,2) not null default 0 check (confidence between 0 and 100),
+  status text not null default 'usulan' check (status in ('usulan','review','disetujui','digabung','ditolak')),
+  library_id uuid references public.ppg_risk_library(id) on delete set null,
+  catatan_keputusan text not null default '', created_by uuid references auth.users(id), reviewed_by uuid references auth.users(id),
+  created_at timestamptz not null default now(), reviewed_at timestamptz, updated_at timestamptz not null default now()
+);
+
+create table if not exists public.ppg_risk_candidate_members (
+  candidate_id uuid not null references public.ppg_risk_candidates(id) on delete cascade,
+  import_row_id uuid not null references public.ppg_risk_import_rows(id) on delete cascade,
+  similarity numeric(5,2) not null default 100 check (similarity between 0 and 100),
+  primary key(candidate_id, import_row_id)
 );
 
 -- Snapshot analitik menyimpan hasil kompilasi nasional per risiko generik.
@@ -456,6 +512,24 @@ alter table public.ppg_program_items add column if not exists outcome_b_baseline
 alter table public.ppg_program_items add column if not exists outcome_b_target_pct numeric(5,2);
 alter table public.ppg_program_items add column if not exists catatan_keputusan text not null default '';
 alter table public.ppg_program_updates add column if not exists realisasi_indikator text not null default '';
+alter table public.ppg_register add column if not exists kemungkinan_treated smallint;
+alter table public.ppg_register add column if not exists dampak_treated smallint;
+alter table public.ppg_register add column if not exists skor_treated smallint;
+alter table public.ppg_register add column if not exists level_treated text;
+alter table public.ppg_risk_import_rows add column if not exists created_register_id uuid references public.ppg_register(id) on delete set null;
+alter table public.ppg_risk_import_rows drop constraint if exists ppg_risk_import_rows_match_status_check;
+alter table public.ppg_risk_import_rows add constraint ppg_risk_import_rows_match_status_check check (match_status in ('belum_diproses','kandidat_baru','kandidat_tergabung','cocok_library','perlu_review','register_dibuat','diabaikan')) not valid;
+alter table public.ppg_register drop constraint if exists ppg_register_treated_check;
+alter table public.ppg_register add constraint ppg_register_treated_check check (
+  (kemungkinan_treated is null and dampak_treated is null and skor_treated is null and level_treated is null) or
+  (kemungkinan_treated between 1 and 5 and dampak_treated between 1 and 5 and
+   skor_treated = kemungkinan_treated * dampak_treated and
+   level_treated in ('Sangat Rendah','Rendah','Sedang','Tinggi','Sangat Tinggi'))
+) not valid;
+comment on column public.ppg_register.kemungkinan_existing is 'Nama kolom legacy; makna bisnisnya adalah kemungkinan residual setelah kontrol yang berjalan.';
+comment on column public.ppg_register.dampak_existing is 'Nama kolom legacy; makna bisnisnya adalah dampak residual setelah kontrol yang berjalan.';
+comment on column public.ppg_register.skor_existing is 'Nama kolom legacy; makna bisnisnya adalah skor residual setelah kontrol yang berjalan.';
+comment on column public.ppg_register.level_existing is 'Nama kolom legacy; makna bisnisnya adalah level residual setelah kontrol yang berjalan.';
 
 update public.ppg_program_items i set risk_library_id = r.risk_library_id
 from public.ppg_register r
@@ -530,6 +604,10 @@ create index if not exists ppg_program_item_controls_control_idx on public.ppg_p
 create index if not exists ppg_loss_events_generic_risk_idx on public.ppg_loss_events(risk_library_id, tanggal_kejadian desc, status);
 create index if not exists ppg_program_items_generic_risk_idx on public.ppg_program_items(risk_library_id, status);
 create index if not exists ppg_program_cluster_units_unit_idx on public.ppg_program_cluster_units(unit_kerja_id, program_cluster_id);
+create index if not exists ppg_risk_import_rows_batch_idx on public.ppg_risk_import_rows(batch_id, source_row);
+create index if not exists ppg_risk_import_rows_library_idx on public.ppg_risk_import_rows(matched_library_id, match_status);
+create index if not exists ppg_risk_candidates_status_idx on public.ppg_risk_candidates(status, created_at desc);
+create index if not exists ppg_risk_candidate_members_row_idx on public.ppg_risk_candidate_members(import_row_id, candidate_id);
 
 -- Referensi kriteria dampak resmi MA ditampilkan sebagai bagian Knowledge Base.
 -- Dynamic SQL menjaga migrasi PPG tetap dapat dijalankan sebelum modul Knowledge dibuat.
@@ -617,7 +695,7 @@ end
 $ppg_knowledge$;
 
 do $$ declare t text; begin
-  foreach t in array array['ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register','ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches','ppg_reports','ppg_classification_rules','ppg_audit_log','ppg_analysis_snapshots','ppg_action_catalog','ppg_programs','ppg_program_items','ppg_program_item_controls','ppg_program_clusters','ppg_program_cluster_units','ppg_program_updates','ppg_led_limit_versions','ppg_loss_events','ppg_loss_event_report_links','ppg_program_loss_events'] loop
+  foreach t in array array['ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register','ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches','ppg_reports','ppg_classification_rules','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches','ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_action_catalog','ppg_programs','ppg_program_items','ppg_program_item_controls','ppg_program_clusters','ppg_program_cluster_units','ppg_program_updates','ppg_led_limit_versions','ppg_loss_events','ppg_loss_event_report_links','ppg_program_loss_events'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "ppg admin select" on public.%I', t);
     execute format('drop policy if exists "ppg admin insert" on public.%I', t);

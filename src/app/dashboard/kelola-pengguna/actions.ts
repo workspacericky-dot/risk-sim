@@ -67,12 +67,13 @@ export async function deleteUser(userId: string): Promise<{ error?: string; succ
   // Pertahankan histori PPG saat akun UPG dihapus; identitas aktor menjadi null,
   // sementara data kejadian/program tetap utuh untuk audit organisasi.
   await Promise.all([
-    ...['ppg_risk_library','ppg_control_library','ppg_register','ppg_mitigations','ppg_import_batches','ppg_classification_rules','ppg_analysis_snapshots','ppg_programs','ppg_program_items','ppg_program_updates','ppg_led_limit_versions'].map((table) => admin.from(table).update({ created_by: null }).eq('created_by', userId)),
+    ...['ppg_risk_library','ppg_control_library','ppg_register','ppg_mitigations','ppg_import_batches','ppg_classification_rules','ppg_analysis_snapshots','ppg_risk_import_batches','ppg_risk_candidates','ppg_programs','ppg_program_items','ppg_program_updates','ppg_led_limit_versions'].map((table) => admin.from(table).update({ created_by: null }).eq('created_by', userId)),
     admin.from('ppg_audit_log').update({ actor_id: null }).eq('actor_id', userId),
     admin.from('ppg_loss_events').update({ created_by: null }).eq('created_by', userId),
     admin.from('ppg_loss_events').update({ validated_by: null }).eq('validated_by', userId),
     admin.from('ppg_loss_event_report_links').update({ created_by: null }).eq('created_by', userId),
     admin.from('ppg_loss_event_report_links').update({ reviewed_by: null }).eq('reviewed_by', userId),
+    admin.from('ppg_risk_candidates').update({ reviewed_by: null }).eq('reviewed_by', userId),
     admin.from('ppg_risk_library').update({ nonaktif_by: null }).eq('nonaktif_by', userId),
   ])
   await supabase.from('users').delete().eq('id', userId)
