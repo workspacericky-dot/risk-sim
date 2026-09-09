@@ -292,3 +292,116 @@ export async function getPpgRows(table: 'ppg_risk_library' | 'ppg_control_librar
   }
   return { rows, error: null }
 }
+
+export async function getPpgControlEffectiveness() {
+  const { supabase } = await requirePpgAdmin()
+  const [controls, riskControls, lossEvents] = await Promise.all([
+    supabase.from('ppg_control_library').select('id,kode,nama,jenis,status').neq('status', 'nonaktif').order('kode'),
+    supabase.from('ppg_risk_controls').select('control_id, efektivitas, risk_id'),
+    supabase.from('ppg_loss_events').select('id, register_id').not('register_id', 'is', null).in('status', ['tervalidasi','tindak_lanjut','ditutup'])
+  ])
+  
+  if (controls.error) return { rows: [], error: controls.error.message }
+  
+  const rcData = riskControls.data ?? []
+  const leData = lossEvents.data ?? []
+  
+  const failuresByRegister = new Map<string, number>()
+  for (const le of leData) {
+    if (le.register_id) {
+       failuresByRegister.set(String(le.register_id), (failuresByRegister.get(String(le.register_id)) || 0) + 1)
+    }
+  }
+
+  const rows = (controls.data ?? []).map(control => {
+    const usages = rcData.filter(rc => rc.control_id === control.id)
+    let efektif = 0, sebagian = 0, tidakEfektif = 0, belumDinilai = 0
+    let totalFailures = 0
+    
+    usages.forEach(u => {
+       if (u.efektivitas === 'efektif') efektif++
+       else if (u.efektivitas === 'sebagian') sebagian++
+       else if (u.efektivitas === 'tidak_efektif') tidakEfektif++
+       else belumDinilai++
+       
+       if (u.risk_id && failuresByRegister.has(String(u.risk_id))) {
+           totalFailures += failuresByRegister.get(String(u.risk_id))!
+       }
+    })
+    
+    const totalRated = efektif + sebagian + tidakEfektif
+    let baseScore = 0
+    if (totalRated > 0) {
+        baseScore = ((efektif * 1) + (sebagian * 0.5)) / totalRated * 100
+    }
+    
+    let cei = Math.max(0, Math.round(baseScore - (totalFailures * 5)))
+    if (totalRated === 0) cei = 0
+
+    return {
+      id: control.id,
+      kode: control.kode,
+      nama: control.nama,
+      jenis: control.jenis,
+      status: control.status,
+      pengguna: usages.length,
+      efektif,
+      sebagian,
+      tidakEfektif,
+      belumDinilai,
+      totalFailures,
+      cei,
+      baseScore: Math.round(baseScore)
+    }
+  })
+  
+  rows.sort((a, b) => {
+    if (a.cei !== b.cei) return a.cei - b.cei
+    return b.pengguna - a.pengguna
+  })
+
+  return { rows, error: null }
+}
+
+export async function getPpgEmergingControls() {
+  const { supabase } = await requirePpgAdmin()
+  const { data, error } = await supabase
+     .from('ppg_mitigations')
+     .select('id, tindakan, status, register:ppg_register(id, risk_library_id, risk:ppg_risk_library(id, kode, peristiwa))')
+     .eq('status', 'selesai')
+     .order('created_at', { ascending: false })
+     .limit(500)
+     
+  if (error) return { rows: [], error: error.message }
+  
+  const groups = new Map<string, { risk_library_id: string, risk_kode: string, risk_peristiwa: string, tindakan: string, count: number, mitigations: Record<string, unknown>[] }>()
+  
+  for (const m of (data ?? [])) {
+     if (!m.tindakan) continue
+     const reg = Array.isArray(m.register) ? m.register[0] : m.register
+     if (!reg || !reg.risk_library_id) continue
+     const risk = Array.isArray(reg.risk) ? reg.risk[0] : reg.risk
+     if (!risk) continue
+     
+     const normalized = m.tindakan.toLowerCase().trim()
+     const key = String(reg.risk_library_id) + '::' + normalized
+     
+     if (!groups.has(key)) {
+        groups.set(key, {
+           risk_library_id: String(reg.risk_library_id),
+           risk_kode: String(risk.kode),
+           risk_peristiwa: String(risk.peristiwa),
+           tindakan: m.tindakan,
+           count: 0,
+           mitigations: []
+        })
+     }
+     const g = groups.get(key)!
+     g.count++
+     g.mitigations.push(m)
+  }
+  
+  const rows = Array.from(groups.values()).sort((a, b) => b.count - a.count)
+  
+  return { rows, error: null }
+}

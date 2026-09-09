@@ -1,5 +1,5 @@
 import { addPpgControl, addPpgRiskLibrary } from '../actions'
-import { getPpgLibraryWorkspace, getPpgRiskImportWorkspace } from '@/lib/ppg/data'
+import { getPpgLibraryWorkspace, getPpgRiskImportWorkspace, getPpgControlEffectiveness, getPpgEmergingControls } from '@/lib/ppg/data'
 import { PPG_CAUSE_FACTORS, PPG_RISK_CATEGORIES, PPG_RISK_CLASSIFICATIONS } from '@/lib/ppg/references'
 import { SectionHeading } from '../_components'
 import { ProcessBusinessFields } from '../ProcessBusinessFields'
@@ -10,12 +10,19 @@ import { requirePpgAccess } from '@/lib/ppg/access'
 import { RiskRegisterImportForm } from '../RiskRegisterImportForm'
 import { RiskCandidateReview } from '../RiskCandidateReview'
 import { DeleteRiskRegisterImportButton } from '../DeleteRiskRegisterImportButton'
+import { ControlEffectivenessPanel } from './ControlEffectivenessPanel'
+import { EmergingControlsPanel } from './EmergingControlsPanel'
 
 const input = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
 
 export default async function PustakaPage() {
   const access = await requirePpgAccess()
-  const [{ risk, control, links, error }, riskImport] = await Promise.all([getPpgLibraryWorkspace(), getPpgRiskImportWorkspace()])
+  const [{ risk, control, links, error }, riskImport, effectiveness, emerging] = await Promise.all([
+    getPpgLibraryWorkspace(),
+    getPpgRiskImportWorkspace(),
+    getPpgControlEffectiveness(),
+    getPpgEmergingControls()
+  ])
   const riskById = new Map(risk.rows.map((row) => [String(row.id), row]))
   const controlById = new Map(control.rows.map((row) => [String(row.id), row]))
   const selectableRisks = risk.rows.filter((row) => String(row.status) !== 'nonaktif')
@@ -73,5 +80,20 @@ export default async function PustakaPage() {
       rows={control.rows.map((row) => ({ id: String(row.id), kode: String(row.kode || ''), nama: String(row.nama || ''), risiko: riskCodesForControl(String(row.id)) || '—', jenis: String(row.jenis || ''), uraian: String(row.uraian || ''), status: String(row.status || ''), alasan_nonaktif: String(row.alasan_nonaktif || '—'), status_raw: String(row.status || 'aktif'), relation_values: riskIdsForControl(String(row.id)), relation_disabled: row.status === 'nonaktif' }))}
       columns={[{ key: 'kode', label: 'Kode', className: 'font-mono font-semibold' }, { key: 'nama', label: 'Nama kontrol' }, { key: 'risiko', label: 'Risiko terkait' }, { key: 'jenis', label: 'Jenis' }, { key: 'uraian', label: 'Uraian' }, { key: 'status', label: 'Status' }, { key: 'alasan_nonaktif', label: 'Alasan nonaktif' }]}
     />
+
+    <details className="group [&_summary::-webkit-details-marker]:hidden mt-8">
+      <summary className="flex cursor-pointer items-center justify-between rounded-xl bg-slate-50 px-4 py-3 font-semibold text-slate-700 hover:bg-slate-100">
+        <span className="flex items-center gap-2">
+          <svg className="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg> 
+          Evaluasi & Kurasi Kontrol (Bottom-Up)
+        </span>
+      </summary>
+      <div className="pt-4">
+        <ControlEffectivenessPanel data={effectiveness.rows} />
+        <EmergingControlsPanel data={emerging.rows} />
+      </div>
+    </details>
   </div>
 }
