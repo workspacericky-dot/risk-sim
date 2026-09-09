@@ -9,6 +9,7 @@ import { buildPpgAssistedInsights, calculateInsightA } from '../src/lib/ppg/insi
 import { matchLossEventReports } from '../src/lib/ppg/led.ts'
 import { parsePpgRiskRegisterWorkbook, riskSimilarity } from '../src/lib/ppg/risk-register-workbook.ts'
 import { calculatePpgControlEffectiveness, normalizePpgControlText } from '../src/lib/ppg/control-effectiveness.ts'
+import { evaluatePpgAppetite } from '../src/lib/ppg/risk-appetite.ts'
 
 assert.equal(ppgRiskLevel(5), 'Sangat Rendah')
 assert.equal(ppgRiskLevel(6), 'Rendah')
@@ -54,6 +55,9 @@ assert.deepEqual(
 assert.equal(calculatePpgControlEffectiveness([{ efektivitas: 'belum_dinilai', registerId: 'register-a' }], new Map()).cei, null)
 assert.equal(parseMoney('50,000'), 50000)
 assert.equal(parseMoney('Rp1.500.000,00'), 1500000)
+assert.deepEqual(evaluatePpgAppetite(12, 'Risiko Kecurangan', { kecurangan: 4 }), { status: 'di_atas_selera', threshold: 4, residualScore: 12 })
+assert.deepEqual(evaluatePpgAppetite(4, 'Risiko Kecurangan', { kecurangan: 4 }), { status: 'dalam_selera', threshold: 4, residualScore: 4 })
+assert.equal(evaluatePpgAppetite(12, 'Risiko Kecurangan', null).status, 'belum_ditetapkan')
 
 const rekapitulasi = parsePpgWorkbook(fs.readFileSync('ref/PPG/Rekapitulasi_contoh.xlsx'))
 assert.equal(rekapitulasi.format, 'rekapitulasi_kpk')
@@ -124,7 +128,7 @@ assert.equal(insightA.components.length, 5)
 assert.equal(insightA.components.reduce((sum, item) => sum + item.weight, 0), 1)
 assert.equal(insightA.score, Math.round(insightA.components.reduce((sum, item) => sum + item.contribution, 0) * 10) / 10)
 assert.ok(insightA.score >= 0 && insightA.score <= 100)
-const assisted = buildPpgAssistedInsights(analytics, [{ risk_library_id: 'risk-1', kode: 'PPG.3.1', kategori: 'Risiko Kecurangan', peristiwa: 'Penerimaan gratifikasi', eligible_satkers: 100, affected_satkers: 12, affected_pct: 12, high_impact_satkers: 4, high_impact_pct: 4, recurring_satkers: 3, recurring_pct: 3, control_failure_satkers: 5, control_failure_pct: 5, cluster_1_satkers: 5, cluster_2_satkers: 7, cluster_3_satkers: 88, data_confidence: 'tinggi' }])
+const assisted = buildPpgAssistedInsights(analytics, [{ risk_library_id: 'risk-1', kode: 'PPG.3.1', kategori: 'Risiko Kecurangan', peristiwa: 'Penerimaan gratifikasi', eligible_satkers: 100, affected_satkers: 12, affected_pct: 12, high_impact_satkers: 4, high_impact_pct: 4, recurring_satkers: 3, recurring_pct: 3, control_failure_satkers: 5, control_failure_pct: 5, cluster_1_satkers: 5, cluster_2_satkers: 7, cluster_3_satkers: 88, appetite_set_satkers: 90, above_appetite_satkers: 14, above_appetite_pct: 14, upper_limit_satkers: 2, recommended_for_program: true, data_confidence: 'tinggi' }])
 assert.equal(assisted.length, 1)
 assert.equal(assisted[0].insight_a_method_version, 'exposure-components-v2')
 assert.equal(assisted[0].insight_a_components.length, 5)
@@ -206,6 +210,10 @@ assert.match(migration, /create table if not exists public\.ppg_risk_candidates/
 assert.match(migration, /create table if not exists public\.ppg_risk_candidate_members/)
 assert.match(migration, /kemungkinan_treated smallint/)
 assert.match(migration, /create table if not exists public\.ppg_scenarios/)
+assert.match(migration, /create table if not exists public\.ppg_risk_appetites/)
+assert.match(migration, /unique\(scenario_id,unit_kerja_id,tahun\)/)
+assert.match(migration, /alter table public\.ppg_risk_appetites enable row level security/)
+assert.match(migration, /grant select, insert, update, delete on table public\.ppg_risk_appetites to authenticated/)
 assert.match(migration, /create table if not exists public\.ppg_user_scenario_preferences/)
 assert.match(migration, /create or replace function public\.ppg_current_scenario_id\(\)/)
 assert.match(migration, /create policy "ppg scenario isolation"[\s\S]*as restrictive/)

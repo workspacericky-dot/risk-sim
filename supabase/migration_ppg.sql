@@ -870,9 +870,33 @@ as $$
   )
 $$;
 
+-- Selera risiko PPG dimiliki masing-masing Satker per tahun dan kategori.
+-- Angka adalah skor residual tertinggi (K x D, 1-25) yang masih diterima.
+create table if not exists public.ppg_risk_appetites (
+  id uuid primary key default gen_random_uuid(),
+  scenario_id uuid not null default public.ppg_current_scenario_id()
+    references public.ppg_scenarios(id) on delete restrict,
+  unit_kerja_id uuid not null references public.unit_kerja(id) on delete cascade,
+  tahun integer not null check (tahun between 2000 and 2200),
+  strategis integer not null default 9 check (strategis between 1 and 25),
+  kebijakan integer not null default 9 check (kebijakan between 1 and 25),
+  kecurangan integer not null default 4 check (kecurangan between 1 and 25),
+  bencana integer not null default 9 check (bencana between 1 and 25),
+  kepatuhan integer not null default 8 check (kepatuhan between 1 and 25),
+  operasional integer not null default 9 check (operasional between 1 and 25),
+  kemitraan integer not null default 9 check (kemitraan between 1 and 25),
+  catatan text not null default '',
+  ditetapkan_by uuid references auth.users(id) on delete set null,
+  ditetapkan_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(scenario_id,unit_kerja_id,tahun)
+);
+alter table public.ppg_risk_appetites enable row level security;
+grant select, insert, update, delete on table public.ppg_risk_appetites to authenticated;
+
 do $$ declare t text; begin
   foreach t in array array[
-    'ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register',
+    'ppg_risk_appetites','ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register',
     'ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches',
     'ppg_reports','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches',
     'ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_programs',
@@ -944,6 +968,25 @@ create policy "ppg scenario read" on public.ppg_scenarios for select to authenti
 drop policy if exists "ppg own scenario preference" on public.ppg_user_scenario_preferences;
 create policy "ppg own scenario preference" on public.ppg_user_scenario_preferences
   for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "ppg appetite select" on public.ppg_risk_appetites;
+drop policy if exists "ppg appetite insert" on public.ppg_risk_appetites;
+drop policy if exists "ppg appetite update" on public.ppg_risk_appetites;
+drop policy if exists "ppg appetite delete" on public.ppg_risk_appetites;
+create policy "ppg appetite select" on public.ppg_risk_appetites for select to authenticated using (
+  public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
+);
+create policy "ppg appetite insert" on public.ppg_risk_appetites for insert to authenticated with check (
+  public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id() and ditetapkan_by = auth.uid())
+);
+create policy "ppg appetite update" on public.ppg_risk_appetites for update to authenticated using (
+  public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
+) with check (
+  public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id() and ditetapkan_by = auth.uid())
+);
+create policy "ppg appetite delete" on public.ppg_risk_appetites for delete to authenticated using (
+  public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
+);
 
 revoke all on function public.ppg_current_scenario_id() from public;
 grant execute on function public.ppg_current_scenario_id() to authenticated;

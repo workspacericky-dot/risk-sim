@@ -1,6 +1,6 @@
 # Spesifikasi Teknis Risk Sim — Modul Khusus PPG
 
-**Versi dokumen:** 2.2
+**Versi dokumen:** 2.3
 
 **Tanggal pembaruan:** 9 September 2026
 
@@ -8,7 +8,7 @@
 
 ## 1. Tujuan dan Ruang Lingkup
 
-Dokumen ini menjelaskan implementasi modul **Khusus PPG** sebagai pipeline data-ke-keputusan. Ruang lingkupnya meliputi impor laporan gratifikasi, impor Risk Register 2026, kurasi bottom-up Risk Library dan Control Library, penilaian inherent/residual/treated, bukti serta validasi efektivitas kontrol, Control Effectiveness Index (CEI), Loss Event Database, Insight A dan B, assisted generation Program PPG, penilaian efektivitas pascaprogram, klasterisasi satker, snapshot analitik, serta monitoring.
+Dokumen ini menjelaskan implementasi modul **Khusus PPG** sebagai pipeline data-ke-keputusan. Ruang lingkupnya meliputi impor laporan gratifikasi, impor Risk Register 2026, kurasi bottom-up Risk Library dan Control Library, penetapan selera risiko satker, penilaian inherent/residual/treated, bukti serta validasi efektivitas kontrol, Control Effectiveness Index (CEI), Loss Event Database, Insight A dan B, assisted generation Program PPG, penilaian efektivitas pascaprogram, klasterisasi satker, snapshot analitik, serta monitoring.
 
 Prinsip desain utama:
 
@@ -23,6 +23,7 @@ Prinsip desain utama:
 9. UPG Pusat/Admin dapat menghapus batch impor yang salah atau duplikat tanpa menghapus Risk Library maupun register yang telah dibuat.
 10. CEI adalah decision-support; kontrol tidak dinonaktifkan otomatis dan keputusan siklus hidup tetap memerlukan tindakan manusia yang diaudit.
 11. Kegagalan kontrol pada loss event direkam sebagai referensi terstruktur ke kontrol register, sedangkan narasi teks dipertahankan sebagai konteks tambahan.
+12. Selera risiko adalah ambang ex-ante per satker/kategori/tahun; upper limit adalah ambang dampak loss event ex-post yang dikelola UPG Pusat. Keduanya menjadi dasar keputusan yang berbeda dan tidak saling menggantikan.
 
 ## 2. Tech Stack dan Arsitektur Sistem
 
@@ -71,6 +72,7 @@ File dengan directive top-level `'use server'` hanya mengekspor fungsi `async`, 
 | Kandidat impor bottom-up | Tidak | Kurasi | Kurasi |
 | Riwayat impor Risk Register | Tidak | Baca/hapus | Baca/hapus |
 | Register risiko | CRUD unit sendiri | Baca semua | CRUD semua |
+| Selera risiko | CRUD unit sendiri | Baca semua | CRUD semua |
 | Bukti kontrol aktual | CRUD register unit sendiri | Baca/validasi | CRUD/validasi |
 | Loss event dan referensi kontrol gagal | CRUD terbatas unit sendiri | Baca dan validasi semua | CRUD semua |
 | Insight dan snapshot | Tidak | Baca/kelola | CRUD |
@@ -191,6 +193,20 @@ Inherent : K=5, D=4 → 20 → Sangat Tinggi
 Residual : K=4, D=4 → 16 → Tinggi
 Treated  : K=2, D=3 →  6 → Rendah
 ```
+
+### 4.1A Selera risiko dan upper limit
+
+Model selera mengikuti konsep yang telah digunakan Risk Sim: ambang penerimaan ditetapkan per kategori dan dibandingkan dengan skor residual. Implementasi khusus PPG memakai matriks produknya sendiri (`Kemungkinan × Dampak`) agar perbandingan berada pada skala 1–25 yang sama.
+
+```text
+residual > appetite  → di_atas_selera → kandidat treatment/Program PPG
+residual ≤ appetite  → dalam_selera   → diterima dan dimonitor
+appetite belum ada   → belum_ditetapkan; sistem tidak membuat asumsi
+```
+
+Penetapan disimpan dalam `ppg_risk_appetites`, unik untuk `(scenario_id, unit_kerja_id, tahun)`, dengan tujuh kolom kategori bernilai 1–25. `evaluatePpgAppetite()` melakukan pemetaan nama kategori, validasi ambang, dan klasifikasi keputusan. UPG Satker dapat mengubah milik unit sendiri; UPG Pusat hanya membaca konsolidasi; Admin dapat mengoreksi seluruh unit.
+
+Upper limit tetap berasal dari `ppg_led_limit_versions` dan klasifikasi `ppg_loss_events.klasifikasi_limit`. Ia tidak menjadi appetite nasional: upper limit mengevaluasi dampak aktual ex-post, sedangkan appetite menentukan toleransi residual ex-ante. Kandidat Program PPG direkomendasikan jika terdapat minimal satu satker di atas appetite **atau** minimal satu loss event upper-limit. Snapshot program menyimpan kedua basis tersebut agar keputusan dapat diaudit.
 
 ### 4.2 Evaluasi treated risk pasca-Program PPG
 
@@ -389,6 +405,7 @@ Keanggotaan disimpan sebagai snapshot pada program. Perubahan loss event setelah
 | `ppg_control_library` | `id uuid`, `kode`, `nama`, `jenis`, `uraian`, `status` | PK `id`; unique `kode`; jenis Preventif/Detektif/Korektif; status aktif/nonaktif mempertahankan histori. |
 | `ppg_library_risk_controls` | `risk_library_id uuid`, `control_id uuid` | PK gabungan; M:N risk library–control library. |
 | `ppg_register` | identitas unit/periode, inherent `smallint`, legacy residual `*_existing`, treated `*_treated`, `treated_program_id`, `efektivitas_program`, URL/actor/waktu evaluasi | PK `id`; FK risk library, unit, dan `ppg_programs`; skor = K×D; unique kode+tahun+periode+unit; enum efektivitas program. |
+| `ppg_risk_appetites` | unit, tahun, tujuh ambang kategori 1–25, catatan, actor/waktu penetapan | PK `id`; unique scenario+unit+tahun; RLS baca lintas unit untuk UPG Pusat dan tulis unit sendiri untuk UPG Satker. |
 | `ppg_risk_controls` | `risk_id`, `control_id`, `efektivitas`, `bukti_efektivitas_url` | PK gabungan; FK register dan control library. |
 | `ppg_risk_control_validations` | `risk_id`, `control_id`, `status`, validator | PK/FK gabungan ke risk controls; validasi terpisah dari pelapor. |
 | `ppg_mitigations` | `register_id`, tindakan, PIC, tenggat, status, progres | PK `id`; FK register; progres 0–100. |
@@ -578,7 +595,7 @@ Seluruh tabel data transaksional PPG memiliki `scenario_id`. Kolom tersebut otom
 
 Beberapa alur Satker memakai service-role untuk validasi lintas tabel dan private storage. Seluruh query database pada alur tersebut wajib menggunakan `createPpgAdminClient(scenarioId)`, yang menambahkan filter skenario pada select/update/delete dan menstempel `scenario_id` pada insert/upsert. Akses storage diteruskan tanpa perubahan.
 
-Seed simulasi dibuat idempotent oleh `ensurePpgDemoData()`. Dataset mencakup lima risiko generik, delapan kontrol, pemetaan dan penilaian efektivitas, validasi UPG Pusat, mitigasi, 369 laporan anonim (253 tanpa konteks atau sekitar 68,6%), snapshot analitik, Program PPG tiga klaster, monitoring, treated risk, loss event dengan kontrol gagal terstruktur, serta kandidat kurasi bottom-up. `resetPpgDemoData()` menghapus hanya record `scenario_id` demo sebelum membentuk ulang dataset; hanya Admin Sistem yang dapat memicunya dari UI.
+Seed simulasi dibuat idempotent oleh `ensurePpgDemoData()`. Dataset mencakup lima risiko generik, delapan kontrol, hingga 60 pengadilan, dua register per pengadilan, selera risiko per pengadilan, pemetaan dan penilaian efektivitas, validasi UPG Pusat, mitigasi, 369 laporan anonim (253 tanpa konteks atau sekitar 68,6%), sekitar 12 loss event per risiko generik agar persentase Insight B tampak material, snapshot analitik, Program PPG tiga klaster, monitoring, treated risk, kontrol gagal terstruktur, serta kandidat kurasi bottom-up. `resetPpgDemoData()` menghapus hanya record `scenario_id` demo sebelum membentuk ulang dataset; hanya Admin Sistem yang dapat memicunya dari UI.
 
 ### 14.2 Unit/integration checks
 
@@ -588,6 +605,7 @@ Seed simulasi dibuat idempotent oleh `ensurePpgDemoData()`. Dataset mencakup lim
 - Residual dan treated tetap `null` setelah parsing.
 - Similarity identik = 100 dan threshold grouping konsisten.
 - Formula skor risiko dan batas level benar.
+- Selera risiko mengklasifikasikan skor di atas ambang sebagai kandidat treatment, nilai sama dengan ambang sebagai dalam selera, dan data tanpa penetapan sebagai belum ditetapkan.
 - Insight A menyimpan lima kontribusi yang totalnya sama dengan skor A.
 - Insight B menggunakan distinct satker, bukan event count.
 - CEI mengabaikan `belum_dinilai`, menghasilkan `null` tanpa observasi, menerapkan bobot 100/50/0, serta penalti 5 poin per loss event yang memenuhi syarat.
@@ -621,9 +639,11 @@ Seed simulasi dibuat idempotent oleh `ensurePpgDemoData()`. Dataset mencakup lim
 17. UPG Pusat/Admin dapat mempromosikan kandidat kontrol bottom-up dan menonaktifkan kontrol dengan jejak audit.
 18. Pengguna dapat berpindah Data Riil/Simulasi Lengkap dan seluruh query, analitik, laporan, serta ekspor hanya menampilkan slot aktif.
 19. Insert melalui user client maupun service-role masuk ke slot aktif; reset simulasi tidak mengubah jumlah maupun isi Data Riil.
+20. UPG Satker dapat menetapkan tujuh ambang selera untuk unit/tahun sendiri; UPG Pusat dapat membaca konsolidasinya tetapi tidak mengubahnya.
+21. Penilaian dan Insight B menampilkan status di atas/dalam selera, sementara pembuatan Program menyimpan basis appetite dan upper limit ke snapshot.
 
 ## 15. Operasional Migrasi
 
-Jalankan `supabase/migration_ppg.sql` melalui Supabase SQL Editor pada proyek yang benar, lalu reload schema cache/API bila diperlukan. Setelah migrasi, verifikasi keberadaan tabel staging, kolom treated beserta metadata program/efektivitas/bukti, tabel dan indeks `ppg_loss_event_controls`, `ppg_scenarios`, `ppg_user_scenario_preferences`, kolom dan policy isolasi `scenario_id`, fungsi helper, trigger kode LED, dan bucket privat. Aplikasi harus menampilkan pesan skema terbaru bila query ke struktur yang diwajibkan gagal. Migrasi bersifat idempotent untuk penambahan kolom, constraint, tabel, indeks, dan policy yang baru.
+Jalankan `supabase/migration_ppg.sql` melalui Supabase SQL Editor pada proyek yang benar, lalu reload schema cache/API bila diperlukan. Setelah migrasi, verifikasi keberadaan tabel staging, kolom treated beserta metadata program/efektivitas/bukti, tabel dan indeks `ppg_loss_event_controls`, `ppg_scenarios`, `ppg_user_scenario_preferences`, `ppg_risk_appetites`, kolom dan policy isolasi `scenario_id`, fungsi helper, trigger kode LED, dan bucket privat. Aplikasi harus menampilkan pesan skema terbaru bila query ke struktur yang diwajibkan gagal. Migrasi bersifat idempotent untuk penambahan kolom, constraint, tabel, indeks, dan policy yang baru.
 
 Untuk instalasi lama, kolom `kemungkinan_existing`, `dampak_existing`, `skor_existing`, dan `level_existing` tidak di-rename agar kompatibilitas terjaga. Seluruh UI, dokumentasi, dan logika baru memperlakukannya sebagai **residual risk**.

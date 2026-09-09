@@ -28,7 +28,7 @@ export default async function ProgramPpgPage({ searchParams }: Props) {
   const sortedActions = [...catalog.rows].sort((a, b) => Number(recommendedCodes.has(String(b.kode))) - Number(recommendedCodes.has(String(a.kode))))
   const selectedAction = sortedActions.find((row) => String(row.kode) === query.action)
   const selectedCategories = new Set<string>(Array.isArray(selectedAction?.risk_categories) ? selectedAction.risk_categories.map(String) : [])
-  const sortedRisks = [...riskInsights.rows].sort((a, b) => Number(selectedCategories.has(b.kategori)) - Number(selectedCategories.has(a.kategori)) || b.affected_pct - a.affected_pct)
+  const sortedRisks = [...riskInsights.rows].sort((a, b) => Number(b.recommended_for_program) - Number(a.recommended_for_program) || Number(selectedCategories.has(b.kategori)) - Number(selectedCategories.has(a.kategori)) || b.above_appetite_pct - a.above_appetite_pct || b.affected_pct - a.affected_pct)
   const assistedInsights = buildPpgAssistedInsights(analytics, sortedRisks)
   const selectedInsight = assistedInsights.find((item) => item.risk_library_id === query.risk)
   const dataErrors = [

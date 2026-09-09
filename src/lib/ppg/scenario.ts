@@ -17,7 +17,7 @@ type QueryTarget = {
 }
 
 export const PPG_SCENARIO_TABLES = new Set([
-  'ppg_risk_library', 'ppg_control_library', 'ppg_library_risk_controls', 'ppg_register',
+  'ppg_risk_appetites', 'ppg_risk_library', 'ppg_control_library', 'ppg_library_risk_controls', 'ppg_register',
   'ppg_risk_controls', 'ppg_risk_control_validations', 'ppg_mitigations', 'ppg_import_batches',
   'ppg_reports', 'ppg_audit_log', 'ppg_analysis_snapshots', 'ppg_risk_import_batches',
   'ppg_risk_import_rows', 'ppg_risk_candidates', 'ppg_risk_candidate_members', 'ppg_programs',

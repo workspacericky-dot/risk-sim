@@ -17,16 +17,18 @@ type DemoSeedResult = { ok: boolean; created: boolean; message: string }
 
 export async function ensurePpgDemoData(actorId?: string): Promise<DemoSeedResult> {
   const db = createPpgAdminClient(PPG_DEMO_SCENARIO_ID)
-  const [existingRisks, existingReports, existingPrograms] = await Promise.all([
+  const [existingRisks, existingReports, existingPrograms, existingLossEvents, existingAppetites] = await Promise.all([
     db.from('ppg_risk_library').select('id', { count: 'exact', head: true }),
     db.from('ppg_reports').select('id', { count: 'exact', head: true }),
     db.from('ppg_programs').select('id', { count: 'exact', head: true }),
+    db.from('ppg_loss_events').select('id', { count: 'exact', head: true }),
+    db.from('ppg_risk_appetites').select('id', { count: 'exact', head: true }),
   ])
-  if (existingRisks.count === 5 && existingReports.count === 369 && existingPrograms.count === 1) return { ok: true, created: false, message: 'Data simulasi sudah tersedia.' }
-  if ((existingRisks.count || 0) + (existingReports.count || 0) + (existingPrograms.count || 0) > 0) return resetPpgDemoData(actorId)
+  if (existingRisks.count === 5 && existingReports.count === 369 && existingPrograms.count === 1 && (existingLossEvents.count || 0) >= 50 && (existingAppetites.count || 0) >= 25) return { ok: true, created: false, message: 'Data simulasi sudah tersedia.' }
+  if ((existingRisks.count || 0) + (existingReports.count || 0) + (existingPrograms.count || 0) + (existingLossEvents.count || 0) + (existingAppetites.count || 0) > 0) return resetPpgDemoData(actorId)
 
   const [{ data: units, error: unitError }, { data: actions, error: actionError }] = await Promise.all([
-    db.from('unit_kerja').select('id,nama_unit').order('nama_unit').limit(8),
+    db.from('unit_kerja').select('id,nama_unit').ilike('nama_unit', '%Pengadilan%').order('nama_unit').limit(60),
     db.from('ppg_action_catalog').select('id,kode').eq('status', 'aktif').order('kode').limit(1),
   ])
   if (unitError || !units?.length) return { ok: false, created: false, message: `Master Satker tidak tersedia: ${unitError?.message || 'kosong'}` }
@@ -90,9 +92,9 @@ export async function ensurePpgDemoData(actorId?: string): Promise<DemoSeedResul
     if (result.error) return failed('Laporan simulasi', result.error.message)
   }
 
-  const registers = Array.from({ length: Math.max(12, units.length * 2) }, (_, index) => {
-    const risk = risks[index % risks.length]
-    const unit = units[index % units.length]
+  const registers = units.flatMap((unit, unitIndex) => [0, 1].map((periodIndex) => {
+    const index = unitIndex * 2 + periodIndex
+    const risk = risks[(unitIndex + periodIndex) % risks.length]
     const inherentK = index % 3 === 0 ? 5 : 4
     const inherentD = index % 4 === 0 ? 5 : 4
     const residualK = index % 3 === 0 ? 3 : 2
@@ -100,14 +102,14 @@ export async function ensurePpgDemoData(actorId?: string): Promise<DemoSeedResul
     const residualScore = residualK * residualD
     return {
       id: demoUuid('b', index + 1), kode: risk.kode, risk_library_id: risk.id, unit_kerja_id: unit.id, unit_nama: unit.nama_unit,
-      tahun: 2026, periode: index % 2 ? 'Triwulan III' : 'Tahunan', kategori: risk.kategori,
+      tahun: 2026, periode: periodIndex ? 'Triwulan III' : 'Tahunan', kategori: risk.kategori,
       proses_bisnis: risk.proses_bisnis, subproses_bisnis: risk.subproses_bisnis, klasifikasi_risiko: risk.klasifikasi_risiko,
       faktor_penyebab: risk.faktor_penyebab, penyebab: risk.penyebab, peristiwa: risk.peristiwa, dampak: risk.dampak,
       kemungkinan_inherent: inherentK, dampak_inherent: inherentD, skor_inherent: inherentK * inherentD, level_inherent: inherentK * inherentD >= 20 ? 'Sangat Tinggi' : 'Tinggi',
       kemungkinan_existing: residualK, dampak_existing: residualD, skor_existing: residualScore, level_existing: residualScore >= 12 ? 'Tinggi' : residualScore >= 5 ? 'Sedang' : 'Rendah',
       status: index % 4 === 0 ? 'review' : 'aktif', created_by: actorId || null,
     }
-  })
+  }))
   result = await db.from('ppg_register').insert(registers)
   if (result.error) return failed('Risk Register', result.error.message)
   const appliedControls = registers.flatMap((register, index) => [0, 1].map((offset) => ({
@@ -123,6 +125,8 @@ export async function ensurePpgDemoData(actorId?: string): Promise<DemoSeedResul
   if (result.error) return failed('Validasi kontrol', result.error.message)
   result = await db.from('ppg_mitigations').insert(registers.map((register, index) => ({ id: demoUuid('c', index + 1), register_id: register.id, tindakan: `Tindak lanjut penguatan kontrol prioritas ${index + 1}`, pic_jabatan: 'Koordinator UPG Satker', tenggat: '2026-12-15', status: index % 3 === 0 ? 'selesai' : 'berjalan', progres: index % 3 === 0 ? 100 : 60, bukti_url: `https://example.invalid/simulasi/mitigasi/${index + 1}`, catatan: 'Pelaksanaan dummy yang dapat dieksplorasi pengguna.', created_by: actorId || null })))
   if (result.error) return failed('Mitigasi', result.error.message)
+  result = await db.from('ppg_risk_appetites').insert(units.map((unit, index) => ({ unit_kerja_id: unit.id, tahun: 2026, strategis: 9, kebijakan: 9, kecurangan: index % 4 === 0 ? 3 : 4, bencana: 9, kepatuhan: 8, operasional: 9, kemitraan: 8, catatan: 'Penetapan dummy: toleransi sangat rendah untuk gratifikasi/kecurangan dan konservatif untuk kepatuhan.', ditetapkan_by: actorId || null, ditetapkan_at: '2026-01-05T08:00:00Z' })))
+  if (result.error) return failed('Selera risiko Satker', result.error.message)
 
   result = await db.from('ppg_analysis_snapshots').insert({ id: ids.snapshot, analysis_start: '2026-01-01', analysis_end: '2026-06-30', baseline_start: '2025-07-01', baseline_end: '2025-12-31', period_label: 'Semester I 2026', program_label: 'Semester II 2026', summary: { reports: 369, without_context: 253, without_context_pct: 68.56 }, recommendations: [{ actionCode: String(actions[0].kode), reason: 'Kualitas konteks laporan dan paparan risiko membutuhkan intervensi nasional.' }], created_by: actorId || null })
   if (result.error) return failed('Snapshot analitik', result.error.message)
@@ -149,10 +153,10 @@ export async function ensurePpgDemoData(actorId?: string): Promise<DemoSeedResul
   result = await db.from('ppg_register').update({ treated_program_id: ids.program, kemungkinan_treated: 1, dampak_treated: 3, skor_treated: 3, level_treated: 'Rendah', efektivitas_program: 'efektif', bukti_efektivitas_program_url: 'https://example.invalid/simulasi/program/evaluasi-treated-risk', treated_assessed_at: '2026-09-01T08:00:00Z' }).in('id', registers.slice(0, 4).map((row) => row.id))
   if (result.error) return failed('Treated risk', result.error.message)
 
-  const lossEvents = registers.slice(0, 8).map((register, index) => ({ id: demoUuid('e', index + 1), kode: '', unit_kerja_id: register.unit_kerja_id, unit_nama: register.unit_nama, nama_peristiwa: `Loss event simulasi ${index + 1}: indikasi pemberian pada layanan`, tanggal_kejadian: `2026-0${(index % 8) + 1}-${String((index % 20) + 1).padStart(2, '0')}`, tanggal_diketahui: `2026-0${(index % 8) + 1}-${String((index % 20) + 2).padStart(2, '0')}`, tanggal_dilaporkan: `2026-0${(index % 8) + 1}-${String((index % 20) + 3).padStart(2, '0')}`, sumber_informasi: index % 2 ? 'pengaduan' : 'laporan_gratifikasi', lokasi: 'Area layanan terpadu', kategori_risiko: register.kategori, proses_bisnis: register.proses_bisnis, kronologi: 'Pemberian terindikasi terjadi setelah layanan; Satker menolak, mencatat, dan melaporkannya kepada UPG.', register_id: register.id, risk_library_id: register.risk_library_id, metode_rca: '5 Why', akar_masalah: 'Komunikasi larangan belum menjangkau seluruh pengguna layanan.', kegagalan_kontrol: 'Keterangan tambahan: banner tidak terlihat pada jalur masuk alternatif.', jenis_dampak: index % 2 ? 'Penurunan Reputasi' : 'Gangguan terhadap Layanan Tusi Organisasi', level_dampak: index % 3 === 0 ? 4 : 3, uraian_dampak: 'Muncul pengaduan dan kebutuhan klarifikasi oleh pimpinan Satker.', klasifikasi_limit: index % 3 === 0 ? 'upper_limit' : 'under_limit', lesson_learned: 'Perlu penempatan media pengendalian di seluruh titik interaksi.', status: index % 3 === 0 ? 'tindak_lanjut' : 'tervalidasi', submitted_at: '2026-08-20T08:00:00Z', validated_at: '2026-08-22T08:00:00Z', created_by: actorId || null }))
+  const lossEvents = risks.flatMap((risk) => registers.filter((register) => register.risk_library_id === risk.id).slice(0, 12)).map((register, index) => ({ id: demoUuid('e', index + 1), kode: '', unit_kerja_id: register.unit_kerja_id, unit_nama: register.unit_nama, nama_peristiwa: `Loss event simulasi ${index + 1}: indikasi pemberian pada layanan`, tanggal_kejadian: `2026-${String((index % 8) + 1).padStart(2, '0')}-${String((index % 20) + 1).padStart(2, '0')}`, tanggal_diketahui: `2026-${String((index % 8) + 1).padStart(2, '0')}-${String((index % 20) + 2).padStart(2, '0')}`, tanggal_dilaporkan: `2026-${String((index % 8) + 1).padStart(2, '0')}-${String((index % 20) + 3).padStart(2, '0')}`, sumber_informasi: index % 2 ? 'pengaduan' : 'laporan_gratifikasi', lokasi: 'Area layanan terpadu', kategori_risiko: register.kategori, proses_bisnis: register.proses_bisnis, kronologi: 'Pemberian terindikasi terjadi setelah layanan; Satker menolak, mencatat, dan melaporkannya kepada UPG.', register_id: register.id, risk_library_id: register.risk_library_id, metode_rca: '5 Why', akar_masalah: 'Komunikasi larangan belum menjangkau seluruh pengguna layanan.', kegagalan_kontrol: 'Keterangan tambahan: banner tidak terlihat pada jalur masuk alternatif.', jenis_dampak: index % 2 ? 'Penurunan Reputasi' : 'Gangguan terhadap Layanan Tusi Organisasi', level_dampak: index % 3 === 0 ? 4 : 3, uraian_dampak: 'Muncul pengaduan dan kebutuhan klarifikasi oleh pimpinan Satker.', klasifikasi_limit: index % 3 === 0 ? 'upper_limit' : 'under_limit', lesson_learned: 'Perlu penempatan media pengendalian di seluruh titik interaksi.', status: index % 3 === 0 ? 'tindak_lanjut' : 'tervalidasi', submitted_at: '2026-08-20T08:00:00Z', validated_at: '2026-08-22T08:00:00Z', created_by: actorId || null }))
   result = await db.from('ppg_loss_events').insert(lossEvents)
   if (result.error) return failed('Loss Event', result.error.message)
-  result = await db.from('ppg_loss_event_controls').insert(lossEvents.map((event, index) => ({ loss_event_id: event.id, control_id: controls[index % controls.length].id, created_by: actorId || null })))
+  result = await db.from('ppg_loss_event_controls').insert(lossEvents.map((event) => ({ loss_event_id: event.id, control_id: appliedControls.find((usage) => usage.risk_id === event.register_id)?.control_id || controls[0].id, created_by: actorId || null })))
   if (result.error) return failed('Kontrol gagal', result.error.message)
   result = await db.from('ppg_program_loss_events').insert({ program_item_id: ids.programItem, loss_event_id: lossEvents[0].id })
   if (result.error) return failed('Dasar LED program', result.error.message)
@@ -175,7 +179,7 @@ export async function ensurePpgDemoData(actorId?: string): Promise<DemoSeedResul
 
 export async function resetPpgDemoData(actorId?: string): Promise<DemoSeedResult> {
   const db = createPpgAdminClient(PPG_DEMO_SCENARIO_ID)
-  const order = ['ppg_programs', 'ppg_loss_events', 'ppg_loss_event_code_counters', 'ppg_risk_import_batches', 'ppg_risk_candidates', 'ppg_import_batches', 'ppg_register', 'ppg_audit_log', 'ppg_analysis_snapshots', 'ppg_risk_library', 'ppg_control_library']
+  const order = ['ppg_programs', 'ppg_loss_events', 'ppg_loss_event_code_counters', 'ppg_risk_import_batches', 'ppg_risk_candidates', 'ppg_import_batches', 'ppg_register', 'ppg_risk_appetites', 'ppg_audit_log', 'ppg_analysis_snapshots', 'ppg_risk_library', 'ppg_control_library']
   for (const table of order) {
     const { error } = await db.from(table).delete().neq('scenario_id', '00000000-0000-0000-0000-000000000000')
     if (error) return failed(`Reset ${table}`, error.message)

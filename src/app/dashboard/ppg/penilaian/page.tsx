@@ -10,6 +10,7 @@ import { PpgRiskMatrixExplorer } from './PpgRiskMatrixExplorer'
 import { RiskControlEvidencePanel } from './RiskControlEvidencePanel'
 import { RiskRegisterImportForm } from '../RiskRegisterImportForm'
 import { ImportedRiskDraftReview } from './ImportedRiskDraftReview'
+import { evaluatePpgAppetite } from '@/lib/ppg/risk-appetite'
 
 const input = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
 type LibraryOptions = Parameters<typeof RiskLibrarySelect>[0]['options']
@@ -19,7 +20,12 @@ export default async function PenilaianPage() {
   const data = await getPpgAssessmentWorkspace()
   const canInput = data.access.isAdmin || data.access.isSatker
   const ownUnit = data.units[0]
-  const tableRows = data.rows.map((row) => ({ id: String(row.id), kode: String(row.kode || ''), satker: String(row.unit_nama || ''), tahun: Number(row.tahun || 0), periode: String(row.periode || ''), kategori: String(row.kategori || ''), proses: `${String(row.proses_bisnis || '')}${row.subproses_bisnis ? ` / ${String(row.subproses_bisnis)}` : ''}`, klasifikasi: String(row.klasifikasi_risiko || ''), peristiwa: String(row.peristiwa || ''), inherent: `${Number(row.skor_inherent || 0)} · ${String(row.level_inherent || '')}`, residual: `${Number(row.skor_existing || 0)} · ${String(row.level_existing || '')}`, treated: row.skor_treated ? `${Number(row.skor_treated)} · ${String(row.level_treated || '')}` : 'Belum dinilai' }))
+  const appetiteByUnitYear = new Map(data.appetites.map((row) => [`${String(row.unit_kerja_id)}:${String(row.tahun)}`, row]))
+  const tableRows = data.rows.map((row) => {
+    const evaluation = evaluatePpgAppetite(row.skor_existing, row.kategori, appetiteByUnitYear.get(`${String(row.unit_kerja_id)}:${String(row.tahun)}`))
+    const appetite = evaluation.status === 'di_atas_selera' ? `Perlu Program PPG · ${evaluation.residualScore} > ${evaluation.threshold}` : evaluation.status === 'dalam_selera' ? `Dalam selera · ${evaluation.residualScore} ≤ ${evaluation.threshold}` : 'Selera belum ditetapkan'
+    return { id: String(row.id), kode: String(row.kode || ''), satker: String(row.unit_nama || ''), tahun: Number(row.tahun || 0), periode: String(row.periode || ''), kategori: String(row.kategori || ''), proses: `${String(row.proses_bisnis || '')}${row.subproses_bisnis ? ` / ${String(row.subproses_bisnis)}` : ''}`, klasifikasi: String(row.klasifikasi_risiko || ''), peristiwa: String(row.peristiwa || ''), inherent: `${Number(row.skor_inherent || 0)} · ${String(row.level_inherent || '')}`, residual: `${Number(row.skor_existing || 0)} · ${String(row.level_existing || '')}`, appetite, treated: row.skor_treated ? `${Number(row.skor_treated)} · ${String(row.level_treated || '')}` : 'Belum dinilai' }
+  })
   const evidenceRows = data.rows.flatMap((register) => (Array.isArray(register.controls) ? register.controls : []).map((raw) => {
     const relation = record(raw); const control = record(relation.control); const validationRaw = relation.validation; const validation = record(Array.isArray(validationRaw) ? validationRaw[0] : validationRaw)
     return { risk_id: String(relation.risk_id), control_id: String(relation.control_id), efektivitas: String(relation.efektivitas || 'belum_dinilai'), bukti_efektivitas_url: String(relation.bukti_efektivitas_url || ''), register: { kode: String(register.kode), unit_nama: String(register.unit_nama), peristiwa: String(register.peristiwa) }, control: { kode: String(control.kode), nama: String(control.nama), jenis: String(control.jenis) }, validation: Object.keys(validation).length ? { status: String(validation.status), catatan: String(validation.catatan || ''), validated_at: validation.validated_at ? String(validation.validated_at) : null } : null }
@@ -51,7 +57,7 @@ export default async function PenilaianPage() {
 
     <RiskControlEvidencePanel rows={evidenceRows} canValidate={data.access.isPusat} canEdit={data.access.isAdmin || data.access.isSatker} />
 
-    {tableRows.length ? <ManagedDataTable title={data.access.isSatker ? 'Hasil penilaian risiko satker Anda' : 'Hasil penilaian risiko seluruh satker'} deleteKind="register" canDelete={data.access.isAdmin || data.access.isSatker} emptyMessage="Belum ada penilaian risiko." rows={tableRows} columns={[{ key: 'kode', label: 'Kode', className: 'font-mono font-semibold' }, { key: 'satker', label: 'Satker penilai' }, { key: 'tahun', label: 'Tahun' }, { key: 'periode', label: 'Periode' }, { key: 'kategori', label: 'Kategori' }, { key: 'proses', label: 'Proses / Subproses' }, { key: 'klasifikasi', label: 'Klasifikasi' }, { key: 'peristiwa', label: 'Peristiwa' }, { key: 'inherent', label: 'Inherent risk' }, { key: 'residual', label: 'Residual risk' }, { key: 'treated', label: 'Treated risk' }]} /> : <EmptyState title="Belum ada penilaian" description={data.access.isUpgPusat ? 'Belum ada hasil penilaian risiko yang dikirimkan UPG Satker.' : 'Pilih risiko dari library untuk memulai penilaian.'} />}
+    {tableRows.length ? <ManagedDataTable title={data.access.isSatker ? 'Hasil penilaian risiko satker Anda' : 'Hasil penilaian risiko seluruh satker'} deleteKind="register" canDelete={data.access.isAdmin || data.access.isSatker} emptyMessage="Belum ada penilaian risiko." rows={tableRows} columns={[{ key: 'kode', label: 'Kode', className: 'font-mono font-semibold' }, { key: 'satker', label: 'Satker penilai' }, { key: 'tahun', label: 'Tahun' }, { key: 'periode', label: 'Periode' }, { key: 'kategori', label: 'Kategori' }, { key: 'proses', label: 'Proses / Subproses' }, { key: 'klasifikasi', label: 'Klasifikasi' }, { key: 'peristiwa', label: 'Peristiwa' }, { key: 'inherent', label: 'Inherent risk' }, { key: 'residual', label: 'Residual risk' }, { key: 'appetite', label: 'Keputusan selera' }, { key: 'treated', label: 'Treated risk' }]} /> : <EmptyState title="Belum ada penilaian" description={data.access.isUpgPusat ? 'Belum ada hasil penilaian risiko yang dikirimkan UPG Satker.' : 'Pilih risiko dari library untuk memulai penilaian.'} />}
   </div>
 }
 

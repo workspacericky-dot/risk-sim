@@ -11,6 +11,7 @@ import { analyzePpgReports } from '@/lib/ppg/analytics'
 import { fetchAllReports } from '@/lib/ppg/data'
 import { buildPpgAssistedInsights } from '@/lib/ppg/insights'
 import { matchLossEventReports } from '@/lib/ppg/led'
+import { evaluatePpgAppetite } from '@/lib/ppg/risk-appetite'
 
 function text(data: FormData, key: string) { return String(data.get(key) ?? '').trim() }
 function integer(data: FormData, key: string, fallback = 0) { const value = Number(data.get(key)); return Number.isFinite(value) ? Math.trunc(value) : fallback }
@@ -311,7 +312,11 @@ export async function createPpgProgram(formData: FormData) {
   const allowedRiskCategories = Array.isArray(action.risk_categories) ? action.risk_categories.map(String) : []
   if (allowedRiskCategories.length && !allowedRiskCategories.includes(String(risk.kategori))) return
   const analytics = analyzePpgReports(reports, analysisYear, quarter)
-  const { data: lossEvents } = await supabase.from('ppg_loss_events').select('id,unit_kerja_id,level_dampak,kegagalan_kontrol').eq('risk_library_id', riskLibraryId).gte('tanggal_kejadian', analytics.period.start).lte('tanggal_kejadian', analytics.period.end).in('status', ['tervalidasi','tindak_lanjut','ditutup'])
+  const [{ data: lossEvents }, { data: riskRegisters }, { data: riskAppetites }] = await Promise.all([
+    supabase.from('ppg_loss_events').select('id,unit_kerja_id,level_dampak,kegagalan_kontrol,klasifikasi_limit').eq('risk_library_id', riskLibraryId).gte('tanggal_kejadian', analytics.period.start).lte('tanggal_kejadian', analytics.period.end).in('status', ['tervalidasi','tindak_lanjut','ditutup']),
+    supabase.from('ppg_register').select('unit_kerja_id,kategori,skor_existing').eq('risk_library_id', riskLibraryId).eq('tahun', analysisYear),
+    supabase.from('ppg_risk_appetites').select('*').eq('tahun', analysisYear),
+  ])
   const recommendation = analytics.recommendations.find((item) => item.actionCode === action.kode)
   const eventsByUnit = new Map<string, NonNullable<typeof lossEvents>>()
   ;(lossEvents ?? []).forEach((event) => {
@@ -323,6 +328,10 @@ export async function createPpgProgram(formData: FormData) {
   const highImpactSatkers = [...eventsByUnit.values()].filter((items) => items.some((event) => Number(event.level_dampak) >= 4)).length
   const recurringSatkers = [...eventsByUnit.values()].filter((items) => items.length >= 2).length
   const controlFailureSatkers = [...eventsByUnit.values()].filter((items) => items.some((event) => String(event.kegagalan_kontrol || '').trim())).length
+  const upperLimitSatkers = new Set((lossEvents ?? []).filter((event) => event.klasifikasi_limit === 'upper_limit').map((event) => String(event.unit_kerja_id))).size
+  const appetiteByUnit = new Map((riskAppetites ?? []).map((row) => [String(row.unit_kerja_id), row]))
+  const appetiteSetSatkers = new Set((riskAppetites ?? []).map((row) => String(row.unit_kerja_id))).size
+  const aboveAppetiteSatkers = new Set((riskRegisters ?? []).filter((register) => evaluatePpgAppetite(register.skor_existing, register.kategori, appetiteByUnit.get(String(register.unit_kerja_id))).status === 'di_atas_selera').map((register) => String(register.unit_kerja_id))).size
   const asPct = (value: number) => units.length ? Math.round(value / units.length * 10_000) / 100 : 0
   const clusterCounts = { kritis: 0, preventif: 0, monitoring: 0 }
   units.forEach((unit) => {
@@ -338,6 +347,8 @@ export async function createPpgProgram(formData: FormData) {
     recurring_satkers: recurringSatkers, recurring_pct: asPct(recurringSatkers),
     control_failure_satkers: controlFailureSatkers, control_failure_pct: asPct(controlFailureSatkers),
     cluster_1_satkers: clusterCounts.kritis, cluster_2_satkers: clusterCounts.preventif, cluster_3_satkers: clusterCounts.monitoring,
+    appetite_set_satkers: appetiteSetSatkers, above_appetite_satkers: aboveAppetiteSatkers, above_appetite_pct: asPct(aboveAppetiteSatkers),
+    upper_limit_satkers: upperLimitSatkers, recommended_for_program: aboveAppetiteSatkers > 0 || upperLimitSatkers > 0,
     data_confidence: lossEvents?.length ? 'tinggi' : 'terbatas',
   }])[0]
   const snapshotSummary = {
@@ -352,6 +363,9 @@ export async function createPpgProgram(formData: FormData) {
     insightB: {
       risk_library_id: risk.id, risk_code: risk.kode, eligible_satkers: units.length,
       affected_satkers: affectedSatkers, affected_satkers_pct: affectedPct,
+      appetite_set_satkers: appetiteSetSatkers, above_appetite_satkers: aboveAppetiteSatkers,
+      above_appetite_satkers_pct: asPct(aboveAppetiteSatkers), upper_limit_satkers: upperLimitSatkers,
+      recommended_for_program: aboveAppetiteSatkers > 0 || upperLimitSatkers > 0,
       cluster_counts: clusterCounts,
       metric_basis: 'persentase_satker',
     },
