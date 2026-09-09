@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { requirePpgAdmin } from '@/lib/ppg/access'
 import { normalizePpgControlText } from '@/lib/ppg/control-effectiveness'
-import { createAdminClient } from '@/utils/supabase/admin'
+import { createPpgAdminClient } from '@/lib/ppg/scenario'
 
 type ControlActionResult = { status: 'success' | 'error'; message: string }
 
@@ -11,8 +11,8 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const CONTROL_TYPES = ['Preventif', 'Detektif', 'Korektif'] as const
 
 export async function deactivateControlLibrary(controlId: string, alasan: string): Promise<ControlActionResult> {
-  const { user } = await requirePpgAdmin()
-  const admin = createAdminClient()
+  const { user, scenarioId } = await requirePpgAdmin()
+  const admin = createPpgAdminClient(scenarioId)
   const reason = alasan.trim()
   if (!UUID_PATTERN.test(controlId) || reason.length < 5 || reason.length > 500) {
     return failure('Kontrol atau alasan penonaktifan tidak valid.')
@@ -48,8 +48,8 @@ export async function deactivateControlLibrary(controlId: string, alasan: string
 }
 
 export async function promoteMitigationToControl(riskLibraryId: string, tindakan: string, jenis = 'Preventif'): Promise<ControlActionResult> {
-  const { user } = await requirePpgAdmin()
-  const admin = createAdminClient()
+  const { user, scenarioId } = await requirePpgAdmin()
+  const admin = createPpgAdminClient(scenarioId)
   const controlName = tindakan.trim()
   const controlType = CONTROL_TYPES.find((value) => value.toLocaleLowerCase('id-ID') === jenis.trim().toLocaleLowerCase('id-ID'))
   if (!UUID_PATTERN.test(riskLibraryId) || controlName.length < 5 || controlName.length > 500 || !controlType) {

@@ -570,7 +570,17 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 
 ## 14. Strategi Pengujian
 
-### 14.1 Unit/integration checks
+### 14.1 Isolasi scenario/save slot
+
+Isolasi data menggunakan dua record tetap pada `ppg_scenarios`: `real` dan `demo`. Preferensi aktif disimpan per akun pada `ppg_user_scenario_preferences`; bila belum ada preferensi, fungsi `ppg_current_scenario_id()` selalu mengembalikan slot riil.
+
+Seluruh tabel data transaksional PPG memiliki `scenario_id`. Kolom tersebut otomatis mengambil slot aktif pada insert. Policy PostgreSQL `AS RESTRICTIVE` mewajibkan `scenario_id = ppg_current_scenario_id()` untuk operasi baca dan tulis, sehingga policy role/ownership yang sudah ada tetap berlaku sekaligus tidak dapat membuka slot lain. Constraint kode bisnis utama menjadi komposit dengan `scenario_id`, agar kode yang sama sah digunakan secara independen pada dua slot.
+
+Beberapa alur Satker memakai service-role untuk validasi lintas tabel dan private storage. Seluruh query database pada alur tersebut wajib menggunakan `createPpgAdminClient(scenarioId)`, yang menambahkan filter skenario pada select/update/delete dan menstempel `scenario_id` pada insert/upsert. Akses storage diteruskan tanpa perubahan.
+
+Seed simulasi dibuat idempotent oleh `ensurePpgDemoData()`. Dataset mencakup lima risiko generik, delapan kontrol, pemetaan dan penilaian efektivitas, validasi UPG Pusat, mitigasi, 369 laporan anonim (253 tanpa konteks atau sekitar 68,6%), snapshot analitik, Program PPG tiga klaster, monitoring, treated risk, loss event dengan kontrol gagal terstruktur, serta kandidat kurasi bottom-up. `resetPpgDemoData()` menghapus hanya record `scenario_id` demo sebelum membentuk ulang dataset; hanya Admin Sistem yang dapat memicunya dari UI.
+
+### 14.2 Unit/integration checks
 
 - Workbook valid dikenali dan sheet salah ditolak.
 - Tahun/triwulan dan baris data terbaca sesuai sel baku.
@@ -590,7 +600,7 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 - Template unduhan diuji memiliki tepat satu sheet, header/metadata baku, formula skor, dan tidak memiliki data risiko pada baris input.
 - Server Action impor diuji melalui build agar tidak mengekspor nilai runtime non-async.
 
-### 14.2 Acceptance criteria
+### 14.3 Acceptance criteria
 
 1. UPG Pusat dapat mengimpor template dan melihat kandidat beserta evidence.
 2. Kandidat tidak masuk Risk Library tanpa keputusan eksplisit.
@@ -609,9 +619,11 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 15. UPG Satker dapat menyimpan treated risk, efektivitas program, dan URL bukti dari submenu Program PPG untuk program yang selesai.
 16. CEI menampilkan `Belum dinilai` atau angka berwarna sesuai ambang, dan tidak menonaktifkan kontrol secara otomatis.
 17. UPG Pusat/Admin dapat mempromosikan kandidat kontrol bottom-up dan menonaktifkan kontrol dengan jejak audit.
+18. Pengguna dapat berpindah Data Riil/Simulasi Lengkap dan seluruh query, analitik, laporan, serta ekspor hanya menampilkan slot aktif.
+19. Insert melalui user client maupun service-role masuk ke slot aktif; reset simulasi tidak mengubah jumlah maupun isi Data Riil.
 
 ## 15. Operasional Migrasi
 
-Jalankan `supabase/migration_ppg.sql` melalui Supabase SQL Editor pada proyek yang benar, lalu reload schema cache/API bila diperlukan. Setelah migrasi, verifikasi keberadaan tabel staging, kolom treated beserta metadata program/efektivitas/bukti, tabel dan indeks `ppg_loss_event_controls`, policy RLS, fungsi helper, trigger kode LED, dan bucket privat. Aplikasi harus menampilkan pesan skema terbaru bila query ke struktur yang diwajibkan gagal. Migrasi bersifat idempotent untuk penambahan kolom, constraint, tabel, indeks, dan policy yang baru.
+Jalankan `supabase/migration_ppg.sql` melalui Supabase SQL Editor pada proyek yang benar, lalu reload schema cache/API bila diperlukan. Setelah migrasi, verifikasi keberadaan tabel staging, kolom treated beserta metadata program/efektivitas/bukti, tabel dan indeks `ppg_loss_event_controls`, `ppg_scenarios`, `ppg_user_scenario_preferences`, kolom dan policy isolasi `scenario_id`, fungsi helper, trigger kode LED, dan bucket privat. Aplikasi harus menampilkan pesan skema terbaru bila query ke struktur yang diwajibkan gagal. Migrasi bersifat idempotent untuk penambahan kolom, constraint, tabel, indeks, dan policy yang baru.
 
 Untuk instalasi lama, kolom `kemungkinan_existing`, `dampak_existing`, `skor_existing`, dan `level_existing` tidak di-rename agar kompatibilitas terjaga. Seluruh UI, dokumentasi, dan logika baru memperlakukannya sebagai **residual risk**.

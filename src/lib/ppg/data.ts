@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { requirePpgAccess, requirePpgAdmin } from './access'
-import { createAdminClient } from '@/utils/supabase/admin'
+import { createPpgAdminClient } from './scenario'
 import { analyzePpgReports } from './analytics'
 import { calculatePpgControlEffectiveness, normalizePpgControlText } from './control-effectiveness'
 
@@ -204,7 +204,7 @@ export async function getPpgProgram(id: string) {
 
 export async function getPpgLossEventWorkspace() {
   const access = await requirePpgAccess()
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const { data: ownUnit } = access.unitId ? await admin.from('unit_kerja').select('id,nama_unit').eq('id', access.unitId).single() : { data: null }
   let eventQuery = admin.from('ppg_loss_events').select('*,risk:ppg_risk_library(id,kode,kategori,peristiwa),register:ppg_register(id,kode,peristiwa),failed_controls:ppg_loss_event_controls(control_id,control:ppg_control_library(id,kode,nama,jenis,status)),links:ppg_loss_event_report_links(*,report:ppg_reports(id,nomor_laporan,unit_nama,tanggal_penerimaan,objek,label_skenario,nilai_penetapan))').order('tanggal_kejadian', { ascending: false }).limit(500)
   if (access.isSatker && access.unitId) eventQuery = eventQuery.eq('unit_kerja_id', access.unitId)
@@ -229,7 +229,7 @@ export async function getPpgLossEventWorkspace() {
 
 export async function getPpgAssessmentWorkspace() {
   const access = await requirePpgAccess()
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   let batchQuery = admin.from('ppg_risk_import_batches').select('id').eq('mode', 'operasional_assessment').order('created_at', { ascending: false }).limit(20)
   if (access.isSatker) batchQuery = batchQuery.eq('created_by', access.user.id)
   const importedBatches = await batchQuery
@@ -362,7 +362,7 @@ export async function getPpgControlEffectiveness() {
 
 export async function getPpgTreatedRiskWorkspace() {
   const access = await requirePpgAccess()
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   let registerQuery = admin
     .from('ppg_register')
     .select('id,kode,unit_kerja_id,unit_nama,risk_library_id,peristiwa,skor_existing,level_existing,kemungkinan_treated,dampak_treated,skor_treated,level_treated,treated_program_id,efektivitas_program,bukti_efektivitas_program_url,treated_assessed_at')

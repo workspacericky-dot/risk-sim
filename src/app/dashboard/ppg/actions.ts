@@ -3,7 +3,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { requirePpgAccess, requirePpgAdmin } from '@/lib/ppg/access'
-import { createAdminClient } from '@/utils/supabase/admin'
+import { createPpgAdminClient } from '@/lib/ppg/scenario'
 import { parsePpgWorkbook } from '@/lib/ppg/import-workbook'
 import { ppgAssessment } from '@/lib/ppg/scoring'
 import { PPG_ASSESSMENT_PERIODS, PPG_CAUSE_FACTORS, PPG_IMPACT_AREAS, PPG_RISK_CATEGORIES, PPG_RISK_CATEGORY_CODES, PPG_RISK_CLASSIFICATIONS, isValidPpgBusinessProcess } from '@/lib/ppg/references'
@@ -136,7 +136,7 @@ export async function setPpgControlStatus(formData: FormData) {
 export async function addPpgRegister(formData: FormData) {
   const access = await requirePpgAccess()
   if (!access.isAdmin && !access.isSatker) return
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const kemungkinanInherent = integer(formData, 'kemungkinan_inherent'); const dampakInherent = integer(formData, 'dampak_inherent')
   const kemungkinanResidual = integer(formData, 'kemungkinan_residual'); const dampakResidual = integer(formData, 'dampak_residual')
   let inherentAssessment; let residualAssessment
@@ -184,7 +184,7 @@ export async function updatePpgTreatedRisk(_previousState: PpgTreatedRiskActionS
   let treatedAssessment
   try { treatedAssessment = ppgAssessment(kemungkinanTreated, dampakTreated) } catch { return treatedRiskError('Probabilitas dan dampak treated risk harus berada pada skala 1–5.') }
 
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const { data: register } = await admin.from('ppg_register').select('id,kode,unit_kerja_id,risk_library_id,skor_existing').eq('id', registerId).single()
   if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return treatedRiskError('Risk Register tidak ditemukan atau bukan milik Satker Anda.')
   const { data: completedItem } = await admin.from('ppg_program_items').select('id').eq('program_id', programId).eq('risk_library_id', register.risk_library_id).eq('status', 'selesai').limit(1).maybeSingle()
@@ -218,7 +218,7 @@ export async function deletePpgRegister(formData: FormData) {
   if (!access.isAdmin && !access.isSatker) return
   const id = text(formData, 'id')
   if (!isUuid(id)) return
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const { data: register } = await admin.from('ppg_register').select('id,unit_kerja_id').eq('id', id).single()
   if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return
   const { error } = await admin.from('ppg_register').delete().eq('id', id)
@@ -249,7 +249,7 @@ export async function updatePpgRiskControlEvidence(formData: FormData) {
   if (!access.isAdmin && !access.isSatker) return
   const riskId = text(formData, 'risk_id'); const controlId = text(formData, 'control_id'); const efektivitas = text(formData, 'efektivitas'); const bukti = text(formData, 'bukti_efektivitas_url')
   if (!isUuid(riskId) || !isUuid(controlId) || !['belum_dinilai','tidak_efektif','sebagian','efektif'].includes(efektivitas) || (['sebagian','efektif'].includes(efektivitas) && !isHttpsUrl(bukti)) || (bukti && !isHttpsUrl(bukti))) return
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const { data: register } = await admin.from('ppg_register').select('id,unit_kerja_id').eq('id', riskId).single()
   if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return
   const { error } = await admin.from('ppg_risk_controls').update({ efektivitas, bukti_efektivitas_url: bukti, updated_at: new Date().toISOString() }).eq('risk_id', riskId).eq('control_id', controlId)
@@ -490,7 +490,7 @@ export type PpgLossEventActionState = { status: 'idle' | 'success' | 'error'; me
 
 export async function createPpgLossEvent(_previousState: PpgLossEventActionState, formData: FormData): Promise<PpgLossEventActionState> {
   const access = await requirePpgAccess()
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const unitId = access.isSatker ? access.unitId : text(formData, 'unit_kerja_id')
   const eventDate = text(formData, 'tanggal_kejadian')
   const name = text(formData, 'nama_peristiwa')

@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { requirePpgAccess } from '@/lib/ppg/access'
-import { createAdminClient } from '@/utils/supabase/admin'
+import { createPpgAdminClient } from '@/lib/ppg/scenario'
 import { PPG_ASSESSMENT_PERIODS, PPG_RISK_CATEGORIES, PPG_RISK_CATEGORY_CODES, PPG_RISK_CLASSIFICATIONS, PPG_CAUSE_FACTORS, isValidPpgBusinessProcess } from '@/lib/ppg/references'
 import { normalizeRiskText, parsePpgRiskRegisterWorkbook, riskSimilarity, type PpgRiskRegisterImportRow } from '@/lib/ppg/risk-register-workbook'
 import { ppgAssessment } from '@/lib/ppg/scoring'
@@ -28,7 +28,7 @@ export async function importPpgRiskRegister(_previous: RiskImportActionState, fo
     return failure(error instanceof Error ? error.message : 'Workbook tidak dapat dibaca.')
   }
 
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const fileHash = createHash('sha256').update(new Uint8Array(bytes)).digest('hex')
   const existingBatch = await admin.from('ppg_risk_import_batches').select('id').eq('file_hash', fileHash).eq('source_sheet', parsed.sheetName).eq('mode', mode).maybeSingle()
   if (existingBatch.data) return failure('Berkas yang sama sudah pernah diimpor pada mode ini.')
@@ -112,7 +112,7 @@ export async function importPpgRiskRegister(_previous: RiskImportActionState, fo
 export async function reviewPpgRiskCandidate(_previous: RiskImportActionState, formData: FormData): Promise<RiskImportActionState> {
   const access = await requirePpgAccess()
   if (!access.isPusat) return failure('Kurasi hanya tersedia bagi UPG Pusat dan Admin Sistem.')
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const candidateId = String(formData.get('candidate_id') || '')
   const decision = String(formData.get('decision') || '')
   if (!isUuid(candidateId) || !['approve_new', 'merge_existing', 'reject'].includes(decision)) return failure('Keputusan kurasi tidak valid.')
@@ -160,7 +160,7 @@ export async function reviewPpgRiskCandidate(_previous: RiskImportActionState, f
 export async function createPpgRegisterFromImport(_previous: RiskImportActionState, formData: FormData): Promise<RiskImportActionState> {
   const access = await requirePpgAccess()
   if (!access.isSatker && !access.isAdmin) return failure('Pembuatan penilaian tersedia bagi UPG Satker dan Admin Sistem.')
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const rowId = field(formData, 'import_row_id'); const libraryId = field(formData, 'risk_library_id')
   if (!isUuid(rowId) || !isUuid(libraryId)) return failure('Pilih risiko generik yang sudah aktif.')
   const { data: row } = await admin.from('ppg_risk_import_rows').select('*,batch:ppg_risk_import_batches(created_by,mode)').eq('id', rowId).is('created_register_id', null).single()
@@ -203,7 +203,7 @@ export async function deletePpgRiskImport(_previous: RiskImportActionState, form
   const batchId = field(formData, 'batch_id')
   if (!isUuid(batchId)) return failure('Riwayat impor tidak valid.')
 
-  const admin = createAdminClient()
+  const admin = createPpgAdminClient(access.scenarioId)
   const { data: batch, error: batchError } = await admin
     .from('ppg_risk_import_batches')
     .select('id,nama_file,mode,total_baris')

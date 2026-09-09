@@ -43,7 +43,6 @@ export default async function ProgramPpgPage({ searchParams }: Props) {
     <SectionHeading eyebrow="Assisted generation" title="Program PPG & Monitoring" description="Tinjau Insight A dan B yang dibuat mesin, lalu konfirmasi atau sesuaikan tindakan, kontrol, target, dan klaster sebelum UPG Pusat menetapkan program." />
     {treatedRisk.error && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Data evaluasi Program PPG belum dapat dimuat: {treatedRisk.error}. Jalankan migration_ppg.sql terbaru.</div>}
     {dataErrors.length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>Beberapa data Program PPG gagal dimuat.</strong><ul className="mt-2 list-disc space-y-1 pl-5">{dataErrors.map((message) => <li key={message}>{message}</li>)}</ul></div>}
-    <ProgramEffectivenessPanel registers={treatedRisk.registers} programs={treatedRisk.programs} canEdit={access.isAdmin} />
     <form action={createPpgProgram} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-4">
       <div className="md:col-span-2 xl:col-span-4"><h3 className="font-bold text-slate-900">Draf program berbantuan analitik</h3><p className="mt-1 text-xs text-slate-500">Dasar {analytics.period.label}; periode program yang disarankan {analytics.period.programLabel}. Insight dan baseline tidak perlu diisi manual.</p></div>
       <input type="hidden" name="analysis_year" value={analytics.period.year} /><input type="hidden" name="analysis_quarter" value={analytics.period.quarter ?? ''} />
@@ -86,6 +85,7 @@ export default async function ProgramPpgPage({ searchParams }: Props) {
         </div>})}</div>
       </article>
     })}</div> : <EmptyState title="Belum ada rancangan Program PPG" description="Pilih rekomendasi pada Analisis Titik Rawan atau gunakan formulir di atas. Rencana tindakan tidak lagi berupa teks bebas." />}
+    <ProgramEffectivenessPanel registers={treatedRisk.registers} programs={treatedRisk.programs} canEdit={access.isAdmin} />
   </div>
 }
 

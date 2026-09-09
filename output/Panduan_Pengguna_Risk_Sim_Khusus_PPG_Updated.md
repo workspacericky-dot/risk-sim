@@ -344,7 +344,19 @@ Penghapusan memiliki batas berikut:
 
 CEI dihitung dari penilaian kontrol yang tersedia: **Efektif = 100**, **Sebagian = 50**, dan **Tidak Efektif = 0**; status **Belum dinilai** diabaikan. Nilai dasar kemudian dikurangi **5 poin untuk setiap loss event yang memenuhi syarat** dan mereferensikan kontrol tersebut. Untuk data historis yang belum memiliki referensi kontrol gagal terstruktur, penalti tetap dapat diterapkan pada semua kontrol dalam register terkait agar perilaku historis tidak hilang.
 
-## 7. Glosarium
+## 7. Save Slot Data Riil dan Simulasi Lengkap
+
+Pada bagian kanan header modul Khusus PPG tersedia pemilih **Data Riil** dan **Simulasi Lengkap**. Pilihan tersimpan per pengguna dan berlaku untuk seluruh submenu PPG, termasuk dashboard, Penilaian Risiko, Risk/Control Library, analitik, Program PPG, Loss Event, laporan, dan ekspor.
+
+- **Data Riil** merupakan slot default dan berisi data operasional resmi yang sudah ada.
+- **Simulasi Lengkap** berisi data dummy yang sengaja dibuat untuk memperlihatkan siklus PPG secara utuh: library, register, kontrol, validasi, mitigasi, 369 laporan, kurasi bottom-up, analitik, program berklaster, monitoring, treated risk, dan loss event.
+- Banner kuning **MODE SIMULASI AKTIF** selalu muncul selama slot dummy digunakan. Data pada mode ini tidak boleh dipakai untuk pelaporan resmi.
+- Perubahan pada satu slot tidak mengubah isi, analitik, laporan, atau ekspor slot lain.
+- Admin Sistem dapat menekan tombol reset di samping pilihan Simulasi Lengkap untuk mengembalikan seluruh data dummy ke kondisi awal. Reset tidak menyentuh Data Riil.
+
+Pada halaman **Program PPG**, panel **Nilai treated risk pasca-Program PPG** ditempatkan paling bawah karena evaluasi tersebut baru dilakukan setelah program dirancang, dijalankan, dimonitor, dan selesai.
+
+## 8. Glosarium
 
 - **PPG** — Program Pengendalian Gratifikasi.
 - **UPG** — Unit Pengendalian Gratifikasi.
@@ -372,7 +384,7 @@ CEI dihitung dari penilaian kontrol yang tersedia: **Efektif = 100**, **Sebagian
 - **Upper limit** — loss event yang memenuhi ambang dampak tinggi sesuai konfigurasi periode.
 - **Klaster satker** — kelompok satker yang menerima intensitas treatment berbeda berdasarkan bukti realisasi risiko.
 
-## 8. Pemeriksaan Sebelum Menetapkan Program
+## 9. Pemeriksaan Sebelum Menetapkan Program
 
 - Pastikan periode analisis dan baseline sesuai.
 - Pastikan data laporan gratifikasi dan loss event cukup lengkap.

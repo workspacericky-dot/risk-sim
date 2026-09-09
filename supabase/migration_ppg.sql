@@ -834,3 +834,90 @@ revoke all on function public.ppg_user_unit_id() from public;
 grant execute on function public.ppg_is_pusat() to authenticated;
 grant execute on function public.ppg_is_satker() to authenticated;
 grant execute on function public.ppg_user_unit_id() to authenticated;
+
+-- ============================================================================
+-- Scenario/save slot PPG
+-- Data lama selalu menjadi slot riil. Slot simulasi dipilih per pengguna dan
+-- dipisahkan pada lapisan database agar tidak masuk analitik/ekspor slot lain.
+-- ============================================================================
+create table if not exists public.ppg_scenarios (
+  id uuid primary key,
+  key text not null unique check (key in ('real','demo')),
+  nama text not null,
+  deskripsi text not null default '',
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+insert into public.ppg_scenarios (id,key,nama,deskripsi,is_demo) values
+  ('00000000-0000-4000-8000-000000000001','real','Data Riil','Data operasional resmi PPG.',false),
+  ('00000000-0000-4000-8000-000000000002','demo','Simulasi Lengkap','Data dummy untuk demonstrasi alur PPG.',true)
+on conflict (id) do update set key=excluded.key,nama=excluded.nama,deskripsi=excluded.deskripsi,is_demo=excluded.is_demo;
+
+create table if not exists public.ppg_user_scenario_preferences (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  scenario_id uuid not null references public.ppg_scenarios(id) on delete restrict
+    default '00000000-0000-4000-8000-000000000001',
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.ppg_current_scenario_id()
+returns uuid language sql stable security definer set search_path = public
+as $$
+  select coalesce(
+    (select scenario_id from public.ppg_user_scenario_preferences where user_id = auth.uid()),
+    '00000000-0000-4000-8000-000000000001'::uuid
+  )
+$$;
+
+do $$ declare t text; begin
+  foreach t in array array[
+    'ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register',
+    'ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches',
+    'ppg_reports','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches',
+    'ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_programs',
+    'ppg_program_items','ppg_program_item_controls','ppg_program_clusters',
+    'ppg_program_cluster_units','ppg_program_updates','ppg_loss_events',
+    'ppg_loss_event_controls','ppg_loss_event_report_links','ppg_program_loss_events'
+  ] loop
+    execute format(
+      'alter table public.%I add column if not exists scenario_id uuid not null default public.ppg_current_scenario_id() references public.ppg_scenarios(id) on delete restrict', t
+    );
+    execute format('create index if not exists %I on public.%I(scenario_id)', t || '_scenario_idx', t);
+    execute format('drop policy if exists "ppg scenario isolation" on public.%I', t);
+    execute format(
+      'create policy "ppg scenario isolation" on public.%I as restrictive for all using (scenario_id = public.ppg_current_scenario_id()) with check (scenario_id = public.ppg_current_scenario_id())', t
+    );
+  end loop;
+end $$;
+
+-- Kode bisnis boleh sama pada dua slot karena record-nya tetap terisolasi.
+alter table public.ppg_risk_library drop constraint if exists ppg_risk_library_kode_key;
+alter table public.ppg_risk_library drop constraint if exists ppg_risk_library_scenario_kode_key;
+alter table public.ppg_risk_library add constraint ppg_risk_library_scenario_kode_key unique(scenario_id,kode);
+alter table public.ppg_control_library drop constraint if exists ppg_control_library_kode_key;
+alter table public.ppg_control_library drop constraint if exists ppg_control_library_scenario_kode_key;
+alter table public.ppg_control_library add constraint ppg_control_library_scenario_kode_key unique(scenario_id,kode);
+alter table public.ppg_register drop constraint if exists ppg_register_kode_tahun_periode_unit_nama_key;
+alter table public.ppg_register drop constraint if exists ppg_register_scenario_business_key;
+alter table public.ppg_register add constraint ppg_register_scenario_business_key unique(scenario_id,kode,tahun,periode,unit_nama);
+alter table public.ppg_import_batches drop constraint if exists ppg_import_batches_file_hash_source_sheet_key;
+alter table public.ppg_import_batches drop constraint if exists ppg_import_batches_scenario_source_key;
+alter table public.ppg_import_batches add constraint ppg_import_batches_scenario_source_key unique(scenario_id,file_hash,source_sheet);
+alter table public.ppg_risk_import_batches drop constraint if exists ppg_risk_import_batches_file_hash_source_sheet_mode_key;
+alter table public.ppg_risk_import_batches drop constraint if exists ppg_risk_import_batches_scenario_source_key;
+alter table public.ppg_risk_import_batches add constraint ppg_risk_import_batches_scenario_source_key unique(scenario_id,file_hash,source_sheet,mode);
+alter table public.ppg_programs drop constraint if exists ppg_programs_kode_key;
+alter table public.ppg_programs drop constraint if exists ppg_programs_scenario_kode_key;
+alter table public.ppg_programs add constraint ppg_programs_scenario_kode_key unique(scenario_id,kode);
+
+alter table public.ppg_scenarios enable row level security;
+alter table public.ppg_user_scenario_preferences enable row level security;
+drop policy if exists "ppg scenario read" on public.ppg_scenarios;
+create policy "ppg scenario read" on public.ppg_scenarios for select to authenticated using (true);
+drop policy if exists "ppg own scenario preference" on public.ppg_user_scenario_preferences;
+create policy "ppg own scenario preference" on public.ppg_user_scenario_preferences
+  for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+revoke all on function public.ppg_current_scenario_id() from public;
+grant execute on function public.ppg_current_scenario_id() to authenticated;
