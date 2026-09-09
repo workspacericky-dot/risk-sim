@@ -493,6 +493,28 @@ Pekerjaan dianggap selesai bila:
 - status commit, push, migration, dan deployment dilaporkan secara eksplisit;
 - hal yang belum diuji tidak disamarkan sebagai selesai.
 
+## 17. Update: Control Effectiveness Index & Bottom-Up Curation (9 Sep 2026)
+
+Pada iterasi ini, ditambahkan mekanisme kurasi dan evaluasi *Control Library* yang ditarik dari hasil *self-assessment* dan *Loss Event* aktual (CEI - Control Effectiveness Index).
+
+### 17.1 Konsep & Rumus Control Effectiveness Index (CEI)
+- **Base Score**: Dihitung dari `ppg_risk_controls.efektivitas`. (Efektif = 1, Sebagian = 0.5, Tidak = 0, Belum = ignored). Skor dirata-rata ke dalam persentase 0-100.
+- **Penalty**: Dikurangi 5 poin untuk setiap insiden aktual (`ppg_loss_events`) berstatus aktif/tervalidasi yang terkait dengan `register_id` satker pengguna, karena hal tersebut mengindikasikan kegagalan kontrol di lapangan.
+- **Batasan**: CEI dibatasi agar tidak turun di bawah 0. Kontrol yang memiliki indeks `< 50` akan mendapat tanda merah (*destructive badge*) pada UI.
+
+### 17.2 Penambahan Komponen Baru
+| File | Fungsi |
+| --- | --- |
+| `src/lib/ppg/data.ts` | Penambahan `getPpgControlEffectiveness()` (agregasi relasi `ppg_control_library`, `ppg_risk_controls`, `ppg_loss_events`) dan `getPpgEmergingControls()` (ekstraksi pengelompokan `ppg_mitigations.tindakan` berstatus selesai). |
+| `src/app/dashboard/ppg/control-actions.ts` | *Server Action* murni baru untuk mendeaktivasi kontrol (`deactivateControlLibrary`) dan membuat kontrol generik dari mitigasi (`promoteMitigationToControl`). |
+| `src/app/dashboard/ppg/pustaka/ControlEffectivenessPanel.tsx` | UI tabel UPG Pusat untuk melihat daftar CEI beserta tombol *Nonaktifkan*. |
+| `src/app/dashboard/ppg/pustaka/EmergingControlsPanel.tsx` | UI tabel untuk menampilkan mitigasi lokal terpopuler dengan tombol *Promote*. |
+
+### 17.3 Siklus Hidup Pustaka Kontrol (Lifecycle)
+Sesuai prinsip PPG (mesin hanya mengusulkan, manusia memutuskan):
+1. **Pensiun (Retire)**: Kontrol dengan CEI rendah dapat dinonaktifkan (diubah menjadi `nonaktif` pada `ppg_control_library`). Kontrol tersebut disembunyikan dari pilihan *dropdown* satker ke depannya, namun data historis satker tetap utuh (tidak terkena imbas `CASCADE`).
+2. **Promosi (Promote)**: Rencana mitigasi satker yang unik dan selesai dilaksanakan dapat diangkat menjadi kontrol generik. Sistem akan membuat entri baru dengan kode urut otomatis (mis. `C-xxx`), menetapkan `uraian` awal, lalu menautkannya otomatis ke tabel relasi `ppg_library_risk_controls`.
+
 ---
 
 **Prompt pembuka yang disarankan untuk AI Agent baru:**
