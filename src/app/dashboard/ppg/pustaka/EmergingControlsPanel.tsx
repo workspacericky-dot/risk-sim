@@ -12,18 +12,26 @@ type EmergingRow = {
   risk_peristiwa: string
   tindakan: string
   count: number
+  mitigationCount: number
 }
 
 export function EmergingControlsPanel({ data }: { data: EmergingRow[] }) {
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
 
   async function handlePromote(row: EmergingRow) {
     if (!window.confirm('Angkat tindakan ini menjadi Kontrol Generik untuk Risiko ' + row.risk_kode + '?')) return
     const key = row.risk_library_id + row.tindakan
     setLoadingKey(key)
-    const res = await promoteMitigationToControl(row.risk_library_id, row.tindakan, 'preventif')
-    if (res.status === 'error') alert(res.message)
-    setLoadingKey(null)
+    setMessage(null)
+    try {
+      const res = await promoteMitigationToControl(row.risk_library_id, row.tindakan, 'Preventif')
+      setMessage(res.message)
+    } catch {
+      setMessage('Kandidat kontrol gagal dipromosikan. Muat ulang halaman lalu coba lagi.')
+    } finally {
+      setLoadingKey(null)
+    }
   }
 
   return (
@@ -32,6 +40,8 @@ export function EmergingControlsPanel({ data }: { data: EmergingRow[] }) {
         <CardTitle className="text-lg">Kandidat Kontrol Baru (Mitigasi Populer)</CardTitle>
       </CardHeader>
       <CardContent>
+        <p className="mb-4 text-xs text-muted-foreground">Jumlah Satker dihitung unik; kandidat yang sudah dipromosikan untuk risiko yang sama tidak ditampilkan lagi.</p>
+        {message && <p role="status" className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{message}</p>}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

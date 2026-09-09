@@ -1,14 +1,14 @@
 # Spesifikasi Teknis Risk Sim — Modul Khusus PPG
 
-**Versi dokumen:** 2.1
+**Versi dokumen:** 2.2
 
-**Tanggal pembaruan:** 8 September 2026
+**Tanggal pembaruan:** 9 September 2026
 
 **Audiens:** Front-end Engineer, Back-end Engineer, Data Analyst, DBA, QA, dan pemilik proses UPG
 
 ## 1. Tujuan dan Ruang Lingkup
 
-Dokumen ini menjelaskan implementasi modul **Khusus PPG** sebagai pipeline data-ke-keputusan. Ruang lingkupnya meliputi impor laporan gratifikasi, impor Risk Register 2026, kurasi bottom-up Risk Library, penilaian inherent/residual/treated, Loss Event Database, Insight A dan B, assisted generation Program PPG, klasterisasi satker, snapshot analitik, serta monitoring.
+Dokumen ini menjelaskan implementasi modul **Khusus PPG** sebagai pipeline data-ke-keputusan. Ruang lingkupnya meliputi impor laporan gratifikasi, impor Risk Register 2026, kurasi bottom-up Risk Library dan Control Library, penilaian inherent/residual/treated, bukti serta validasi efektivitas kontrol, Control Effectiveness Index (CEI), Loss Event Database, Insight A dan B, assisted generation Program PPG, penilaian efektivitas pascaprogram, klasterisasi satker, snapshot analitik, serta monitoring.
 
 Prinsip desain utama:
 
@@ -21,6 +21,8 @@ Prinsip desain utama:
 7. Istilah bisnis adalah inherent, residual, dan treated risk. Kolom `*_existing` dipertahankan sebagai nama legacy dengan makna residual.
 8. Artefak unduhan adalah template kosong satu-sheet; workbook sumber yang dipakai untuk reverse-engineering format tidak dipublikasikan.
 9. UPG Pusat/Admin dapat menghapus batch impor yang salah atau duplikat tanpa menghapus Risk Library maupun register yang telah dibuat.
+10. CEI adalah decision-support; kontrol tidak dinonaktifkan otomatis dan keputusan siklus hidup tetap memerlukan tindakan manusia yang diaudit.
+11. Kegagalan kontrol pada loss event direkam sebagai referensi terstruktur ke kontrol register, sedangkan narasi teks dipertahankan sebagai konteks tambahan.
 
 ## 2. Tech Stack dan Arsitektur Sistem
 
@@ -57,7 +59,7 @@ Supabase
   └── Private Storage ppg-led-bukti
 ```
 
-Server Action terlebih dahulu memanggil `requirePpgAccess()` atau `requirePpgAdmin()`. Operasi biasa memakai client sesi agar RLS berlaku. Admin client hanya dipakai pada alur yang memerlukan orkestrasi lintas tabel setelah otorisasi eksplisit dan pemeriksaan kepemilikan di server.
+Server Action terlebih dahulu memanggil `requirePpgAccess()` atau `requirePpgAdmin()`. Operasi biasa memakai client sesi agar RLS berlaku. Admin client hanya dipakai pada alur yang memerlukan orkestrasi lintas tabel setelah otorisasi eksplisit dan pemeriksaan kepemilikan di server. Action validasi bukti kontrol mengikuti kontrak `useActionState`: menerima state sebelumnya, mengembalikan state serializable per baris, dan tidak mengandalkan exception sebagai satu-satunya umpan balik UI.
 
 File dengan directive top-level `'use server'` hanya mengekspor fungsi `async`, sesuai kontrak Next.js 16. State serializable untuk `useActionState`, termasuk `initialRiskImportState`, ditempatkan pada modul netral `risk-import-state.ts`; modul action mengimpor tipenya tanpa mengekspor object runtime.
 
@@ -70,8 +72,10 @@ File dengan directive top-level `'use server'` hanya mengekspor fungsi `async`, 
 | Riwayat impor Risk Register | Tidak | Baca/hapus | Baca/hapus |
 | Register risiko | CRUD unit sendiri | Baca semua | CRUD semua |
 | Bukti kontrol aktual | CRUD register unit sendiri | Baca/validasi | CRUD/validasi |
-| Loss event | CRUD terbatas unit sendiri | Baca dan validasi semua | CRUD semua |
-| Insight, snapshot, program | Tidak | CRUD | CRUD |
+| Loss event dan referensi kontrol gagal | CRUD terbatas unit sendiri | Baca dan validasi semua | CRUD semua |
+| Insight dan snapshot | Tidak | Baca/kelola | CRUD |
+| Program PPG | Mengisi evaluasi pascaprogram untuk register unit sendiri | CRUD program; baca evaluasi satker | CRUD program dan evaluasi |
+| CEI dan kurasi kontrol bottom-up | Tidak | Baca, promosi kandidat, nonaktifkan kontrol | Baca, promosi kandidat, nonaktifkan kontrol |
 
 ## 3. Pipeline Impor Risk Register 2026
 
@@ -187,6 +191,49 @@ Inherent : K=5, D=4 → 20 → Sangat Tinggi
 Residual : K=4, D=4 → 16 → Tinggi
 Treated  : K=2, D=3 →  6 → Rendah
 ```
+
+### 4.2 Evaluasi treated risk pasca-Program PPG
+
+Form treated risk ditempatkan pada route Program PPG (`/dashboard/ppg/tindak-lanjut`), bukan pada Penilaian Risiko. Server hanya menerima evaluasi bila:
+
+- register dimiliki satker penilai atau actor adalah Admin;
+- Program PPG mempunyai setidaknya satu item berstatus selesai;
+- item selesai tersebut mempunyai risiko generik yang sama dengan register;
+- probabilitas dan dampak treated berada pada rentang 1–5;
+- efektivitas program berada pada enum `tidak_efektif`, `kurang_efektif`, `cukup_efektif`, atau `efektif`;
+- bukti efektivitas merupakan URL HTTPS.
+
+Hasil terbaru disimpan pada `ppg_register` melalui `treated_program_id`, `efektivitas_program`, `bukti_efektivitas_program_url`, `treated_assessed_by`, dan `treated_assessed_at`, disertai K/D/skor/level treated yang sudah ada. UI menghitung delta terhadap residual dan menampilkan `Turun`, `Naik`, atau `Tetap`. Setiap penyimpanan dicatat dalam `ppg_audit_log`.
+
+### 4.3 Control Effectiveness Index (CEI)
+
+Kalkulator murni berada di `src/lib/ppg/control-effectiveness.ts`. Hanya kontrol berstatus aktif yang dievaluasi. Bobot observasi efektivitas:
+
+```text
+efektif        = 100
+sebagian       = 50
+tidak_efektif  = 0
+belum_dinilai  = diabaikan
+
+base_CEI = average(observasi yang dinilai)
+CEI      = clamp(base_CEI - 5 × qualifying_loss_events, 0, 100)
+```
+
+Jika tidak ada observasi yang dinilai, hasil adalah `null` dan UI menampilkan **Belum dinilai**, bukan 0. Loss event yang dapat memberi penalti adalah event berstatus `tervalidasi`, `tindak_lanjut`, atau `ditutup`. Untuk event baru, penalti hanya mengenai kontrol yang dipilih dalam `ppg_loss_event_controls`; event historis tanpa referensi terstruktur menggunakan fallback seluruh kontrol pada register agar histori perhitungan tetap kompatibel.
+
+Kriteria tampilan sementara:
+
+| CEI | Warna | Interpretasi |
+| ---: | --- | --- |
+| 0–49 | Merah | Rendah; kaji ulang dan kandidat penonaktifan bila kelemahan persisten. |
+| 50–79 | Kuning | Kurang efektif; perbaiki desain/implementasi dan monitor. |
+| 80–100 | Hijau | Tinggi/efektif; pertahankan dengan monitoring berkala. |
+
+Ambang ditampilkan dalam popup informasi. Ambang tidak memicu perubahan status otomatis. Error query harus ditampilkan sebagai error, tidak boleh dikonversi menjadi CEI nol.
+
+### 4.4 Kurasi kontrol bottom-up
+
+`getPpgEmergingControls` mengambil mitigasi berstatus selesai, mengelompokkannya menurut teks yang dinormalisasi dan risiko generik, menghitung satker unik, serta menyembunyikan kandidat yang sudah dipromosikan. Promosi memvalidasi keberadaan mitigasi selesai, mencegah duplikasi, membangkitkan kode `PPG.K.<nomor>`, dan melakukan retry saat terjadi unique collision. Bila insert relasi risk–control gagal, kontrol yatim dihapus kembali. Promosi maupun penonaktifan kontrol menulis audit log; penonaktifan tidak menghapus pemakaian historis.
 
 ## 5. Core Engine: Insight A
 
@@ -339,15 +386,16 @@ Keanggotaan disimpan sebagai snapshot pada program. Perubahan loss event setelah
 | Tabel | Kolom kunci dan tipe | PK/FK dan constraint utama |
 | --- | --- | --- |
 | `ppg_risk_library` | `id uuid`, `kode text`, dimensi proses/risiko, `versi int`, `status text` | PK `id`; unique `kode`; status draft/review/aktif/nonaktif. |
-| `ppg_control_library` | `id uuid`, `kode`, `nama`, `jenis`, `uraian`, `status` | PK `id`; unique `kode`; jenis Preventif/Detektif/Korektif. |
+| `ppg_control_library` | `id uuid`, `kode`, `nama`, `jenis`, `uraian`, `status` | PK `id`; unique `kode`; jenis Preventif/Detektif/Korektif; status aktif/nonaktif mempertahankan histori. |
 | `ppg_library_risk_controls` | `risk_library_id uuid`, `control_id uuid` | PK gabungan; M:N risk library–control library. |
-| `ppg_register` | identitas unit/periode, inherent `smallint`, legacy residual `*_existing`, treated `*_treated` | PK `id`; FK risk library dan unit; skor = K×D; unique kode+tahun+periode+unit. |
+| `ppg_register` | identitas unit/periode, inherent `smallint`, legacy residual `*_existing`, treated `*_treated`, `treated_program_id`, `efektivitas_program`, URL/actor/waktu evaluasi | PK `id`; FK risk library, unit, dan `ppg_programs`; skor = K×D; unique kode+tahun+periode+unit; enum efektivitas program. |
 | `ppg_risk_controls` | `risk_id`, `control_id`, `efektivitas`, `bukti_efektivitas_url` | PK gabungan; FK register dan control library. |
 | `ppg_risk_control_validations` | `risk_id`, `control_id`, `status`, validator | PK/FK gabungan ke risk controls; validasi terpisah dari pelapor. |
 | `ppg_mitigations` | `register_id`, tindakan, PIC, tenggat, status, progres | PK `id`; FK register; progres 0–100. |
 | `ppg_reports` | atribut laporan anonim, tanggal, objek, nilai, skenario, klasifikasi | PK `id`; FK batch; tidak menyimpan nama/NIK/pemberi. |
 | `ppg_import_batches` | metadata impor laporan gratifikasi | PK `id`; unique hash+sheet. |
-| `ppg_loss_events` | unit, risiko generik, register, RCA, dampak, limit, status, bukti | PK `id`; FK unit/risk/register/limit; satu primary generic risk wajib untuk data baru. |
+| `ppg_loss_events` | unit, risiko generik, register, RCA, narasi kegagalan kontrol, dampak, limit, status, bukti | PK `id`; FK unit/risk/register/limit; satu primary generic risk wajib untuk data baru. |
+| `ppg_loss_event_controls` | `loss_event_id uuid`, `control_id uuid`, actor dan timestamps | PK gabungan; M:N loss event–control library; RLS mengikuti akses event. |
 | `ppg_loss_event_report_links` | event, report, type, score, reason | PK gabungan; link kandidat/terkonfirmasi/ditolak. |
 | `ppg_led_limit_versions` | tahun, ambang dampak upper, status | PK `id`; unique tahun. |
 | `ppg_analysis_snapshots` | periode, method version, `summary jsonb`, `recommendations jsonb` | PK `id`; rentang tanggal valid. |
@@ -384,6 +432,7 @@ ppg_risk_library 1 ──< ppg_register >── 1 unit_kerja
        │                    └──< ppg_mitigations
        │
        ├──< ppg_loss_events >── unit_kerja
+       │             └──< ppg_loss_event_controls >── ppg_control_library
        │
        └──< ppg_program_items >── ppg_programs >── ppg_analysis_snapshots
                      │
@@ -417,6 +466,16 @@ ppg_risk_library 1 ──< ppg_register >── 1 unit_kerja
 | Simpan rancangan | Submit Server Action | Insert snapshot → program → item → controls → clusters → units. |
 | Input monitoring | Form update | Insert update dan sinkronkan status/progres item. |
 
+### 10.3 Validasi bukti kontrol, loss event, dan evaluasi pascaprogram
+
+| Pengguna | Front-end | Back-end & Database |
+| --- | --- | --- |
+| UPG Satker memperbarui efektivitas/bukti kontrol | Form per baris; tampilkan state sukses/error | Validasi ownership dan simpan `ppg_risk_controls`. |
+| UPG Pusat memilih status validasi | `useActionState` per baris | Tolak `disetujui` tanpa URL bukti; upsert validasi dan revalidate halaman. |
+| Satker memilih register pada Loss Event | Muat multi-select kontrol register | Verifikasi setiap control ID memang terhubung ke register. |
+| Pusat mengganti risiko generik event | Bersihkan tampilan referensi lama | Set register `null` dan hapus relasi kontrol gagal agar konsisten. |
+| Satker menilai program selesai | Pilih register, program, treated K/D, efektivitas, URL bukti | Validasi ownership/status/kesesuaian risiko/HTTPS; update register dan audit log. |
+
 ## 11. Wireframe Antarmuka
 
 ### 11.1 Risk and Control Library
@@ -439,6 +498,8 @@ ppg_risk_library 1 ──< ppg_register >── 1 unit_kerja
 │   file │ mode/periode │ status/jumlah baris │ [Hapus]         │
 ├───────────────────────────────────────────────────────────────┤
 │ Form manual library │ tabel Risk Library │ Control Library   │
+├───────────────────────────────────────────────────────────────┤
+│ CEI kontrol + popup kriteria │ kandidat kontrol bottom-up    │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -448,11 +509,11 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 
 ```text
 ┌ Import operasional + download template ┐
-├ Draf staging: generic risk + inherent + residual + [Buat] ┤
+├ ▸ Draf hasil impor yang perlu dilengkapi (tertutup default) ┤
+│   generic risk + inherent + residual + [Buat]              │
 ├ Form penilaian manual inherent/residual                   ┤
-├ Form treated risk pasca-program                           ┤
 ├ Matriks residual risk 5×5                                 ┤
-├ Bukti dan validasi kontrol                                ┤
+├ Bukti dan validasi kontrol + state hasil per baris        ┤
 └ Tabel inherent │ residual │ treated + search/pagination   ┘
 ```
 
@@ -471,6 +532,9 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 │ KRI │ baseline & target outcome A/B           │
 │ klaster 1 │ klaster 2 │ klaster 3             │
 │ jadwal │ PIC │ target │ [Simpan rancangan]    │
+├───────────────────────────────────────────────┤
+│ Evaluasi pascaprogram: register │ program      │
+│ treated K/D │ efektivitas │ URL bukti │ delta  │
 └───────────────────────────────────────────────┘
 ```
 
@@ -478,6 +542,10 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 
 - Semua UUID yang berasal dari form divalidasi formatnya.
 - Referensi library/action/control harus aktif dan relasinya diperiksa ulang di server.
+- Control ID pada loss event harus termasuk kontrol yang digunakan oleh register terpilih; narasi kegagalan kontrol tetap disimpan terpisah.
+- Bila risiko generik loss event diubah saat validasi pusat, register dan relasi kontrol gagal dibersihkan untuk mencegah referensi silang yang tidak valid.
+- Validasi bukti kontrol berstatus `disetujui` mensyaratkan URL bukti dan selalu mengembalikan state sukses/error yang terlihat pada baris terkait.
+- Evaluasi pascaprogram mensyaratkan item program selesai, risiko program sama dengan register, enum efektivitas valid, serta URL bukti HTTPS.
 - Persentase dibatasi 0–100; K/D dibatasi 1–5; progres dibatasi 0–100.
 - Rentang tanggal harus valid dan tanggal mulai tidak boleh melebihi tanggal akhir.
 - File identik pada sheet dan mode yang sama ditolak berdasarkan SHA-256.
@@ -487,6 +555,7 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 - Constraint migrasi lama ditambahkan secara idempotent menggunakan `IF NOT EXISTS` dan `DROP ... IF EXISTS`.
 - Constraint `NOT VALID` dipakai pada beberapa upgrade agar data historis tidak menggagalkan instalasi, sementara baris baru tetap diperiksa.
 - Tabel memiliki RLS; policy pusat dibuat generik, sedangkan register/loss event memiliki policy khusus satker.
+- Kegagalan query CEI tidak boleh dianggap sebagai nilai nol; UI menampilkan error agar masalah data/skema dapat ditindaklanjuti.
 
 ## 13. Privasi, Audit, dan Retensi
 
@@ -511,6 +580,12 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 - Formula skor risiko dan batas level benar.
 - Insight A menyimpan lima kontribusi yang totalnya sama dengan skor A.
 - Insight B menggunakan distinct satker, bukan event count.
+- CEI mengabaikan `belum_dinilai`, menghasilkan `null` tanpa observasi, menerapkan bobot 100/50/0, serta penalti 5 poin per loss event yang memenuhi syarat.
+- Penalti CEI menggunakan kontrol gagal terstruktur dan fallback historis hanya untuk event lama tanpa relasi.
+- Kandidat kontrol bottom-up menghitung satker unik, menyembunyikan kandidat yang sudah dipromosikan, dan aman terhadap benturan kode/relasi gagal.
+- Loss event menolak control ID yang tidak terhubung ke register terpilih.
+- Persetujuan validasi kontrol tanpa bukti ditolak dengan pesan yang terlihat.
+- Evaluasi pascaprogram menolak program belum selesai, risiko tidak cocok, K/D di luar rentang, enum invalid, atau URL non-HTTPS.
 - Role dan ownership diuji untuk setiap command.
 - Template unduhan diuji memiliki tepat satu sheet, header/metadata baku, formula skor, dan tidak memiliki data risiko pada baris input.
 - Server Action impor diuji melalui build agar tidak mengekspor nilai runtime non-async.
@@ -521,16 +596,22 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 2. Kandidat tidak masuk Risk Library tanpa keputusan eksplisit.
 3. UPG Satker hanya dapat membuat register untuk unitnya.
 4. Field yang tidak tersedia pada template tetap kosong.
-5. Penilaian menampilkan inherent, residual, dan treated secara terpisah.
+5. Penilaian menampilkan inherent dan residual; evaluasi treated ditempatkan pada Program PPG dan tetap tampil terpisah dalam hasil register.
 6. Insight A/B dapat dijelaskan dari raw metric, normalisasi, bobot, dan formula.
 7. Program tidak dapat disimpan tanpa satu risiko generik, tindakan, kontrol, KRI, target, dan tanggal yang valid.
 8. Keanggotaan tiga klaster tersimpan sebagai snapshot.
 9. Build TypeScript dan pengujian PPG lulus.
 10. Antrean kurasi tertutup saat render awal dan dapat dibuka melalui summary/panah.
 11. UPG Pusat/Admin dapat menghapus batch; kandidat multisumber serta data resmi tetap dipertahankan.
+12. Draf hasil impor pada Penilaian Risiko tertutup saat render awal dan dapat dibuka pengguna.
+13. Status validasi bukti kontrol tersimpan setelah reload; persetujuan tanpa bukti menampilkan penolakan eksplisit.
+14. Loss event menyimpan referensi kontrol gagal dari register serta narasi tambahan secara terpisah.
+15. UPG Satker dapat menyimpan treated risk, efektivitas program, dan URL bukti dari submenu Program PPG untuk program yang selesai.
+16. CEI menampilkan `Belum dinilai` atau angka berwarna sesuai ambang, dan tidak menonaktifkan kontrol secara otomatis.
+17. UPG Pusat/Admin dapat mempromosikan kandidat kontrol bottom-up dan menonaktifkan kontrol dengan jejak audit.
 
 ## 15. Operasional Migrasi
 
-Jalankan `supabase/migration_ppg.sql` melalui Supabase SQL Editor pada proyek yang benar, lalu reload schema cache/API bila diperlukan. Setelah migrasi, verifikasi keberadaan tabel staging, kolom treated, policy RLS, indeks, fungsi helper, trigger kode LED, dan bucket privat. Aplikasi harus menampilkan pesan skema terbaru bila query ke struktur yang diwajibkan gagal.
+Jalankan `supabase/migration_ppg.sql` melalui Supabase SQL Editor pada proyek yang benar, lalu reload schema cache/API bila diperlukan. Setelah migrasi, verifikasi keberadaan tabel staging, kolom treated beserta metadata program/efektivitas/bukti, tabel dan indeks `ppg_loss_event_controls`, policy RLS, fungsi helper, trigger kode LED, dan bucket privat. Aplikasi harus menampilkan pesan skema terbaru bila query ke struktur yang diwajibkan gagal. Migrasi bersifat idempotent untuk penambahan kolom, constraint, tabel, indeks, dan policy yang baru.
 
 Untuk instalasi lama, kolom `kemungkinan_existing`, `dampak_existing`, `skor_existing`, dan `level_existing` tidak di-rename agar kompatibilitas terjaga. Seluruh UI, dokumentasi, dan logika baru memperlakukannya sebagai **residual risk**.

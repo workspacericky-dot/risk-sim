@@ -38,6 +38,7 @@ export default async function PustakaPage() {
     <SectionHeading eyebrow="Referensi UPG Pusat" title="Risk and Control Library" description="Himpunan risiko dan kontrol generik lintas satker. Pemetaan library menjadi referensi; penerapan dan efektivitas aktual tetap dinilai oleh masing-masing satker." />
     {error && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Skema relasi risiko–kontrol belum tersedia. Jalankan migration_ppg.sql terbaru.</div>}
     {riskImport.error && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Skema impor Risk Register belum tersedia: {riskImport.error}. Jalankan migration_ppg.sql terbaru.</div>}
+    {(effectiveness.error || emerging.error) && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Data evaluasi/kurasi kontrol belum dapat dimuat: {effectiveness.error ?? emerging.error}</div>}
     <RiskRegisterImportForm />
     <details className="rounded-2xl border border-slate-200 bg-white p-5">
       <summary className="cursor-pointer font-bold text-slate-800">Antrean kurasi bottom-up ({riskImport.candidates.length})</summary>

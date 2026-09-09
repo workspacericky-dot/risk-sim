@@ -1,4 +1,9 @@
-import { updatePpgRiskControlEvidence, validatePpgRiskControlEvidence } from '../actions'
+'use client'
+
+import { useActionState } from 'react'
+import { updatePpgRiskControlEvidence, validatePpgRiskControlEvidence, type PpgControlValidationState } from '../actions'
+
+const initialValidationState: PpgControlValidationState = { status: 'idle', message: '' }
 
 type EvidenceRow = {
   risk_id: string
@@ -20,7 +25,19 @@ export function RiskControlEvidencePanel({ rows, canValidate, canEdit }: { rows:
       <td className="p-3 capitalize">{row.efektivitas.replaceAll('_', ' ')}</td>
       <td className="p-3">{row.bukti_efektivitas_url ? <a href={row.bukti_efektivitas_url} target="_blank" rel="noreferrer" className="font-semibold text-indigo-700 underline">Buka bukti</a> : <span className="text-slate-400">Belum ada</span>}</td>
       <td className="p-3">{canEdit ? <details><summary className="cursor-pointer text-xs font-semibold text-indigo-700">Ubah penilaian/bukti</summary><form action={updatePpgRiskControlEvidence} className="mt-2 grid min-w-64 gap-2"><input type="hidden" name="risk_id" value={row.risk_id} /><input type="hidden" name="control_id" value={row.control_id} /><select name="efektivitas" defaultValue={row.efektivitas} className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs"><option value="belum_dinilai">Belum dinilai</option><option value="tidak_efektif">Tidak efektif</option><option value="sebagian">Sebagian efektif</option><option value="efektif">Efektif</option></select><input name="bukti_efektivitas_url" type="url" defaultValue={row.bukti_efektivitas_url} placeholder="Tautan Drive/OneDrive" className="h-8 rounded-lg border border-slate-300 px-2 text-xs" /><button className="rounded-lg bg-indigo-700 px-2 py-1.5 text-xs font-semibold text-white">Kirim ulang bukti</button></form></details> : <span className="text-xs text-slate-400">Oleh UPG Satker</span>}</td>
-      <td className="p-3">{canValidate ? <form action={validatePpgRiskControlEvidence} className="grid min-w-56 gap-2"><input type="hidden" name="risk_id" value={row.risk_id} /><input type="hidden" name="control_id" value={row.control_id} /><select name="status" defaultValue={row.validation?.status ?? 'belum_ditinjau'} className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs"><option value="belum_ditinjau">Belum ditinjau</option><option value="disetujui">Disetujui</option><option value="perlu_perbaikan">Perlu perbaikan</option><option value="ditolak">Ditolak</option></select><input name="catatan" defaultValue={row.validation?.catatan ?? ''} placeholder="Catatan validasi" className="h-8 rounded-lg border border-slate-300 px-2 text-xs" /><button className="rounded-lg bg-cyan-700 px-2 py-1.5 text-xs font-semibold text-white">Simpan validasi</button></form> : <div><b className="capitalize">{(row.validation?.status ?? 'belum_ditinjau').replaceAll('_', ' ')}</b>{row.validation?.catatan && <p className="mt-1 text-xs text-slate-500">{row.validation.catatan}</p>}</div>}</td>
+      <td className="p-3">{canValidate ? <ValidationForm row={row} /> : <div><b className="capitalize">{(row.validation?.status ?? 'belum_ditinjau').replaceAll('_', ' ')}</b>{row.validation?.catatan && <p className="mt-1 text-xs text-slate-500">{row.validation.catatan}</p>}</div>}</td>
     </tr>)}</tbody></table></div>
   </section>
+}
+
+function ValidationForm({ row }: { row: EvidenceRow }) {
+  const [state, action, pending] = useActionState(validatePpgRiskControlEvidence, initialValidationState)
+  return <form action={action} className="grid min-w-56 gap-2">
+    <input type="hidden" name="risk_id" value={row.risk_id} />
+    <input type="hidden" name="control_id" value={row.control_id} />
+    <select name="status" defaultValue={row.validation?.status ?? 'belum_ditinjau'} className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs"><option value="belum_ditinjau">Belum ditinjau</option><option value="disetujui">Disetujui</option><option value="perlu_perbaikan">Perlu perbaikan</option><option value="ditolak">Ditolak</option></select>
+    <input name="catatan" defaultValue={row.validation?.catatan ?? ''} placeholder="Catatan validasi" className="h-8 rounded-lg border border-slate-300 px-2 text-xs" />
+    <button disabled={pending} className="rounded-lg bg-cyan-700 px-2 py-1.5 text-xs font-semibold text-white disabled:opacity-60">{pending ? 'Menyimpan…' : 'Simpan validasi'}</button>
+    {state.message && <p aria-live="polite" className={`rounded-lg px-2 py-1.5 text-xs ${state.status === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>{state.message}</p>}
+  </form>
 }

@@ -1,14 +1,23 @@
 import Link from 'next/link'
 import { addPpgProgramUpdate, createPpgProgram } from '../actions'
-import { getPpgActionCatalog, getPpgAnalytics, getPpgControlLibraryOptions, getPpgNationalRiskInsights, getPpgProgramLossEventOptions, getPpgPrograms } from '@/lib/ppg/data'
+import { getPpgActionCatalog, getPpgAnalytics, getPpgControlLibraryOptions, getPpgNationalRiskInsights, getPpgProgramLossEventOptions, getPpgPrograms, getPpgTreatedRiskWorkspace } from '@/lib/ppg/data'
+import { requirePpgAccess } from '@/lib/ppg/access'
 import { buildPpgAssistedInsights } from '@/lib/ppg/insights'
 import { EmptyState, SectionHeading } from '../_components'
 import { ProgramRiskControls } from './ProgramRiskControls'
+import { ProgramEffectivenessPanel } from './ProgramEffectivenessPanel'
 
 const input = 'h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm font-normal outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/50 placeholder:font-normal placeholder:text-muted-foreground'
 type Props = { searchParams: Promise<{ action?: string; risk?: string; tahun?: string; triwulan?: string }> }
 
 export default async function ProgramPpgPage({ searchParams }: Props) {
+  const access = await requirePpgAccess()
+  const treatedRisk = await getPpgTreatedRiskWorkspace()
+  if (access.isSatker) return <div className="space-y-6">
+    <SectionHeading eyebrow="Evaluasi pasca-program" title="Program PPG & Treated Risk" description="Nilai dampak Program PPG yang telah selesai terhadap residual risk Satker dan sertakan evidence pelaksanaannya." />
+    {treatedRisk.error && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Data evaluasi Program PPG belum dapat dimuat: {treatedRisk.error}. Jalankan migration_ppg.sql terbaru.</div>}
+    <ProgramEffectivenessPanel registers={treatedRisk.registers} programs={treatedRisk.programs} canEdit />
+  </div>
   const query = await searchParams
   const year = Number(query.tahun) || undefined
   const quarter = query.triwulan ? Number(query.triwulan) : null
@@ -32,7 +41,9 @@ export default async function ProgramPpgPage({ searchParams }: Props) {
 
   return <div className="space-y-6">
     <SectionHeading eyebrow="Assisted generation" title="Program PPG & Monitoring" description="Tinjau Insight A dan B yang dibuat mesin, lalu konfirmasi atau sesuaikan tindakan, kontrol, target, dan klaster sebelum UPG Pusat menetapkan program." />
+    {treatedRisk.error && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Data evaluasi Program PPG belum dapat dimuat: {treatedRisk.error}. Jalankan migration_ppg.sql terbaru.</div>}
     {dataErrors.length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>Beberapa data Program PPG gagal dimuat.</strong><ul className="mt-2 list-disc space-y-1 pl-5">{dataErrors.map((message) => <li key={message}>{message}</li>)}</ul></div>}
+    <ProgramEffectivenessPanel registers={treatedRisk.registers} programs={treatedRisk.programs} canEdit={access.isAdmin} />
     <form action={createPpgProgram} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-4">
       <div className="md:col-span-2 xl:col-span-4"><h3 className="font-bold text-slate-900">Draf program berbantuan analitik</h3><p className="mt-1 text-xs text-slate-500">Dasar {analytics.period.label}; periode program yang disarankan {analytics.period.programLabel}. Insight dan baseline tidak perlu diisi manual.</p></div>
       <input type="hidden" name="analysis_year" value={analytics.period.year} /><input type="hidden" name="analysis_quarter" value={analytics.period.quarter ?? ''} />

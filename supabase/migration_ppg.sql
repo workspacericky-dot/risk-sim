@@ -308,6 +308,17 @@ create table if not exists public.ppg_program_item_controls (
   primary key(program_item_id, control_id)
 );
 
+-- Hasil treated risk merupakan evaluasi dampak Program PPG terhadap residual
+-- risk satker. Kolom-kolom ini menyimpan program sumber dan evidence terbaru.
+alter table public.ppg_register add column if not exists treated_program_id uuid references public.ppg_programs(id) on delete set null;
+alter table public.ppg_register add column if not exists efektivitas_program text;
+alter table public.ppg_register add column if not exists bukti_efektivitas_program_url text not null default '';
+alter table public.ppg_register add column if not exists treated_assessed_by uuid references auth.users(id);
+alter table public.ppg_register add column if not exists treated_assessed_at timestamptz;
+alter table public.ppg_register drop constraint if exists ppg_register_efektivitas_program_check;
+alter table public.ppg_register add constraint ppg_register_efektivitas_program_check
+  check (efektivitas_program is null or efektivitas_program in ('tidak_efektif','kurang_efektif','cukup_efektif','efektif')) not valid;
+
 create table if not exists public.ppg_led_limit_versions (
   id uuid primary key default gen_random_uuid(), tahun integer not null unique check (tahun between 2000 and 2200),
   level_dampak_upper smallint not null default 4 check (level_dampak_upper between 1 and 5),
@@ -333,6 +344,15 @@ create table if not exists public.ppg_loss_events (
   catatan_validasi text not null default '', created_by uuid references auth.users(id), validated_by uuid references auth.users(id),
   submitted_at timestamptz, validated_at timestamptz, closed_at timestamptz,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+
+-- Kontrol gagal direferensikan ke Control Library. Free-form
+-- ppg_loss_events.kegagalan_kontrol tetap dipakai sebagai keterangan tambahan.
+create table if not exists public.ppg_loss_event_controls (
+  loss_event_id uuid not null references public.ppg_loss_events(id) on delete cascade,
+  control_id uuid not null references public.ppg_control_library(id) on delete restrict,
+  created_by uuid references auth.users(id), created_at timestamptz not null default now(),
+  primary key(loss_event_id, control_id)
 );
 
 -- Nomor urut disimpan terpisah agar kode yang sudah pernah diterbitkan tidak
@@ -602,6 +622,8 @@ create index if not exists ppg_loss_links_report_idx on public.ppg_loss_event_re
 create index if not exists ppg_library_controls_control_idx on public.ppg_library_risk_controls(control_id, risk_library_id);
 create index if not exists ppg_program_item_controls_control_idx on public.ppg_program_item_controls(control_id, program_item_id);
 create index if not exists ppg_loss_events_generic_risk_idx on public.ppg_loss_events(risk_library_id, tanggal_kejadian desc, status);
+create index if not exists ppg_loss_event_controls_control_idx on public.ppg_loss_event_controls(control_id, loss_event_id);
+create index if not exists ppg_register_treated_program_idx on public.ppg_register(treated_program_id, unit_kerja_id);
 create index if not exists ppg_program_items_generic_risk_idx on public.ppg_program_items(risk_library_id, status);
 create index if not exists ppg_program_cluster_units_unit_idx on public.ppg_program_cluster_units(unit_kerja_id, program_cluster_id);
 create index if not exists ppg_risk_import_rows_batch_idx on public.ppg_risk_import_rows(batch_id, source_row);
@@ -695,7 +717,7 @@ end
 $ppg_knowledge$;
 
 do $$ declare t text; begin
-  foreach t in array array['ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register','ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches','ppg_reports','ppg_classification_rules','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches','ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_action_catalog','ppg_programs','ppg_program_items','ppg_program_item_controls','ppg_program_clusters','ppg_program_cluster_units','ppg_program_updates','ppg_led_limit_versions','ppg_loss_events','ppg_loss_event_report_links','ppg_program_loss_events'] loop
+  foreach t in array array['ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register','ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches','ppg_reports','ppg_classification_rules','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches','ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_action_catalog','ppg_programs','ppg_program_items','ppg_program_item_controls','ppg_program_clusters','ppg_program_cluster_units','ppg_program_updates','ppg_led_limit_versions','ppg_loss_events','ppg_loss_event_controls','ppg_loss_event_report_links','ppg_program_loss_events'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "ppg admin select" on public.%I', t);
     execute format('drop policy if exists "ppg admin insert" on public.%I', t);
@@ -791,6 +813,14 @@ create policy "ppg loss select" on public.ppg_loss_events for select using (publ
 create policy "ppg loss insert" on public.ppg_loss_events for insert with check (public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id() and created_by = auth.uid()));
 create policy "ppg loss update" on public.ppg_loss_events for update using (public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id() and status in ('draft','perlu_perbaikan'))) with check (public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id()));
 create policy "ppg loss delete" on public.ppg_loss_events for delete using (public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id() and status = 'draft'));
+
+drop policy if exists "ppg loss control select" on public.ppg_loss_event_controls;
+create policy "ppg loss control select" on public.ppg_loss_event_controls for select using (
+  public.ppg_is_pusat() or exists(
+    select 1 from public.ppg_loss_events e
+    where e.id = loss_event_id and e.unit_kerja_id = public.ppg_user_unit_id()
+  )
+);
 
 insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
 values ('ppg-led-bukti','ppg-led-bukti',false,10485760,array['application/pdf','image/jpeg','image/png','image/webp'])

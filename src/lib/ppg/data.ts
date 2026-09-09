@@ -3,6 +3,7 @@ import 'server-only'
 import { requirePpgAccess, requirePpgAdmin } from './access'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { analyzePpgReports } from './analytics'
+import { calculatePpgControlEffectiveness, normalizePpgControlText } from './control-effectiveness'
 
 export async function getPpgOverview() {
   const { supabase } = await requirePpgAdmin()
@@ -205,11 +206,11 @@ export async function getPpgLossEventWorkspace() {
   const access = await requirePpgAccess()
   const admin = createAdminClient()
   const { data: ownUnit } = access.unitId ? await admin.from('unit_kerja').select('id,nama_unit').eq('id', access.unitId).single() : { data: null }
-  let eventQuery = admin.from('ppg_loss_events').select('*,risk:ppg_risk_library(id,kode,kategori,peristiwa),register:ppg_register(id,kode,peristiwa),links:ppg_loss_event_report_links(*,report:ppg_reports(id,nomor_laporan,unit_nama,tanggal_penerimaan,objek,label_skenario,nilai_penetapan))').order('tanggal_kejadian', { ascending: false }).limit(500)
+  let eventQuery = admin.from('ppg_loss_events').select('*,risk:ppg_risk_library(id,kode,kategori,peristiwa),register:ppg_register(id,kode,peristiwa),failed_controls:ppg_loss_event_controls(control_id,control:ppg_control_library(id,kode,nama,jenis,status)),links:ppg_loss_event_report_links(*,report:ppg_reports(id,nomor_laporan,unit_nama,tanggal_penerimaan,objek,label_skenario,nilai_penetapan))').order('tanggal_kejadian', { ascending: false }).limit(500)
   if (access.isSatker && access.unitId) eventQuery = eventQuery.eq('unit_kerja_id', access.unitId)
   let reportQuery = admin.from('ppg_reports').select('id,nomor_laporan,unit_nama,tanggal_penerimaan,objek,label_skenario,nilai_penetapan').order('tanggal_penerimaan', { ascending: false }).limit(1000)
   if (access.isSatker && ownUnit?.nama_unit) reportQuery = reportQuery.ilike('unit_nama', ownUnit.nama_unit)
-  let registerQuery = admin.from('ppg_register').select('id,kode,unit_kerja_id,unit_nama,kategori,peristiwa').order('created_at', { ascending: false }).limit(1000)
+  let registerQuery = admin.from('ppg_register').select('id,kode,unit_kerja_id,unit_nama,risk_library_id,kategori,peristiwa,controls:ppg_risk_controls(control_id,control:ppg_control_library(id,kode,nama,jenis,status))').order('created_at', { ascending: false }).limit(1000)
   if (access.isSatker && access.unitId) registerQuery = registerQuery.eq('unit_kerja_id', access.unitId)
   const [events, reports, registers, riskLibrary, limits, units] = await Promise.all([
     eventQuery, reportQuery, registerQuery,
@@ -296,47 +297,47 @@ export async function getPpgRows(table: 'ppg_risk_library' | 'ppg_control_librar
 export async function getPpgControlEffectiveness() {
   const { supabase } = await requirePpgAdmin()
   const [controls, riskControls, lossEvents] = await Promise.all([
-    supabase.from('ppg_control_library').select('id,kode,nama,jenis,status').neq('status', 'nonaktif').order('kode'),
-    supabase.from('ppg_risk_controls').select('control_id, efektivitas, risk_id'),
-    supabase.from('ppg_loss_events').select('id, register_id').not('register_id', 'is', null).in('status', ['tervalidasi','tindak_lanjut','ditutup'])
+    supabase.from('ppg_control_library').select('id,kode,nama,jenis,status').eq('status', 'aktif').order('kode'),
+    supabase.from('ppg_risk_controls').select('control_id,efektivitas,risk_id'),
+    supabase.from('ppg_loss_events').select('id,register_id,failed_controls:ppg_loss_event_controls(control_id)').not('register_id', 'is', null).in('status', ['tervalidasi', 'tindak_lanjut', 'ditutup']),
   ])
-  
-  if (controls.error) return { rows: [], error: controls.error.message }
-  
+
+  const queryError = controls.error ?? riskControls.error ?? lossEvents.error
+  if (queryError) return { rows: [], error: queryError.message }
+
   const rcData = riskControls.data ?? []
   const leData = lossEvents.data ?? []
-  
-  const failuresByRegister = new Map<string, number>()
+  const legacyFailuresByRegister = new Map<string, number>()
+  const failuresByControlAndRegister = new Map<string, number>()
   for (const le of leData) {
-    if (le.register_id) {
-       failuresByRegister.set(String(le.register_id), (failuresByRegister.get(String(le.register_id)) || 0) + 1)
+    if (!le.register_id) continue
+    const registerId = String(le.register_id)
+    const failedControls = Array.isArray(le.failed_controls) ? le.failed_controls : []
+    if (!failedControls.length) {
+      legacyFailuresByRegister.set(registerId, (legacyFailuresByRegister.get(registerId) ?? 0) + 1)
+      continue
+    }
+    for (const link of failedControls) {
+      const key = `${String(link.control_id)}::${registerId}`
+      failuresByControlAndRegister.set(key, (failuresByControlAndRegister.get(key) ?? 0) + 1)
     }
   }
 
+  const usagesByControl = new Map<string, { efektivitas: string | null; registerId: string }[]>()
+  for (const usage of rcData) {
+    const controlId = String(usage.control_id)
+    const values = usagesByControl.get(controlId) ?? []
+    values.push({ efektivitas: usage.efektivitas, registerId: String(usage.risk_id) })
+    usagesByControl.set(controlId, values)
+  }
+
   const rows = (controls.data ?? []).map(control => {
-    const usages = rcData.filter(rc => rc.control_id === control.id)
-    let efektif = 0, sebagian = 0, tidakEfektif = 0, belumDinilai = 0
-    let totalFailures = 0
-    
-    usages.forEach(u => {
-       if (u.efektivitas === 'efektif') efektif++
-       else if (u.efektivitas === 'sebagian') sebagian++
-       else if (u.efektivitas === 'tidak_efektif') tidakEfektif++
-       else belumDinilai++
-       
-       if (u.risk_id && failuresByRegister.has(String(u.risk_id))) {
-           totalFailures += failuresByRegister.get(String(u.risk_id))!
-       }
-    })
-    
-    const totalRated = efektif + sebagian + tidakEfektif
-    let baseScore = 0
-    if (totalRated > 0) {
-        baseScore = ((efektif * 1) + (sebagian * 0.5)) / totalRated * 100
-    }
-    
-    let cei = Math.max(0, Math.round(baseScore - (totalFailures * 5)))
-    if (totalRated === 0) cei = 0
+    const usages = usagesByControl.get(String(control.id)) ?? []
+    const failuresForControl = new Map(usages.map((usage) => [
+      usage.registerId,
+      (legacyFailuresByRegister.get(usage.registerId) ?? 0) + (failuresByControlAndRegister.get(`${String(control.id)}::${usage.registerId}`) ?? 0),
+    ]))
+    const metrics = calculatePpgControlEffectiveness(usages, failuresForControl)
 
     return {
       id: control.id,
@@ -345,17 +346,13 @@ export async function getPpgControlEffectiveness() {
       jenis: control.jenis,
       status: control.status,
       pengguna: usages.length,
-      efektif,
-      sebagian,
-      tidakEfektif,
-      belumDinilai,
-      totalFailures,
-      cei,
-      baseScore: Math.round(baseScore)
+      ...metrics,
     }
   })
-  
+
   rows.sort((a, b) => {
+    if (a.cei === null) return b.cei === null ? b.pengguna - a.pengguna : 1
+    if (b.cei === null) return -1
     if (a.cei !== b.cei) return a.cei - b.cei
     return b.pengguna - a.pengguna
   })
@@ -363,45 +360,81 @@ export async function getPpgControlEffectiveness() {
   return { rows, error: null }
 }
 
+export async function getPpgTreatedRiskWorkspace() {
+  const access = await requirePpgAccess()
+  const admin = createAdminClient()
+  let registerQuery = admin
+    .from('ppg_register')
+    .select('id,kode,unit_kerja_id,unit_nama,risk_library_id,peristiwa,skor_existing,level_existing,kemungkinan_treated,dampak_treated,skor_treated,level_treated,treated_program_id,efektivitas_program,bukti_efektivitas_program_url,treated_assessed_at')
+    .order('created_at', { ascending: false })
+    .limit(5000)
+  if (access.isSatker && access.unitId) registerQuery = registerQuery.eq('unit_kerja_id', access.unitId)
+
+  const [registers, programs] = await Promise.all([
+    registerQuery,
+    admin.from('ppg_programs').select('id,kode,nama,status,program_start,program_end,items:ppg_program_items(id,risk_library_id,status)').order('created_at', { ascending: false }).limit(500),
+  ])
+  return {
+    access,
+    registers: (registers.data ?? []) as Record<string, unknown>[],
+    programs: (programs.data ?? []) as Record<string, unknown>[],
+    error: registers.error?.message ?? programs.error?.message ?? null,
+  }
+}
+
 export async function getPpgEmergingControls() {
   const { supabase } = await requirePpgAdmin()
-  const { data, error } = await supabase
-     .from('ppg_mitigations')
-     .select('id, tindakan, status, register:ppg_register(id, risk_library_id, risk:ppg_risk_library(id, kode, peristiwa))')
-     .eq('status', 'selesai')
-     .order('created_at', { ascending: false })
-     .limit(500)
-     
-  if (error) return { rows: [], error: error.message }
-  
-  const groups = new Map<string, { risk_library_id: string, risk_kode: string, risk_peristiwa: string, tindakan: string, count: number, mitigations: Record<string, unknown>[] }>()
-  
-  for (const m of (data ?? [])) {
+  const [mitigations, existingLinks] = await Promise.all([
+    supabase
+      .from('ppg_mitigations')
+      .select('id,tindakan,status,register:ppg_register(id,risk_library_id,unit_kerja_id,risk:ppg_risk_library(id,kode,peristiwa))')
+      .eq('status', 'selesai')
+      .order('created_at', { ascending: false })
+      .limit(1000),
+    supabase
+      .from('ppg_library_risk_controls')
+      .select('risk_library_id,control:ppg_control_library(id,nama,status)'),
+  ])
+
+  const queryError = mitigations.error ?? existingLinks.error
+  if (queryError) return { rows: [], error: queryError.message }
+
+  const existingKeys = new Set((existingLinks.data ?? []).flatMap((link) => {
+    const control = Array.isArray(link.control) ? link.control[0] : link.control
+    if (!control || control.status === 'nonaktif') return []
+    return [`${String(link.risk_library_id)}::${normalizePpgControlText(String(control.nama))}`]
+  }))
+  const groups = new Map<string, { risk_library_id: string; risk_kode: string; risk_peristiwa: string; tindakan: string; unitIds: Set<string>; mitigationCount: number }>()
+
+  for (const m of (mitigations.data ?? [])) {
      if (!m.tindakan) continue
      const reg = Array.isArray(m.register) ? m.register[0] : m.register
-     if (!reg || !reg.risk_library_id) continue
+     if (!reg || !reg.risk_library_id || !reg.unit_kerja_id) continue
      const risk = Array.isArray(reg.risk) ? reg.risk[0] : reg.risk
      if (!risk) continue
-     
-     const normalized = m.tindakan.toLowerCase().trim()
+
+     const normalized = normalizePpgControlText(m.tindakan)
      const key = String(reg.risk_library_id) + '::' + normalized
-     
+     if (existingKeys.has(key)) continue
+
      if (!groups.has(key)) {
         groups.set(key, {
            risk_library_id: String(reg.risk_library_id),
            risk_kode: String(risk.kode),
            risk_peristiwa: String(risk.peristiwa),
            tindakan: m.tindakan,
-           count: 0,
-           mitigations: []
+           unitIds: new Set<string>(),
+           mitigationCount: 0,
         })
      }
      const g = groups.get(key)!
-     g.count++
-     g.mitigations.push(m)
+     g.unitIds.add(String(reg.unit_kerja_id))
+     g.mitigationCount++
   }
-  
-  const rows = Array.from(groups.values()).sort((a, b) => b.count - a.count)
-  
+
+  const rows = Array.from(groups.values())
+    .map(({ unitIds, ...group }) => ({ ...group, count: unitIds.size }))
+    .sort((a, b) => b.count - a.count || b.mitigationCount - a.mitigationCount)
+
   return { rows, error: null }
 }

@@ -17,7 +17,7 @@ const items = [
 
 export function PpgModuleNav({ isSatker = false }: { isSatker?: boolean }) {
   const pathname = usePathname()
-  const visibleItems = isSatker ? items.filter((item) => ['/dashboard/ppg/penilaian', '/dashboard/ppg/loss-event'].includes(item.href)) : items
+  const visibleItems = isSatker ? items.filter((item) => ['/dashboard/ppg/penilaian', '/dashboard/ppg/loss-event', '/dashboard/ppg/tindak-lanjut'].includes(item.href)) : items
   return (
     <nav aria-label="Navigasi modul PPG" className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white/85 p-2 shadow-sm backdrop-blur">
       {visibleItems.map(({ href, label, icon: Icon, exact }) => {

@@ -9,7 +9,10 @@ type Row = Record<string, unknown>
 
 export function ImportedRiskDraftReview({ rows, risks }: { rows: Row[]; risks: Row[] }) {
   if (!rows.length) return null
-  return <section className="space-y-3"><div><h3 className="font-bold text-slate-900">Draf hasil impor yang perlu dilengkapi</h3><p className="mt-1 text-sm text-slate-500">Data Excel sudah terisi. Pilih generic risk dan lengkapi residual risk sebelum membuat Penilaian Risiko.</p></div>{rows.map((row) => <ImportedRow key={String(row.id)} row={row} risks={risks} />)}</section>
+  return <details className="group rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+    <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-3"><div><h3 className="font-bold text-slate-900">Draf hasil impor yang perlu dilengkapi ({rows.length})</h3><p className="mt-1 text-sm text-slate-500">Tertutup secara default. Buka untuk memilih generic risk dan melengkapi residual risk.</p></div><span className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-700"><span className="group-open:hidden">Buka draf</span><span className="hidden group-open:inline">Tutup draf</span></span></div></summary>
+    <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">{rows.map((row) => <ImportedRow key={String(row.id)} row={row} risks={risks} />)}</div>
+  </details>
 }
 
 function ImportedRow({ row, risks }: { row: Row; risks: Row[] }) {

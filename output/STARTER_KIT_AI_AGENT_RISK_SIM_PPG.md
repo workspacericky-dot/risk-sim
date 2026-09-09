@@ -499,13 +499,14 @@ Pada iterasi ini, ditambahkan mekanisme kurasi dan evaluasi *Control Library* ya
 
 ### 17.1 Konsep & Rumus Control Effectiveness Index (CEI)
 - **Base Score**: Dihitung dari `ppg_risk_controls.efektivitas`. (Efektif = 1, Sebagian = 0.5, Tidak = 0, Belum = ignored). Skor dirata-rata ke dalam persentase 0-100.
-- **Penalty**: Dikurangi 5 poin untuk setiap insiden aktual (`ppg_loss_events`) berstatus aktif/tervalidasi yang terkait dengan `register_id` satker pengguna, karena hal tersebut mengindikasikan kegagalan kontrol di lapangan.
-- **Batasan**: CEI dibatasi agar tidak turun di bawah 0. Kontrol yang memiliki indeks `< 50` akan mendapat tanda merah (*destructive badge*) pada UI.
+- **Penalty**: Dikurangi 5 poin untuk setiap insiden aktual (`ppg_loss_events`) berstatus `tervalidasi`, `tindak_lanjut`, atau `ditutup` yang terkait dengan `register_id` tempat kontrol digunakan, karena hal tersebut mengindikasikan kegagalan kontrol di lapangan.
+- **Batasan**: CEI dibatasi agar tidak turun di bawah 0. Kontrol yang memiliki indeks `< 50` akan mendapat tanda merah (*destructive badge*) pada UI. Kontrol yang seluruh penilaiannya masih `belum_dinilai` ditampilkan sebagai **Belum dinilai**, bukan diberi CEI 0.
 
 ### 17.2 Penambahan Komponen Baru
 | File | Fungsi |
 | --- | --- |
-| `src/lib/ppg/data.ts` | Penambahan `getPpgControlEffectiveness()` (agregasi relasi `ppg_control_library`, `ppg_risk_controls`, `ppg_loss_events`) dan `getPpgEmergingControls()` (ekstraksi pengelompokan `ppg_mitigations.tindakan` berstatus selesai). |
+| `src/lib/ppg/data.ts` | Penambahan `getPpgControlEffectiveness()` (agregasi relasi `ppg_control_library`, `ppg_risk_controls`, `ppg_loss_events`) dan `getPpgEmergingControls()` (ekstraksi pengelompokan `ppg_mitigations.tindakan` berstatus selesai; popularitas dihitung berdasarkan Satker unik dan kandidat yang sudah dipromosikan disisihkan). |
+| `src/lib/ppg/control-effectiveness.ts` | Fungsi murni perhitungan CEI dan normalisasi teks kontrol agar rumus dapat diuji tanpa akses database. |
 | `src/app/dashboard/ppg/control-actions.ts` | *Server Action* murni baru untuk mendeaktivasi kontrol (`deactivateControlLibrary`) dan membuat kontrol generik dari mitigasi (`promoteMitigationToControl`). |
 | `src/app/dashboard/ppg/pustaka/ControlEffectivenessPanel.tsx` | UI tabel UPG Pusat untuk melihat daftar CEI beserta tombol *Nonaktifkan*. |
 | `src/app/dashboard/ppg/pustaka/EmergingControlsPanel.tsx` | UI tabel untuk menampilkan mitigasi lokal terpopuler dengan tombol *Promote*. |
@@ -513,7 +514,17 @@ Pada iterasi ini, ditambahkan mekanisme kurasi dan evaluasi *Control Library* ya
 ### 17.3 Siklus Hidup Pustaka Kontrol (Lifecycle)
 Sesuai prinsip PPG (mesin hanya mengusulkan, manusia memutuskan):
 1. **Pensiun (Retire)**: Kontrol dengan CEI rendah dapat dinonaktifkan (diubah menjadi `nonaktif` pada `ppg_control_library`). Kontrol tersebut disembunyikan dari pilihan *dropdown* satker ke depannya, namun data historis satker tetap utuh (tidak terkena imbas `CASCADE`).
-2. **Promosi (Promote)**: Rencana mitigasi satker yang unik dan selesai dilaksanakan dapat diangkat menjadi kontrol generik. Sistem akan membuat entri baru dengan kode urut otomatis (mis. `C-xxx`), menetapkan `uraian` awal, lalu menautkannya otomatis ke tabel relasi `ppg_library_risk_controls`.
+2. **Promosi (Promote)**: Rencana mitigasi satker yang unik dan selesai dilaksanakan dapat diangkat menjadi kontrol generik. Sistem akan membuat entri baru dengan kode urut otomatis mengikuti konvensi pustaka (`PPG.K.[nomor]`), menetapkan `uraian` awal, lalu menautkannya otomatis ke tabel relasi `ppg_library_risk_controls`. Aksi promosi dan penonaktifan dicatat di `ppg_audit_log`.
+
+### 17.4 Penyempurnaan alur evaluasi dan evidence
+
+- Validasi bukti efektivitas kontrol kini mengembalikan pesan sukses/gagal pada setiap baris. Status `disetujui` tetap mensyaratkan tautan bukti dari Satker.
+- Form treated risk dipindahkan dari Penilaian Risiko ke Program PPG. UPG Satker memperoleh akses ke submenu Program PPG untuk menilai program yang item risikonya telah selesai, memilih efektivitas program, dan menyertakan tautan evidence.
+- Hasil terbaru disimpan pada `ppg_register` melalui `treated_program_id`, `efektivitas_program`, `bukti_efektivitas_program_url`, `treated_assessed_by`, dan `treated_assessed_at`.
+- Draf hasil impor pada Penilaian Risiko tertutup secara default dan dapat dibuka bila diperlukan.
+- Loss Event dapat mereferensikan satu atau beberapa kontrol aktual dari Risk Register melalui `ppg_loss_event_controls`; kolom teks `kegagalan_kontrol` tetap dipertahankan sebagai keterangan tambahan.
+- Untuk Loss Event baru yang memiliki referensi kontrol, penalti CEI hanya dikenakan pada kontrol yang dipilih. Data historis tanpa referensi terstruktur tetap memakai fallback register agar riwayat lama tidak hilang.
+- Kriteria sementara CEI: `0–49` rendah/merah, `50–79` kurang efektif/kuning, dan `80–100` tinggi/hijau. Penonaktifan selalu memerlukan keputusan manusia.
 
 ---
 

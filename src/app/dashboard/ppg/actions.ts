@@ -167,29 +167,51 @@ export async function addPpgRegister(formData: FormData) {
   revalidatePath('/dashboard/ppg')
 }
 
-export async function updatePpgTreatedRisk(formData: FormData) {
+export type PpgTreatedRiskActionState = { status: 'idle' | 'success' | 'error'; message: string }
+
+export async function updatePpgTreatedRisk(_previousState: PpgTreatedRiskActionState, formData: FormData): Promise<PpgTreatedRiskActionState> {
   const access = await requirePpgAccess()
-  if (!access.isAdmin && !access.isSatker) return
+  if (!access.isAdmin && !access.isSatker) return treatedRiskError('Penilaian dampak Program PPG hanya dapat diisi oleh UPG Satker atau Admin Sistem.')
   const registerId = text(formData, 'register_id')
-  if (!isUuid(registerId)) return
+  const programId = text(formData, 'program_id')
+  const programEffectiveness = text(formData, 'efektivitas_program')
+  const evidenceUrl = text(formData, 'bukti_efektivitas_program_url')
+  if (!isUuid(registerId) || !isUuid(programId)) return treatedRiskError('Pilih Risk Register dan Program PPG yang terkait.')
+  if (!['tidak_efektif','kurang_efektif','cukup_efektif','efektif'].includes(programEffectiveness)) return treatedRiskError('Pilih efektivitas Program PPG.')
+  if (!isHttpsUrl(evidenceUrl)) return treatedRiskError('Evidence Program PPG wajib berupa tautan HTTPS yang valid.')
   const kemungkinanTreated = integer(formData, 'kemungkinan_treated')
   const dampakTreated = integer(formData, 'dampak_treated')
   let treatedAssessment
-  try { treatedAssessment = ppgAssessment(kemungkinanTreated, dampakTreated) } catch { return }
+  try { treatedAssessment = ppgAssessment(kemungkinanTreated, dampakTreated) } catch { return treatedRiskError('Probabilitas dan dampak treated risk harus berada pada skala 1–5.') }
 
   const admin = createAdminClient()
-  const { data: register } = await admin.from('ppg_register').select('id,unit_kerja_id').eq('id', registerId).single()
-  if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return
-  await admin.from('ppg_register').update({
+  const { data: register } = await admin.from('ppg_register').select('id,kode,unit_kerja_id,risk_library_id,skor_existing').eq('id', registerId).single()
+  if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return treatedRiskError('Risk Register tidak ditemukan atau bukan milik Satker Anda.')
+  const { data: completedItem } = await admin.from('ppg_program_items').select('id').eq('program_id', programId).eq('risk_library_id', register.risk_library_id).eq('status', 'selesai').limit(1).maybeSingle()
+  if (!completedItem) return treatedRiskError('Program yang dipilih belum selesai atau tidak menangani risiko pada register tersebut.')
+  const { error } = await admin.from('ppg_register').update({
     kemungkinan_treated: kemungkinanTreated,
     dampak_treated: dampakTreated,
     skor_treated: treatedAssessment.score,
     level_treated: treatedAssessment.level,
+    treated_program_id: programId,
+    efektivitas_program: programEffectiveness,
+    bukti_efektivitas_program_url: evidenceUrl,
+    treated_assessed_by: access.user.id,
+    treated_assessed_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('id', registerId)
+  if (error) return treatedRiskError(`Penilaian dampak program gagal disimpan: ${error.message}`)
+  await admin.from('ppg_audit_log').insert({ actor_id: access.user.id, entity_type: 'ppg_register', entity_id: registerId, action: 'nilai_dampak_program_ppg', changes: { program_id: programId, skor_residual: register.skor_existing, skor_treated: treatedAssessment.score, efektivitas_program: programEffectiveness, memiliki_bukti: true } })
   revalidatePath('/dashboard/ppg/penilaian')
+  revalidatePath('/dashboard/ppg/tindak-lanjut')
   revalidatePath('/dashboard/ppg')
+  const delta = treatedAssessment.score - Number(register.skor_existing)
+  const change = delta < 0 ? `turun ${Math.abs(delta)} poin` : delta > 0 ? `naik ${delta} poin` : 'tidak berubah'
+  return { status: 'success', message: `Dampak Program PPG tersimpan. Treated risk ${treatedAssessment.score} (${treatedAssessment.level}); dibanding residual risk, skor ${change}.` }
 }
+
+function treatedRiskError(message: string): PpgTreatedRiskActionState { return { status: 'error', message } }
 
 export async function deletePpgRegister(formData: FormData) {
   const access = await requirePpgAccess()
@@ -206,15 +228,20 @@ export async function deletePpgRegister(formData: FormData) {
   revalidatePath('/dashboard/ppg')
 }
 
-export async function validatePpgRiskControlEvidence(formData: FormData) {
+export type PpgControlValidationState = { status: 'idle' | 'success' | 'error'; message: string }
+
+export async function validatePpgRiskControlEvidence(_previousState: PpgControlValidationState, formData: FormData): Promise<PpgControlValidationState> {
   const { supabase, user } = await requirePpgAdmin()
   const riskId = text(formData, 'risk_id'); const controlId = text(formData, 'control_id'); const status = text(formData, 'status')
-  if (!isUuid(riskId) || !isUuid(controlId) || !['belum_ditinjau','disetujui','perlu_perbaikan','ditolak'].includes(status)) return
+  if (!isUuid(riskId) || !isUuid(controlId) || !['belum_ditinjau','disetujui','perlu_perbaikan','ditolak'].includes(status)) return { status: 'error', message: 'Data validasi tidak valid.' }
   const { data: relation } = await supabase.from('ppg_risk_controls').select('bukti_efektivitas_url').eq('risk_id', riskId).eq('control_id', controlId).single()
-  if (!relation || (status === 'disetujui' && !relation.bukti_efektivitas_url)) return
-  await supabase.from('ppg_risk_control_validations').upsert({ risk_id: riskId, control_id: controlId, status, catatan: text(formData, 'catatan'), validated_by: user.id, validated_at: status === 'belum_ditinjau' ? null : new Date().toISOString() })
+  if (!relation) return { status: 'error', message: 'Penerapan kontrol tidak ditemukan.' }
+  if (status === 'disetujui' && !relation.bukti_efektivitas_url) return { status: 'error', message: 'Tidak dapat disetujui: Satker belum menyertakan tautan bukti.' }
+  const { error } = await supabase.from('ppg_risk_control_validations').upsert({ risk_id: riskId, control_id: controlId, status, catatan: text(formData, 'catatan'), validated_by: user.id, validated_at: status === 'belum_ditinjau' ? null : new Date().toISOString() })
+  if (error) return { status: 'error', message: `Validasi gagal disimpan: ${error.message}` }
   await supabase.from('ppg_audit_log').insert({ actor_id: user.id, entity_type: 'ppg_risk_control', entity_id: `${riskId}:${controlId}`, action: 'validasi_bukti_efektivitas', changes: { status, catatan: text(formData, 'catatan') } })
   revalidatePath('/dashboard/ppg/penilaian')
+  return { status: 'success', message: `Validasi tersimpan: ${status.replaceAll('_', ' ')}.` }
 }
 
 export async function updatePpgRiskControlEvidence(formData: FormData) {
@@ -479,10 +506,16 @@ export async function createPpgLossEvent(_previousState: PpgLossEventActionState
   const { data: genericRisk } = await admin.from('ppg_risk_library').select('id,kategori,status').eq('id', riskLibraryId).eq('status', 'aktif').single()
   if (!genericRisk) return lossEventError('Risiko generik utama tidak valid atau sudah nonaktif.')
   const registerId = text(formData, 'register_id')
+  const failedControlIds = uniqueUuids(formData.getAll('failed_control_ids'))
+  if (failedControlIds.length && !isUuid(registerId)) return lossEventError('Pilih Risk Register terlebih dahulu sebelum memilih kontrol yang gagal.')
   if (isUuid(registerId)) {
     const { data: register } = await admin.from('ppg_register').select('id,unit_kerja_id,risk_library_id').eq('id', registerId).single()
     if (!register || register.unit_kerja_id !== unit.id) return lossEventError('Risk Register yang dipilih bukan milik Satker pelapor.')
     if (register.risk_library_id !== riskLibraryId) return lossEventError('Risk Register operasional harus berasal dari risiko generik utama yang dipilih.')
+    if (failedControlIds.length) {
+      const { data: appliedControls } = await admin.from('ppg_risk_controls').select('control_id').eq('risk_id', registerId).in('control_id', failedControlIds)
+      if (!appliedControls || appliedControls.length !== failedControlIds.length) return lossEventError('Kontrol gagal harus berasal dari kontrol yang digunakan pada Risk Register tersebut.')
+    }
   }
   const explicitReportId = text(formData, 'report_id')
   let explicitReport: Record<string, unknown> | null = null
@@ -524,6 +557,14 @@ export async function createPpgLossEvent(_previousState: PpgLossEventActionState
   }
   const inserted = await admin.from('ppg_loss_events').insert(payload)
   if (inserted.error) { if (evidencePath) await admin.storage.from('ppg-led-bukti').remove([evidencePath]); return lossEventError(`Loss event gagal disimpan: ${inserted.error.message}`) }
+  if (failedControlIds.length) {
+    const failedControlInsert = await admin.from('ppg_loss_event_controls').insert(failedControlIds.map((control_id) => ({ loss_event_id: eventId, control_id, created_by: access.user.id })))
+    if (failedControlInsert.error) {
+      await admin.from('ppg_loss_events').delete().eq('id', eventId)
+      if (evidencePath) await admin.storage.from('ppg-led-bukti').remove([evidencePath])
+      return lossEventError(`Referensi kontrol gagal disimpan: ${failedControlInsert.error.message}`)
+    }
+  }
   const { data: reports } = await admin.from('ppg_reports').select('id,unit_kerja_id,unit_nama,tanggal_penerimaan,objek,nilai_penetapan,label_skenario,kategori_objek,kegiatan,dugaan_momen').order('tanggal_penerimaan', { ascending: false }).limit(3000)
   const reportRows = (reports ?? []) as Record<string, unknown>[]
   if (explicitReport && !reportRows.some((report) => report.id === explicitReport?.id)) reportRows.push(explicitReport)
@@ -549,7 +590,10 @@ export async function validatePpgLossEvent(formData: FormData) {
   if (!event) return
   const { data: limit } = await supabase.from('ppg_led_limit_versions').select('*').eq('tahun', Number(String(event.tanggal_kejadian).slice(0, 4))).eq('status', 'aktif').maybeSingle()
   const classification = limit ? (Number(event.level_dampak) >= Number(limit.level_dampak_upper) ? 'upper_limit' : 'under_limit') : 'belum_dinilai'
-  await supabase.from('ppg_loss_events').update({ risk_library_id: risk.id, register_id: event.risk_library_id && event.risk_library_id !== risk.id ? null : event.register_id, kategori_risiko: risk.kategori, status: decision, klasifikasi_limit: classification, limit_version_id: limit?.id ?? null, catatan_validasi: text(formData, 'catatan_validasi'), validated_by: user.id, validated_at: decision === 'tervalidasi' || decision === 'tindak_lanjut' || decision === 'ditutup' ? new Date().toISOString() : null, closed_at: decision === 'ditutup' ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', id)
+  const riskChanged = Boolean(event.risk_library_id && event.risk_library_id !== risk.id)
+  const { error } = await supabase.from('ppg_loss_events').update({ risk_library_id: risk.id, register_id: riskChanged ? null : event.register_id, kategori_risiko: risk.kategori, status: decision, klasifikasi_limit: classification, limit_version_id: limit?.id ?? null, catatan_validasi: text(formData, 'catatan_validasi'), validated_by: user.id, validated_at: decision === 'tervalidasi' || decision === 'tindak_lanjut' || decision === 'ditutup' ? new Date().toISOString() : null, closed_at: decision === 'ditutup' ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', id)
+  if (error) return
+  if (riskChanged) await supabase.from('ppg_loss_event_controls').delete().eq('loss_event_id', id)
   revalidatePath('/dashboard/ppg/loss-event')
   revalidatePath('/dashboard/ppg/analitik')
 }

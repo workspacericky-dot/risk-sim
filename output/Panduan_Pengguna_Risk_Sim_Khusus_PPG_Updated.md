@@ -1,8 +1,8 @@
 # Panduan Pengguna Risk Sim — Menu Khusus PPG
 
-**Versi dokumen:** 2.1
+**Versi dokumen:** 2.2
 
-**Tanggal pembaruan:** 8 September 2026
+**Tanggal pembaruan:** 9 September 2026
 
 **Sasaran pembaca:** UPG Pusat, UPG Satker, dan Admin Sistem
 
@@ -15,19 +15,19 @@ Sistem membantu mesin melakukan pekerjaan kompilasi dan analisis, tetapi tidak m
 ### 1.1 Submenu dan fungsinya
 
 - **Ringkasan** — menampilkan kondisi umum register risiko, mitigasi, laporan gratifikasi, impor terakhir, dan program yang masih berjalan.
-- **Risk and Control Library** — mengelola risiko generik dan kontrol standar lintas satker. Submenu ini juga memuat impor awal Risk Register, antrean kurasi bottom-up yang tertutup secara default, serta riwayat impor yang dapat dihapus UPG Pusat/Admin.
-- **Penilaian Risiko** — digunakan UPG Satker untuk mengadopsi risiko generik, menilai inherent risk dan residual risk, melihat peta risiko, serta mencatat treated risk setelah Program PPG dilaksanakan.
-- **Loss Event** — mencatat kejadian aktual ketika risiko benar-benar terealisasi, lengkap dengan akar masalah, kontrol yang gagal, dampak, bukti, dan proses validasi UPG Pusat.
+- **Risk and Control Library** — mengelola risiko generik dan kontrol standar lintas satker, menampilkan Control Effectiveness Index (CEI), serta menyediakan kandidat kontrol bottom-up dari mitigasi satker yang telah selesai. Submenu ini juga memuat impor awal Risk Register, antrean kurasi risiko yang tertutup secara default, serta riwayat impor yang dapat dihapus UPG Pusat/Admin.
+- **Penilaian Risiko** — digunakan UPG Satker untuk mengadopsi risiko generik, menilai inherent risk dan residual risk, melihat peta risiko, serta memperbarui bukti efektivitas kontrol untuk divalidasi UPG Pusat.
+- **Loss Event** — mencatat kejadian aktual ketika risiko benar-benar terealisasi, lengkap dengan akar masalah, referensi kontrol yang gagal, keterangan tambahan, dampak, bukti, dan proses validasi UPG Pusat.
 - **Titik Rawan** — mengolah laporan gratifikasi menjadi Insight A, mengolah loss event tervalidasi menjadi Insight B, lalu menyajikan visual fusi keduanya.
-- **Program PPG** — membantu UPG Pusat menyusun program berdasarkan satu risiko generik utama, menentukan kontrol, KRI, target outcome, cakupan nasional/klaster, jadwal, PIC, serta melakukan monitoring.
+- **Program PPG** — membantu UPG Pusat menyusun dan memonitor program berdasarkan satu risiko generik utama. UPG Satker menggunakan submenu yang sama untuk menilai treated risk, efektivitas program, dan bukti hasil setelah program selesai dilaksanakan.
 - **Referensi & Impor** — mengimpor rekapitulasi laporan gratifikasi untuk analisis titik rawan dan menampilkan jejak batch impor.
 
 ### 1.2 Pembagian peran
 
 | Peran | Kewenangan utama |
 | --- | --- |
-| UPG Satker | Menilai risiko unitnya, mengimpor Risk Register operasional, mencatat loss event, mengajukan kejadian, dan mengisi treated risk pascaprogram. |
-| UPG Pusat | Mengelola Risk and Control Library, mengkurasi kandidat risiko, menghapus riwayat impor Risk Register yang keliru/duplikat, membaca penilaian seluruh satker, memvalidasi loss event, membaca Insight A/B, menetapkan dan memonitor Program PPG. |
+| UPG Satker | Menilai risiko unitnya, mengimpor Risk Register operasional, memperbarui efektivitas dan bukti kontrol, mencatat loss event beserta kontrol gagal, mengajukan kejadian, serta mengisi treated risk dan bukti efektivitas program pada submenu Program PPG. |
+| UPG Pusat | Mengelola Risk and Control Library, meninjau CEI dan kandidat kontrol bottom-up, mengkurasi kandidat risiko, menghapus riwayat impor yang keliru/duplikat, membaca penilaian seluruh satker, memvalidasi bukti kontrol dan loss event, membaca Insight A/B, serta menetapkan dan memonitor Program PPG. |
 | Admin Sistem | Memiliki kewenangan koreksi dan pengelolaan penuh, termasuk penghapusan riwayat impor Risk Register, untuk kebutuhan administrasi dan pemulihan data. |
 
 ## 2. Gambaran Alur Kerja
@@ -71,7 +71,7 @@ Risk Library menjadi bahasa risiko bersama. Penilaian dan loss event tetap memil
 | Kontrol yang ada | Teks dari Excel | Opsional | Disimpan sebagai sumber kurasi; tidak otomatis menjadi kontrol generik yang disetujui. |
 | Rencana mitigasi | Teks dari Excel | Opsional | Dapat dibawa menjadi draf mitigasi pada mode operasional. |
 | Residual risk | Angka 1–5 | Diisi manual | Tidak tersedia pada template baku; diisi sebelum draf penilaian dibuat. |
-| Treated risk | Angka 1–5 | Diisi kemudian | Tidak direka oleh mesin; diisi setelah Program PPG dilaksanakan. |
+| Treated risk | Angka 1–5 | Diisi kemudian | Tidak direka oleh mesin; diisi pada submenu Program PPG setelah program terkait selesai dilaksanakan. |
 
 Template yang diunduh dari aplikasi merupakan **template kosong**, bukan salinan workbook sumber yang pernah dipakai untuk membaca format. Template berisi header, petunjuk, validasi input, dan 100 baris kosong mulai baris 6. Jangan menambah sheet lain, mengganti nama sheet, atau menggeser posisi header. Kolom berwarna kuning merupakan area input; kolom **Level Risiko** menghitung skor dari probabilitas × dampak.
 
@@ -101,21 +101,20 @@ Template yang diunduh dari aplikasi merupakan **template kosong**, bukan salinan
 | Dampak inherent | Dropdown 1–5 | Wajib | Dampak sebelum mempertimbangkan kontrol. |
 | Probabilitas residual | Dropdown 1–5 | Wajib | Kemungkinan setelah kontrol yang sedang berjalan. |
 | Dampak residual | Dropdown 1–5 | Wajib | Dampak setelah kontrol yang sedang berjalan. |
-| Kontrol dan efektivitas | Pilihan/Dropdown | Opsional | Kontrol aktual, status efektivitas, dan bukti penerapan pada satker. |
-| Probabilitas treated | Dropdown 1–5 | Diisi pascaprogram | Kemungkinan sesudah treatment Program PPG. |
-| Dampak treated | Dropdown 1–5 | Diisi pascaprogram | Dampak sesudah treatment Program PPG. |
+| Kontrol dan efektivitas | Pilihan/Dropdown | Opsional | Kontrol aktual, status efektivitas, dan bukti penerapan pada satker. Bukti diperlukan sebelum UPG Pusat dapat menyetujui validasi. |
 
 ### 3.4 Loss Event
 
 | Nama variabel | Jenis data | Sifat | Deskripsi singkat |
 | --- | --- | --- | --- |
 | Risiko generik utama | Dropdown | Wajib | Satu risiko dari Risk Library yang paling tepat menjelaskan kejadian. |
-| Register satker | Dropdown | Opsional | Menghubungkan kejadian dengan penilaian risiko spesifik satker. |
+| Register satker | Dropdown | Opsional | Menghubungkan kejadian dengan penilaian risiko spesifik satker dan menjadi sumber daftar kontrol yang dapat dipilih. |
 | Nama peristiwa | Teks | Wajib | Judul singkat kejadian aktual. |
 | Tanggal kejadian/pelaporan | Tanggal | Wajib | Dasar periode analisis dan ketepatan waktu pelaporan. |
 | Kronologi | Teks panjang | Wajib | Fakta urutan kejadian tanpa asumsi. |
 | Metode RCA dan akar masalah | Dropdown/Teks | Opsional | Metode dan hasil analisis akar masalah. |
-| Kegagalan kontrol | Teks | Opsional | Kontrol yang tidak ada, tidak berjalan, atau tidak efektif. |
+| Kontrol yang gagal | Multi-select | Opsional | Referensi terstruktur ke satu atau lebih kontrol yang benar-benar digunakan pada register terpilih. |
+| Keterangan kegagalan kontrol | Teks panjang | Opsional | Narasi tambahan satker mengenai cara implementasi atau sebab kontrol tidak berjalan; tidak menggantikan referensi kontrol. |
 | Jenis dan level dampak | Dropdown 1–5 | Wajib | Area dampak resmi dan tingkat dampak aktual. |
 | Lesson learned | Teks | Opsional | Pembelajaran yang dapat diterapkan lintas satker. |
 | Bukti | File | Opsional | Dokumen atau gambar privat; tautan akses berlaku terbatas. |
@@ -137,6 +136,11 @@ Template yang diunduh dari aplikasi merupakan **template kosong**, bukan salinan
 | Target Outcome B | Persentase | Wajib | Target penurunan/pengendalian realisasi risiko; baseline disediakan mesin. |
 | Fokus tiga klaster | Teks | Wajib untuk model berklaster | Perlakuan bagi klaster realisasi kritis, preventif, dan monitoring. |
 | Catatan keputusan | Teks | Opsional | Alasan UPG Pusat menerima atau menyesuaikan rekomendasi mesin. |
+| Register risiko pascaprogram | Dropdown | Wajib untuk treated risk | Register milik satker yang akan dievaluasi setelah program. |
+| Program PPG terkait | Dropdown | Wajib untuk treated risk | Program yang mempunyai setidaknya satu item selesai dengan risiko generik yang sama seperti register. |
+| Probabilitas dan dampak treated | Dropdown 1–5 | Wajib untuk treated risk | Kondisi risiko setelah treatment Program PPG dilaksanakan. |
+| Efektivitas Program PPG | Dropdown | Wajib untuk treated risk | Tidak Efektif, Kurang Efektif, Cukup Efektif, atau Efektif. |
+| Bukti efektivitas program | Tautan HTTPS | Wajib untuk treated risk | Evidence hasil pelaksanaan yang dapat ditinjau sesuai tata kelola akses organisasi. |
 
 ## 4. Pemetaan Variabel Output
 
@@ -154,6 +158,8 @@ Template yang diunduh dari aplikasi merupakan **template kosong**, bukan salinan
 | Prioritas fusi A×B | Matriks sebar dan label | Klasifikasi prioritas nasional, preventif, perbaikan kontrol, atau monitoring. |
 | Klaster satker | Tiga kelompok | Klaster 1: kritis; Klaster 2: realisasi terbatas/preventif; Klaster 3: terkendali/monitoring. |
 | Snapshot analitik | Rekaman basis keputusan | Membekukan data, formula, baseline, dan rekomendasi yang dipakai saat program dibuat. |
+| CEI | Angka 0–100 atau Belum dinilai | Indeks efektivitas kontrol agregat; mempertimbangkan penilaian satker dan penalti loss event yang terkait dengan kontrol. |
+| Kandidat kontrol bottom-up | Kartu antrean | Mitigasi selesai yang berulang pada beberapa satker dan dapat dipromosikan secara manual ke Control Library. |
 | Laporan perencanaan/pelaksanaan | Halaman cetak dan Excel | Dokumen formal program, indikator, target, progres, realisasi, dan bukti. |
 
 ## 5. Cara Membaca Insight A dan Insight B
@@ -247,7 +253,7 @@ Penghapusan memiliki batas berikut:
 1. Masuk sebagai **UPG Satker** dan buka **Penilaian Risiko**.
 2. Unduh template kosong `.xlsx` **Risk Register 2026** dari area impor.
 3. Unggah file pada area **Impor penilaian operasional**.
-4. Buka draf staging hasil impor.
+4. Bagian **Draf hasil impor yang perlu dilengkapi** tertutup secara default untuk menghemat ruang. Klik judul atau ikon panah untuk membukanya.
 5. Periksa risiko generik yang dicocokkan mesin. Pilih secara manual jika belum cocok.
 6. Periksa nilai inherent yang diekstrak.
 7. Isi probabilitas dan dampak **residual**. Kolom ini sengaja tidak diisi otomatis bila tidak tersedia pada template.
@@ -267,12 +273,14 @@ Penghapusan memiliki batas berikut:
 
 1. Buka **Loss Event**.
 2. Pilih satu **Risiko generik utama**.
-3. Isi nama kejadian, tanggal, lokasi, sumber informasi, dan kronologi.
-4. Bila tersedia, hubungkan ke register risiko satker.
-5. Isi RCA, akar masalah, kontrol gagal, jenis dampak, level dampak, dan uraian dampak.
-6. Unggah bukti bila diperlukan.
-7. Simpan sebagai draf, periksa kembali, kemudian ajukan ke UPG Pusat.
-8. UPG Pusat meninjau dan menetapkan status tervalidasi, perlu perbaikan, atau tindak lanjut.
+3. Pilih **Register satker** bila kejadian terkait dengan penilaian tertentu. Setelah register dipilih, aplikasi menampilkan daftar kontrol yang memang digunakan pada register tersebut.
+4. Pada **Kontrol yang gagal**, pilih satu atau lebih kontrol yang relevan. Pilihan dari register lain tidak dapat disimpan.
+5. Isi nama kejadian, tanggal, lokasi, sumber informasi, dan kronologi.
+6. Isi RCA, akar masalah, jenis dampak, level dampak, dan uraian dampak.
+7. Gunakan **Keterangan tambahan kegagalan kontrol** untuk menjelaskan kondisi implementasi yang tidak tercakup oleh nama kontrol. Kolom ini tetap berupa teks bebas dan tidak menggantikan pilihan kontrol terstruktur.
+8. Unggah bukti bila diperlukan.
+9. Simpan sebagai draf, periksa kembali, kemudian ajukan ke UPG Pusat.
+10. UPG Pusat meninjau dan menetapkan status tervalidasi, perlu perbaikan, atau tindak lanjut. Bila risiko generik diubah saat validasi, tautan register dan pilihan kontrol gagal akan dibersihkan agar tidak menyisakan referensi yang tidak konsisten.
 
 ### 6.6 Membaca analisis titik rawan
 
@@ -301,17 +309,40 @@ Penghapusan memiliki batas berikut:
 9. Isi catatan keputusan bila rekomendasi disesuaikan.
 10. Klik **Simpan rancangan Program PPG nasional berklaster**.
 
-### 6.8 Monitoring dan treated risk
+### 6.8 Memperbarui dan memvalidasi bukti efektivitas kontrol
+
+1. UPG Satker membuka **Penilaian Risiko** dan menuju bagian **Monitoring bukti efektivitas kontrol**.
+2. Pilih efektivitas aktual kontrol, isi tautan bukti bila tersedia, lalu simpan pembaruan.
+3. UPG Pusat membuka penilaian yang sama dan memilih **Disetujui**, **Perlu perbaikan**, atau **Ditolak** pada kolom **Validasi UPG Pusat**.
+4. Status berhasil atau pesan kesalahan tampil pada baris kontrol yang diproses. Muat ulang halaman untuk memastikan status tersimpan.
+5. Pilihan **Disetujui** hanya dapat disimpan bila kontrol mempunyai URL bukti. Bila bukti belum ada, aplikasi menolak persetujuan dan menampilkan pesan agar UPG Satker melengkapinya.
+
+### 6.9 Monitoring dan treated risk pasca-Program PPG
 
 1. Buka program yang sedang berjalan.
 2. Catat tanggal pembaruan, status, progres, realisasi indikator, output, outcome, catatan, dan tautan bukti.
-3. Setelah treatment program benar-benar diterapkan, buka **Penilaian Risiko**.
-4. Pada **Nilai treated risk pasca-Program PPG**, pilih register terkait.
+3. Setelah item program benar-benar selesai, buka **Program PPG**. UPG Satker akan melihat area evaluasi pascaprogram; UPG Pusat/Admin dapat melihat hasilnya bersama area pengelolaan program.
+4. Pada **Nilai treated risk pasca-Program PPG**, pilih register terkait dan Program PPG yang mempunyai item selesai untuk risiko generik yang sama.
 5. Isi probabilitas dan dampak treated berdasarkan kondisi pascaprogram.
-6. Klik **Simpan treated risk**.
-7. Bandingkan inherent → residual → treated untuk melihat perubahan profil risiko.
+6. Pilih tingkat **Efektivitas Program PPG** dan masukkan URL bukti berformat HTTPS.
+7. Klik **Simpan evaluasi dampak program**.
+8. Baca perbandingan residual → treated. Aplikasi memberi label **Turun**, **Naik**, atau **Tetap** berdasarkan selisih skor.
 
 > Peringatan: Jangan mengisi treated risk hanya karena program telah dijadwalkan. Nilai ini baru bermakna setelah treatment dilaksanakan dan bukti hasil tersedia.
+
+### 6.10 Membaca CEI dan mengkurasi kontrol bottom-up
+
+1. UPG Pusat/Admin membuka **Risk and Control Library** lalu menuju panel efektivitas kontrol.
+2. Baca **Skor CEI** pada setiap kontrol aktif. Jika belum ada penilaian efektivitas yang dapat dihitung, aplikasi menampilkan **Belum dinilai**, bukan angka nol.
+3. Klik ikon informasi di dekat CEI untuk melihat kriteria sementara:
+   - **0–49 (merah/rendah):** perlu kaji ulang dan dapat menjadi kandidat penonaktifan bila kelemahan berlangsung konsisten;
+   - **50–79 (kuning/kurang efektif):** perlu perbaikan desain/implementasi dan monitoring lebih ketat;
+   - **80–100 (hijau/tinggi):** masih efektif, dapat dipertahankan dengan monitoring berkala.
+4. Gunakan skor sebagai sinyal keputusan, bukan perintah otomatis. Sistem tidak menonaktifkan kontrol hanya karena CEI rendah.
+5. Tinjau panel kandidat kontrol bottom-up. Kandidat berasal dari mitigasi berstatus selesai, dikelompokkan berdasarkan teks yang dinormalisasi dan risiko generiknya, serta menghitung jumlah **satker unik**.
+6. Promosikan kandidat yang layak ke Control Library atau nonaktifkan kontrol lama setelah kajian dan keputusan manusia. Riwayat pemakaian kontrol pada register tetap dipertahankan.
+
+CEI dihitung dari penilaian kontrol yang tersedia: **Efektif = 100**, **Sebagian = 50**, dan **Tidak Efektif = 0**; status **Belum dinilai** diabaikan. Nilai dasar kemudian dikurangi **5 poin untuk setiap loss event yang memenuhi syarat** dan mereferensikan kontrol tersebut. Untuk data historis yang belum memiliki referensi kontrol gagal terstruktur, penalti tetap dapat diterapkan pada semua kontrol dalam register terkait agar perilaku historis tidak hilang.
 
 ## 7. Glosarium
 
@@ -319,6 +350,7 @@ Penghapusan memiliki batas berikut:
 - **UPG** — Unit Pengendalian Gratifikasi.
 - **Risk Library** — kamus bersama risiko generik yang dapat dipakai banyak satker.
 - **Control Library** — katalog kontrol standar yang dapat dipetakan ke risiko.
+- **CEI (Control Effectiveness Index)** — indeks 0–100 yang merangkum penilaian efektivitas kontrol dan sinyal kegagalan dari loss event terkait.
 - **Generic risk** — risiko yang redaksinya berlaku luas, bukan catatan milik satu satker.
 - **Risk register** — daftar risiko yang dinilai oleh unit kerja pada periode tertentu.
 - **Staging** — ruang tunggu data impor sebelum menjadi data resmi.
@@ -327,6 +359,7 @@ Penghapusan memiliki batas berikut:
 - **Inherent risk** — risiko sebelum kontrol dipertimbangkan.
 - **Residual risk** — risiko yang tersisa setelah kontrol saat ini berjalan.
 - **Treated risk** — risiko setelah treatment Program PPG dilaksanakan.
+- **Efektivitas Program PPG** — penilaian hasil program pada register tertentu, terpisah dari efektivitas masing-masing kontrol.
 - **Loss event** — kejadian aktual yang menunjukkan risiko benar-benar terealisasi.
 - **RCA** — Root Cause Analysis atau analisis akar masalah.
 - **Insight A** — indeks paparan dari pola laporan gratifikasi.
@@ -346,6 +379,7 @@ Penghapusan memiliki batas berikut:
 - Pastikan loss event telah tervalidasi dan terhubung ke risiko generik yang benar.
 - Pastikan hanya satu risiko generik utama dipilih.
 - Pastikan kontrol yang dipilih memang relevan dan aktif.
+- Pastikan treated risk hanya dinilai terhadap item Program PPG yang telah selesai dan bukti efektivitasnya tersedia.
 - Bedakan KRI, output, dan outcome.
 - Pastikan target berbentuk persentase satker bila indikator menggunakan cakupan nasional.
 - Catat alasan jika keputusan UPG Pusat berbeda dari rekomendasi mesin.

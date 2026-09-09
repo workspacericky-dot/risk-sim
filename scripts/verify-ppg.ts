@@ -8,6 +8,7 @@ import { analyzePpgReports } from '../src/lib/ppg/analytics.ts'
 import { buildPpgAssistedInsights, calculateInsightA } from '../src/lib/ppg/insights.ts'
 import { matchLossEventReports } from '../src/lib/ppg/led.ts'
 import { parsePpgRiskRegisterWorkbook, riskSimilarity } from '../src/lib/ppg/risk-register-workbook.ts'
+import { calculatePpgControlEffectiveness, normalizePpgControlText } from '../src/lib/ppg/control-effectiveness.ts'
 
 assert.equal(ppgRiskLevel(5), 'Sangat Rendah')
 assert.equal(ppgRiskLevel(6), 'Rendah')
@@ -38,6 +39,19 @@ assert.equal(isValidPpgBusinessProcess('Manajemen Peradilan', ''), true)
 assert.equal(isValidPpgBusinessProcess('Manajemen Peradilan', 'Tidak boleh'), false)
 assert.equal(isValidPpgBusinessProcess('Administrasi Umum', 'SDM'), true)
 assert.equal(isValidPpgBusinessProcess('Administrasi Umum', 'Subproses tambahan'), true)
+assert.equal(normalizePpgControlText('  Verifikasi   Berjenjang '), 'verifikasi berjenjang')
+assert.deepEqual(
+  calculatePpgControlEffectiveness(
+    [
+      { efektivitas: 'efektif', registerId: 'register-a' },
+      { efektivitas: 'sebagian', registerId: 'register-b' },
+      { efektivitas: 'belum_dinilai', registerId: 'register-c' },
+    ],
+    new Map([['register-a', 1], ['register-b', 2]]),
+  ),
+  { efektif: 1, sebagian: 1, tidakEfektif: 0, belumDinilai: 1, totalRated: 2, totalFailures: 3, baseScore: 75, cei: 60 },
+)
+assert.equal(calculatePpgControlEffectiveness([{ efektivitas: 'belum_dinilai', registerId: 'register-a' }], new Map()).cei, null)
 assert.equal(parseMoney('50,000'), 50000)
 assert.equal(parseMoney('Rp1.500.000,00'), 1500000)
 
@@ -169,6 +183,10 @@ assert.match(migration, /uraian_dampak text not null/)
 assert.match(migration, /level_dampak_upper smallint not null/)
 assert.match(migration, new RegExp(PPG_IMPACT_KNOWLEDGE_ID))
 assert.match(migration, /create table if not exists public\.ppg_loss_event_code_counters/)
+assert.match(migration, /create table if not exists public\.ppg_loss_event_controls/)
+assert.match(migration, /treated_program_id uuid references public\.ppg_programs/)
+assert.match(migration, /ppg_register_efektivitas_program_check/)
+assert.match(migration, /bukti_efektivitas_program_url text not null/)
 assert.match(migration, /create or replace function public\.ppg_assign_loss_event_code\(\)/)
 assert.match(migration, /create trigger ppg_loss_event_code_trigger/)
 assert.match(migration, /new\.kode := 'LED-' \|\| event_year::text/)
@@ -193,4 +211,8 @@ assert.match(fs.readFileSync('src/app/dashboard/ppg/pustaka/page.tsx', 'utf8'), 
 assert.doesNotMatch(fs.readFileSync('src/app/dashboard/ppg/actions.ts', 'utf8'), /kode: `LED-\$\{eventDate/)
 assert.doesNotMatch(fs.readFileSync('src/lib/ppg/insights.ts', 'utf8'), /tinggi:\s*82|sedang:\s*58|normal:\s*35/)
 assert.match(fs.readFileSync('src/lib/ppg/data.ts', 'utf8'), /ppg_control_library!ppg_program_items_control_id_fkey/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/penilaian/RiskControlEvidencePanel.tsx', 'utf8'), /useActionState\(validatePpgRiskControlEvidence/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/penilaian/ImportedRiskDraftReview.tsx', 'utf8'), /<details className="group/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/loss-event/LossEventControlFields.tsx', 'utf8'), /failed_control_ids/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/tindak-lanjut/ProgramEffectivenessPanel.tsx', 'utf8'), /bukti_efektivitas_program_url/)
 console.log('PPG scoring, workbook import, analytics, LED matching, and migration verification passed.')
