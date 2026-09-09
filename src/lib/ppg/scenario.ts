@@ -23,7 +23,7 @@ export const PPG_SCENARIO_TABLES = new Set([
   'ppg_risk_import_rows', 'ppg_risk_candidates', 'ppg_risk_candidate_members', 'ppg_programs',
   'ppg_program_items', 'ppg_program_item_controls', 'ppg_program_clusters',
   'ppg_program_cluster_units', 'ppg_program_updates', 'ppg_loss_events',
-  'ppg_loss_event_controls', 'ppg_loss_event_report_links', 'ppg_program_loss_events',
+  'ppg_loss_event_controls', 'ppg_loss_event_code_counters', 'ppg_loss_event_report_links', 'ppg_program_loss_events',
 ])
 
 export function scenarioIdForKey(key: PpgScenarioKey) {

@@ -574,7 +574,7 @@ Behavior: antrean kurasi dan riwayat impor menggunakan native `<details>` tanpa 
 
 Isolasi data menggunakan dua record tetap pada `ppg_scenarios`: `real` dan `demo`. Preferensi aktif disimpan per akun pada `ppg_user_scenario_preferences`; bila belum ada preferensi, fungsi `ppg_current_scenario_id()` selalu mengembalikan slot riil.
 
-Seluruh tabel data transaksional PPG memiliki `scenario_id`. Kolom tersebut otomatis mengambil slot aktif pada insert. Policy PostgreSQL `AS RESTRICTIVE` mewajibkan `scenario_id = ppg_current_scenario_id()` untuk operasi baca dan tulis, sehingga policy role/ownership yang sudah ada tetap berlaku sekaligus tidak dapat membuka slot lain. Constraint kode bisnis utama menjadi komposit dengan `scenario_id`, agar kode yang sama sah digunakan secara independen pada dua slot.
+Seluruh tabel data transaksional PPG memiliki `scenario_id`. Kolom tersebut otomatis mengambil slot aktif pada insert. Policy PostgreSQL `AS RESTRICTIVE` mewajibkan `scenario_id = ppg_current_scenario_id()` untuk operasi baca dan tulis, sehingga policy role/ownership yang sudah ada tetap berlaku sekaligus tidak dapat membuka slot lain. Constraint kode bisnis utama menjadi komposit dengan `scenario_id`, agar kode yang sama sah digunakan secara independen pada dua slot. Counter nomor Loss Event juga menggunakan primary key `(scenario_id, tahun)`, sehingga pembuatan atau reset LED dummy tidak melompati nomor LED resmi.
 
 Beberapa alur Satker memakai service-role untuk validasi lintas tabel dan private storage. Seluruh query database pada alur tersebut wajib menggunakan `createPpgAdminClient(scenarioId)`, yang menambahkan filter skenario pada select/update/delete dan menstempel `scenario_id` pada insert/upsert. Akses storage diteruskan tanpa perubahan.
 

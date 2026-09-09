@@ -175,7 +175,7 @@ export async function ensurePpgDemoData(actorId?: string): Promise<DemoSeedResul
 
 export async function resetPpgDemoData(actorId?: string): Promise<DemoSeedResult> {
   const db = createPpgAdminClient(PPG_DEMO_SCENARIO_ID)
-  const order = ['ppg_programs', 'ppg_loss_events', 'ppg_risk_import_batches', 'ppg_risk_candidates', 'ppg_import_batches', 'ppg_register', 'ppg_audit_log', 'ppg_analysis_snapshots', 'ppg_risk_library', 'ppg_control_library']
+  const order = ['ppg_programs', 'ppg_loss_events', 'ppg_loss_event_code_counters', 'ppg_risk_import_batches', 'ppg_risk_candidates', 'ppg_import_batches', 'ppg_register', 'ppg_audit_log', 'ppg_analysis_snapshots', 'ppg_risk_library', 'ppg_control_library']
   for (const table of order) {
     const { error } = await db.from(table).delete().neq('scenario_id', '00000000-0000-0000-0000-000000000000')
     if (error) return failed(`Reset ${table}`, error.message)

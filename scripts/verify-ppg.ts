@@ -210,6 +210,8 @@ assert.match(migration, /create table if not exists public\.ppg_user_scenario_pr
 assert.match(migration, /create or replace function public\.ppg_current_scenario_id\(\)/)
 assert.match(migration, /create policy "ppg scenario isolation"[\s\S]*as restrictive/)
 assert.match(migration, /ppg_register_scenario_business_key unique\(scenario_id,kode,tahun,periode,unit_nama\)/)
+assert.match(migration, /ppg_loss_event_code_counters_pkey primary key\(scenario_id,tahun\)/)
+assert.match(migration, /values \(new\.scenario_id, event_year, 1\)/)
 assert.match(fs.readFileSync('src/lib/ppg/scenario.ts', 'utf8'), /scenario_id: scenarioId/)
 assert.match(fs.readFileSync('src/app/dashboard/ppg/layout.tsx', 'utf8'), /MODE SIMULASI AKTIF/)
 assert.match(fs.readFileSync('src/lib/ppg/demo-seed.ts', 'utf8'), /length: 369/)

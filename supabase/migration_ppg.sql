@@ -878,7 +878,7 @@ do $$ declare t text; begin
     'ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_programs',
     'ppg_program_items','ppg_program_item_controls','ppg_program_clusters',
     'ppg_program_cluster_units','ppg_program_updates','ppg_loss_events',
-    'ppg_loss_event_controls','ppg_loss_event_report_links','ppg_program_loss_events'
+    'ppg_loss_event_controls','ppg_loss_event_code_counters','ppg_loss_event_report_links','ppg_program_loss_events'
   ] loop
     execute format(
       'alter table public.%I add column if not exists scenario_id uuid not null default public.ppg_current_scenario_id() references public.ppg_scenarios(id) on delete restrict', t
@@ -910,6 +910,32 @@ alter table public.ppg_risk_import_batches add constraint ppg_risk_import_batche
 alter table public.ppg_programs drop constraint if exists ppg_programs_kode_key;
 alter table public.ppg_programs drop constraint if exists ppg_programs_scenario_kode_key;
 alter table public.ppg_programs add constraint ppg_programs_scenario_kode_key unique(scenario_id,kode);
+alter table public.ppg_loss_events drop constraint if exists ppg_loss_events_kode_key;
+alter table public.ppg_loss_events drop constraint if exists ppg_loss_events_scenario_kode_key;
+alter table public.ppg_loss_events add constraint ppg_loss_events_scenario_kode_key unique(scenario_id,kode);
+alter table public.ppg_loss_event_code_counters drop constraint if exists ppg_loss_event_code_counters_pkey;
+alter table public.ppg_loss_event_code_counters add constraint ppg_loss_event_code_counters_pkey primary key(scenario_id,tahun);
+
+create or replace function public.ppg_assign_loss_event_code()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare
+  event_year integer;
+  next_number integer;
+begin
+  event_year := extract(year from new.tanggal_kejadian)::integer;
+  insert into public.ppg_loss_event_code_counters (scenario_id, tahun, nomor_terakhir)
+  values (new.scenario_id, event_year, 1)
+  on conflict (scenario_id, tahun) do update
+  set nomor_terakhir = public.ppg_loss_event_code_counters.nomor_terakhir + 1,
+      updated_at = now()
+  returning nomor_terakhir into next_number;
+
+  new.kode := 'LED-' || event_year::text || '-' ||
+    case when next_number < 1000 then lpad(next_number::text, 3, '0') else next_number::text end;
+  return new;
+end
+$$;
 
 alter table public.ppg_scenarios enable row level security;
 alter table public.ppg_user_scenario_preferences enable row level security;
