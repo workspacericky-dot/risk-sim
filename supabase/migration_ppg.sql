@@ -234,11 +234,9 @@ values
   ('PPG-LAPOR-01','Klinik pelaporan dan pengingat batas waktu','Pendampingan operator dan pengingat berkala untuk meningkatkan kepatuhan pelaporan.','korektif',array['Risiko Kepatuhan','Risiko Operasional'],'UPG Satker dan pelapor',14,'Jumlah klinik dan persentase satker yang dijangkau','Penurunan proporsi laporan lebih dari 30 hari'),
   ('PPG-DATA-01','Peningkatan kualitas data laporan gratifikasi','Validasi kelengkapan objek, konteks, kegiatan, momen, dan tanggal sebelum data dikirim.','korektif',array['Risiko Operasional'],'Operator UPG Satker',14,'Persentase operator yang menggunakan daftar periksa','Penurunan proporsi data tanpa konteks'),
   ('PPG-PIMPINAN-01','Briefing integritas berbasis jabatan prioritas','Briefing terarah untuk jabatan yang memiliki paparan laporan paling tinggi.','preventif',array['Risiko Kecurangan','Risiko Kepatuhan'],'Jabatan prioritas hasil analisis',30,'Persentase pejabat sasaran mengikuti briefing','Perubahan pola laporan pada jabatan sasaran')
-on conflict (kode) do update set nama=excluded.nama, uraian=excluded.uraian,
-  jenis_kontrol=excluded.jenis_kontrol, risk_categories=excluded.risk_categories,
-  target_default=excluded.target_default, lead_time_days=excluded.lead_time_days,
-  output_indicator=excluded.output_indicator, outcome_indicator=excluded.outcome_indicator,
-  updated_at=now();
+-- Tanpa conflict target agar tetap idempotent sebelum maupun sesudah unique key
+-- katalog diubah dari (kode) menjadi (scenario_id,kode) oleh migrasi save-slot.
+on conflict do nothing;
 
 create table if not exists public.ppg_programs (
   id uuid primary key default gen_random_uuid(), kode text not null unique, nama text not null,
@@ -369,9 +367,9 @@ select split_part(kode, '-', 2)::integer, max(split_part(kode, '-', 3)::integer)
 from public.ppg_loss_events
 where kode ~ '^LED-[0-9]{4}-[0-9]+$'
 group by split_part(kode, '-', 2)::integer
-on conflict (tahun) do update
-set nomor_terakhir = greatest(public.ppg_loss_event_code_counters.nomor_terakhir, excluded.nomor_terakhir),
-    updated_at = now();
+-- Tanpa conflict target agar kompatibel dengan PK lama (tahun) dan PK baru
+-- (scenario_id,tahun). Sinkronisasi maksimum dilakukan lagi setelah konversi.
+on conflict do nothing;
 
 create or replace function public.ppg_assign_loss_event_code()
 returns trigger language plpgsql security definer set search_path = public
@@ -383,10 +381,15 @@ begin
   event_year := extract(year from new.tanggal_kejadian)::integer;
   insert into public.ppg_loss_event_code_counters (tahun, nomor_terakhir)
   values (event_year, 1)
-  on conflict (tahun) do update
-  set nomor_terakhir = public.ppg_loss_event_code_counters.nomor_terakhir + 1,
-      updated_at = now()
+  on conflict do nothing
   returning nomor_terakhir into next_number;
+
+  if next_number is null then
+    update public.ppg_loss_event_code_counters
+    set nomor_terakhir = nomor_terakhir + 1, updated_at = now()
+    where tahun = event_year
+    returning nomor_terakhir into next_number;
+  end if;
 
   new.kode := 'LED-' || event_year::text || '-' ||
     case when next_number < 1000 then lpad(next_number::text, 3, '0') else next_number::text end;
