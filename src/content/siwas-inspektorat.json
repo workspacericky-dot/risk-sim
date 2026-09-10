@@ -1,0 +1,2349 @@
+{
+  "generatedFrom": "SIWASzz.xlsx",
+  "dataThrough": "2026-08-04",
+  "groups": {
+    "20": {
+      "code": "20",
+      "label": "Non-Inspektorat",
+      "reports": 1,
+      "assessable": 3,
+      "onTime": 3,
+      "late": 0,
+      "overdueOpen": 0,
+      "compliance": 1,
+      "weakest": {
+        "code": "S1",
+        "label": "Laporan → disposisi",
+        "sla": 4,
+        "assessable": 1,
+        "onTime": 1,
+        "late": 0,
+        "overdueOpen": 0,
+        "compliance": 1,
+        "median": 0,
+        "p90": 0
+      },
+      "strongest": {
+        "code": "S3",
+        "label": "Penunjukan → selesai telaah",
+        "sla": 15,
+        "assessable": 1,
+        "onTime": 1,
+        "late": 0,
+        "overdueOpen": 0,
+        "compliance": 1,
+        "median": 0,
+        "p90": 0
+      },
+      "largestOverdue": null,
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 1,
+          "onTime": 1,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": 1,
+          "median": 0,
+          "p90": 0
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 1,
+          "onTime": 1,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": 1,
+          "median": 0,
+          "p90": 0
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 1,
+          "onTime": 1,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": 1,
+          "median": 0,
+          "p90": 0
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        }
+      ],
+      "quarters": [
+        {
+          "quarter": "2026 Q2",
+          "reports": 1,
+          "assessable": 3,
+          "onTime": 3,
+          "compliance": 1
+        }
+      ],
+      "extremes": []
+    },
+    "110": {
+      "code": "110",
+      "label": "Inspektorat Wilayah I",
+      "reports": 2798,
+      "assessable": 10147,
+      "onTime": 5897,
+      "late": 2844,
+      "overdueOpen": 1406,
+      "compliance": 0.5811569922144476,
+      "weakest": {
+        "code": "S10",
+        "label": "LHP → surat jawaban",
+        "sla": 23,
+        "assessable": 90,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 90,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "strongest": {
+        "code": "S3",
+        "label": "Penunjukan → selesai telaah",
+        "sla": 15,
+        "assessable": 2722,
+        "onTime": 2076,
+        "late": 34,
+        "overdueOpen": 612,
+        "compliance": 0.7626745040411462,
+        "median": 2,
+        "p90": 5
+      },
+      "largestOverdue": {
+        "code": "S11",
+        "label": "Klarifikasi → surat jawaban",
+        "sla": 23,
+        "assessable": 649,
+        "onTime": 1,
+        "late": 0,
+        "overdueOpen": 648,
+        "compliance": 0.0015408320493066256,
+        "median": 1,
+        "p90": 1
+      },
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 2796,
+          "onTime": 1738,
+          "late": 1058,
+          "overdueOpen": 0,
+          "compliance": 0.6216022889842633,
+          "median": 3,
+          "p90": 20
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 2787,
+          "onTime": 1688,
+          "late": 1091,
+          "overdueOpen": 8,
+          "compliance": 0.6056691783279512,
+          "median": 3,
+          "p90": 10
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 2722,
+          "onTime": 2076,
+          "late": 34,
+          "overdueOpen": 612,
+          "compliance": 0.7626745040411462,
+          "median": 2,
+          "p90": 5
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 653,
+          "onTime": 199,
+          "late": 454,
+          "overdueOpen": 0,
+          "compliance": 0.30474732006125577,
+          "median": 35,
+          "p90": 81
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 67,
+          "onTime": 17,
+          "late": 50,
+          "overdueOpen": 0,
+          "compliance": 0.2537313432835821,
+          "median": 47,
+          "p90": 112.4
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 104,
+          "onTime": 33,
+          "late": 71,
+          "overdueOpen": 0,
+          "compliance": 0.3173076923076923,
+          "median": 34,
+          "p90": 173.4000000000001
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 114,
+          "onTime": 67,
+          "late": 34,
+          "overdueOpen": 13,
+          "compliance": 0.5877192982456141,
+          "median": 7,
+          "p90": 22
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 67,
+          "onTime": 7,
+          "late": 27,
+          "overdueOpen": 33,
+          "compliance": 0.1044776119402985,
+          "median": 23,
+          "p90": 50.4
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 98,
+          "onTime": 71,
+          "late": 25,
+          "overdueOpen": 2,
+          "compliance": 0.7244897959183674,
+          "median": 6,
+          "p90": 21
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 90,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 90,
+          "compliance": 0,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 649,
+          "onTime": 1,
+          "late": 0,
+          "overdueOpen": 648,
+          "compliance": 0.0015408320493066256,
+          "median": 1,
+          "p90": 1
+        }
+      ],
+      "quarters": [
+        {
+          "quarter": "2026 Q3",
+          "reports": 146,
+          "assessable": 375,
+          "onTime": 296,
+          "compliance": 0.7893333333333333
+        },
+        {
+          "quarter": "2026 Q2",
+          "reports": 268,
+          "assessable": 891,
+          "onTime": 637,
+          "compliance": 0.7149270482603816
+        },
+        {
+          "quarter": "2026 Q1",
+          "reports": 337,
+          "assessable": 1241,
+          "onTime": 708,
+          "compliance": 0.5705076551168412
+        },
+        {
+          "quarter": "2025 Q4",
+          "reports": 265,
+          "assessable": 988,
+          "onTime": 580,
+          "compliance": 0.5870445344129555
+        },
+        {
+          "quarter": "2025 Q3",
+          "reports": 356,
+          "assessable": 1334,
+          "onTime": 948,
+          "compliance": 0.7106446776611695
+        },
+        {
+          "quarter": "2025 Q2",
+          "reports": 284,
+          "assessable": 1087,
+          "onTime": 759,
+          "compliance": 0.6982520699172033
+        },
+        {
+          "quarter": "2025 Q1",
+          "reports": 213,
+          "assessable": 808,
+          "onTime": 477,
+          "compliance": 0.5903465346534653
+        },
+        {
+          "quarter": "2024 Q4",
+          "reports": 158,
+          "assessable": 619,
+          "onTime": 331,
+          "compliance": 0.5347334410339257
+        },
+        {
+          "quarter": "2024 Q3",
+          "reports": 326,
+          "assessable": 1185,
+          "onTime": 561,
+          "compliance": 0.47341772151898737
+        },
+        {
+          "quarter": "2024 Q2",
+          "reports": 180,
+          "assessable": 653,
+          "onTime": 238,
+          "compliance": 0.36447166921898927
+        },
+        {
+          "quarter": "2024 Q1",
+          "reports": 265,
+          "assessable": 966,
+          "onTime": 362,
+          "compliance": 0.3747412008281574
+        }
+      ],
+      "extremes": [
+        {
+          "id": "30970",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-11-10",
+          "end": "2026-02-23",
+          "duration": 336,
+          "overBy": 320
+        },
+        {
+          "id": "30970",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2024-11-10",
+          "end": "2026-01-14",
+          "duration": 308,
+          "overBy": 288
+        },
+        {
+          "id": "31458",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2025-01-14",
+          "end": "2026-02-27",
+          "duration": 293,
+          "overBy": 277
+        },
+        {
+          "id": "29387",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-08-02",
+          "end": "2025-08-21",
+          "duration": 274,
+          "overBy": 258
+        },
+        {
+          "id": "29387",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2024-08-02",
+          "end": "2025-08-08",
+          "duration": 265,
+          "overBy": 245
+        },
+        {
+          "id": "30767",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-10-18",
+          "end": "2025-10-02",
+          "duration": 249,
+          "overBy": 230
+        },
+        {
+          "id": "29964",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-09-11",
+          "end": "2025-08-12",
+          "duration": 239,
+          "overBy": 220
+        },
+        {
+          "id": "31365",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-11-29",
+          "end": "2025-10-21",
+          "duration": 232,
+          "overBy": 216
+        },
+        {
+          "id": "28801",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-06-27",
+          "end": "2025-05-15",
+          "duration": 230,
+          "overBy": 211
+        },
+        {
+          "id": "27238",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-02-27",
+          "end": "2024-12-18",
+          "duration": 211,
+          "overBy": 192
+        }
+      ]
+    },
+    "120": {
+      "code": "120",
+      "label": "Inspektorat Wilayah II",
+      "reports": 7781,
+      "assessable": 27221,
+      "onTime": 16279,
+      "late": 7429,
+      "overdueOpen": 3513,
+      "compliance": 0.5980309320010286,
+      "weakest": {
+        "code": "S10",
+        "label": "LHP → surat jawaban",
+        "sla": 23,
+        "assessable": 168,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 168,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "strongest": {
+        "code": "S9",
+        "label": "Pemeriksaan → LHP",
+        "sla": 10,
+        "assessable": 182,
+        "onTime": 140,
+        "late": 40,
+        "overdueOpen": 2,
+        "compliance": 0.7692307692307693,
+        "median": 7,
+        "p90": 16.099999999999994
+      },
+      "largestOverdue": {
+        "code": "S3",
+        "label": "Penunjukan → selesai telaah",
+        "sla": 15,
+        "assessable": 7610,
+        "onTime": 5668,
+        "late": 138,
+        "overdueOpen": 1804,
+        "compliance": 0.7448094612352169,
+        "median": 2,
+        "p90": 7
+      },
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 7781,
+          "onTime": 5137,
+          "late": 2644,
+          "overdueOpen": 0,
+          "compliance": 0.6601979180053977,
+          "median": 3,
+          "p90": 19
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 7779,
+          "onTime": 4812,
+          "late": 2965,
+          "overdueOpen": 2,
+          "compliance": 0.6185885075202469,
+          "median": 1,
+          "p90": 60
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 7610,
+          "onTime": 5668,
+          "late": 138,
+          "overdueOpen": 1804,
+          "compliance": 0.7448094612352169,
+          "median": 2,
+          "p90": 7
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 1648,
+          "onTime": 325,
+          "late": 1323,
+          "overdueOpen": 0,
+          "compliance": 0.19720873786407767,
+          "median": 37,
+          "p90": 104
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 101,
+          "onTime": 4,
+          "late": 97,
+          "overdueOpen": 0,
+          "compliance": 0.039603960396039604,
+          "median": 67,
+          "p90": 186
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 190,
+          "onTime": 68,
+          "late": 122,
+          "overdueOpen": 0,
+          "compliance": 0.35789473684210527,
+          "median": 37,
+          "p90": 161.69999999999996
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 199,
+          "onTime": 121,
+          "late": 62,
+          "overdueOpen": 16,
+          "compliance": 0.6080402010050251,
+          "median": 8,
+          "p90": 21
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 100,
+          "onTime": 4,
+          "late": 36,
+          "overdueOpen": 60,
+          "compliance": 0.04,
+          "median": 28.5,
+          "p90": 55.90000000000001
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 182,
+          "onTime": 140,
+          "late": 40,
+          "overdueOpen": 2,
+          "compliance": 0.7692307692307693,
+          "median": 7,
+          "p90": 16.099999999999994
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 168,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 168,
+          "compliance": 0,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 1463,
+          "onTime": 0,
+          "late": 2,
+          "overdueOpen": 1461,
+          "compliance": 0,
+          "median": 136.5,
+          "p90": 214.5
+        }
+      ],
+      "quarters": [
+        {
+          "quarter": "2026 Q3",
+          "reports": 464,
+          "assessable": 1251,
+          "onTime": 1020,
+          "compliance": 0.815347721822542
+        },
+        {
+          "quarter": "2026 Q2",
+          "reports": 947,
+          "assessable": 3053,
+          "onTime": 1849,
+          "compliance": 0.6056338028169014
+        },
+        {
+          "quarter": "2026 Q1",
+          "reports": 1025,
+          "assessable": 3358,
+          "onTime": 1617,
+          "compliance": 0.48153662894580107
+        },
+        {
+          "quarter": "2025 Q4",
+          "reports": 837,
+          "assessable": 2887,
+          "onTime": 1344,
+          "compliance": 0.46553515760304814
+        },
+        {
+          "quarter": "2025 Q3",
+          "reports": 933,
+          "assessable": 3316,
+          "onTime": 2010,
+          "compliance": 0.606151990349819
+        },
+        {
+          "quarter": "2025 Q2",
+          "reports": 690,
+          "assessable": 2582,
+          "onTime": 1693,
+          "compliance": 0.6556932610379551
+        },
+        {
+          "quarter": "2025 Q1",
+          "reports": 609,
+          "assessable": 2324,
+          "onTime": 1648,
+          "compliance": 0.7091222030981067
+        },
+        {
+          "quarter": "2024 Q4",
+          "reports": 392,
+          "assessable": 1458,
+          "onTime": 990,
+          "compliance": 0.6790123456790124
+        },
+        {
+          "quarter": "2024 Q3",
+          "reports": 771,
+          "assessable": 2880,
+          "onTime": 1829,
+          "compliance": 0.6350694444444445
+        },
+        {
+          "quarter": "2024 Q2",
+          "reports": 491,
+          "assessable": 1854,
+          "onTime": 1020,
+          "compliance": 0.5501618122977346
+        },
+        {
+          "quarter": "2024 Q1",
+          "reports": 622,
+          "assessable": 2258,
+          "onTime": 1259,
+          "compliance": 0.5575730735163862
+        }
+      ],
+      "extremes": [
+        {
+          "id": "28471",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-06-22",
+          "end": "2025-12-31",
+          "duration": 398,
+          "overBy": 379
+        },
+        {
+          "id": "28834",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-06-30",
+          "end": "2025-12-31",
+          "duration": 393,
+          "overBy": 374
+        },
+        {
+          "id": "28275",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-05-21",
+          "end": "2025-11-06",
+          "duration": 382,
+          "overBy": 366
+        },
+        {
+          "id": "28945",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-07-19",
+          "end": "2025-12-31",
+          "duration": 378,
+          "overBy": 359
+        },
+        {
+          "id": "28275",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2024-05-21",
+          "end": "2025-10-15",
+          "duration": 366,
+          "overBy": 346
+        },
+        {
+          "id": "31497",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-12-17",
+          "end": "2026-04-29",
+          "duration": 356,
+          "overBy": 340
+        },
+        {
+          "id": "30142",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-09-12",
+          "end": "2025-12-31",
+          "duration": 339,
+          "overBy": 320
+        },
+        {
+          "id": "31565",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-12-23",
+          "end": "2026-04-07",
+          "duration": 336,
+          "overBy": 320
+        },
+        {
+          "id": "28750",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2024-07-12",
+          "end": "2025-10-21",
+          "duration": 332,
+          "overBy": 312
+        },
+        {
+          "id": "28748",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2024-07-12",
+          "end": "2025-10-21",
+          "duration": 332,
+          "overBy": 312
+        }
+      ]
+    },
+    "130": {
+      "code": "130",
+      "label": "Inspektorat Wilayah III",
+      "reports": 1990,
+      "assessable": 7465,
+      "onTime": 4786,
+      "late": 1635,
+      "overdueOpen": 1044,
+      "compliance": 0.6411252511721366,
+      "weakest": {
+        "code": "S10",
+        "label": "LHP → surat jawaban",
+        "sla": 23,
+        "assessable": 72,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 72,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "strongest": {
+        "code": "S2",
+        "label": "Disposisi → penunjukan penelaah",
+        "sla": 3,
+        "assessable": 1978,
+        "onTime": 1540,
+        "late": 437,
+        "overdueOpen": 1,
+        "compliance": 0.7785642062689585,
+        "median": 1,
+        "p90": 7
+      },
+      "largestOverdue": {
+        "code": "S11",
+        "label": "Klarifikasi → surat jawaban",
+        "sla": 23,
+        "assessable": 523,
+        "onTime": 0,
+        "late": 12,
+        "overdueOpen": 511,
+        "compliance": 0,
+        "median": 68,
+        "p90": 97.8
+      },
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 1989,
+          "onTime": 1230,
+          "late": 759,
+          "overdueOpen": 0,
+          "compliance": 0.6184012066365008,
+          "median": 3,
+          "p90": 20
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 1978,
+          "onTime": 1540,
+          "late": 437,
+          "overdueOpen": 1,
+          "compliance": 0.7785642062689585,
+          "median": 1,
+          "p90": 7
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 1962,
+          "onTime": 1513,
+          "late": 35,
+          "overdueOpen": 414,
+          "compliance": 0.7711518858307849,
+          "median": 2,
+          "p90": 5
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 542,
+          "onTime": 336,
+          "late": 206,
+          "overdueOpen": 0,
+          "compliance": 0.6199261992619927,
+          "median": 12,
+          "p90": 59
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 64,
+          "onTime": 32,
+          "late": 32,
+          "overdueOpen": 0,
+          "compliance": 0.5,
+          "median": 21,
+          "p90": 87.30000000000003
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 93,
+          "onTime": 30,
+          "late": 63,
+          "overdueOpen": 0,
+          "compliance": 0.3225806451612903,
+          "median": 31,
+          "p90": 94.8
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 94,
+          "onTime": 44,
+          "late": 40,
+          "overdueOpen": 10,
+          "compliance": 0.46808510638297873,
+          "median": 10,
+          "p90": 24.400000000000006
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 64,
+          "onTime": 3,
+          "late": 31,
+          "overdueOpen": 30,
+          "compliance": 0.046875,
+          "median": 32,
+          "p90": 51.4
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 84,
+          "onTime": 58,
+          "late": 20,
+          "overdueOpen": 6,
+          "compliance": 0.6904761904761905,
+          "median": 8,
+          "p90": 20.799999999999983
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 72,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 72,
+          "compliance": 0,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 523,
+          "onTime": 0,
+          "late": 12,
+          "overdueOpen": 511,
+          "compliance": 0,
+          "median": 68,
+          "p90": 97.8
+        }
+      ],
+      "quarters": [
+        {
+          "quarter": "2026 Q3",
+          "reports": 87,
+          "assessable": 236,
+          "onTime": 207,
+          "compliance": 0.8771186440677966
+        },
+        {
+          "quarter": "2026 Q2",
+          "reports": 202,
+          "assessable": 734,
+          "onTime": 548,
+          "compliance": 0.7465940054495913
+        },
+        {
+          "quarter": "2026 Q1",
+          "reports": 248,
+          "assessable": 895,
+          "onTime": 595,
+          "compliance": 0.664804469273743
+        },
+        {
+          "quarter": "2025 Q4",
+          "reports": 263,
+          "assessable": 961,
+          "onTime": 724,
+          "compliance": 0.7533818938605619
+        },
+        {
+          "quarter": "2025 Q3",
+          "reports": 234,
+          "assessable": 875,
+          "onTime": 549,
+          "compliance": 0.6274285714285714
+        },
+        {
+          "quarter": "2025 Q2",
+          "reports": 141,
+          "assessable": 540,
+          "onTime": 281,
+          "compliance": 0.5203703703703704
+        },
+        {
+          "quarter": "2025 Q1",
+          "reports": 194,
+          "assessable": 772,
+          "onTime": 522,
+          "compliance": 0.6761658031088082
+        },
+        {
+          "quarter": "2024 Q4",
+          "reports": 102,
+          "assessable": 400,
+          "onTime": 253,
+          "compliance": 0.6325
+        },
+        {
+          "quarter": "2024 Q3",
+          "reports": 203,
+          "assessable": 809,
+          "onTime": 472,
+          "compliance": 0.5834363411619283
+        },
+        {
+          "quarter": "2024 Q2",
+          "reports": 113,
+          "assessable": 462,
+          "onTime": 252,
+          "compliance": 0.5454545454545454
+        },
+        {
+          "quarter": "2024 Q1",
+          "reports": 203,
+          "assessable": 781,
+          "onTime": 383,
+          "compliance": 0.49039692701664533
+        }
+      ],
+      "extremes": [
+        {
+          "id": "29195",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-08-12",
+          "end": "2026-06-02",
+          "duration": 471,
+          "overBy": 455
+        },
+        {
+          "id": "33569",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2025-06-03",
+          "end": "2026-07-17",
+          "duration": 293,
+          "overBy": 277
+        },
+        {
+          "id": "32066",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2025-02-12",
+          "end": "2026-01-13",
+          "duration": 239,
+          "overBy": 223
+        },
+        {
+          "id": "32066",
+          "stage": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "start": "2025-02-28",
+          "end": "2026-01-27",
+          "duration": 237,
+          "overBy": 223
+        },
+        {
+          "id": "27855",
+          "stage": "S1",
+          "label": "Laporan → disposisi",
+          "start": "2024-03-04",
+          "end": "2024-12-15",
+          "duration": 204,
+          "overBy": 200
+        },
+        {
+          "id": "27454",
+          "stage": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "start": "2024-02-23",
+          "end": "2024-12-17",
+          "duration": 212,
+          "overBy": 197
+        },
+        {
+          "id": "31663",
+          "stage": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "start": "2025-01-18",
+          "end": "2025-10-08",
+          "duration": 188,
+          "overBy": 173
+        },
+        {
+          "id": "29075",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-12-17",
+          "end": "2025-08-29",
+          "duration": 183,
+          "overBy": 167
+        },
+        {
+          "id": "34624",
+          "stage": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "start": "2025-08-10",
+          "end": "2026-03-31",
+          "duration": 167,
+          "overBy": 164
+        },
+        {
+          "id": "32185",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2025-02-13",
+          "end": "2025-10-13",
+          "duration": 172,
+          "overBy": 153
+        }
+      ]
+    },
+    "140": {
+      "code": "140",
+      "label": "Inspektorat Wilayah IV",
+      "reports": 795,
+      "assessable": 3003,
+      "onTime": 1854,
+      "late": 697,
+      "overdueOpen": 452,
+      "compliance": 0.6173826173826173,
+      "weakest": {
+        "code": "S10",
+        "label": "LHP → surat jawaban",
+        "sla": 23,
+        "assessable": 39,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 39,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "strongest": {
+        "code": "S2",
+        "label": "Disposisi → penunjukan penelaah",
+        "sla": 3,
+        "assessable": 792,
+        "onTime": 593,
+        "late": 199,
+        "overdueOpen": 0,
+        "compliance": 0.7487373737373737,
+        "median": 2,
+        "p90": 7
+      },
+      "largestOverdue": {
+        "code": "S11",
+        "label": "Klarifikasi → surat jawaban",
+        "sla": 23,
+        "assessable": 207,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 207,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 794,
+          "onTime": 482,
+          "late": 312,
+          "overdueOpen": 0,
+          "compliance": 0.6070528967254408,
+          "median": 3,
+          "p90": 20
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 792,
+          "onTime": 593,
+          "late": 199,
+          "overdueOpen": 0,
+          "compliance": 0.7487373737373737,
+          "median": 2,
+          "p90": 7
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 777,
+          "onTime": 576,
+          "late": 16,
+          "overdueOpen": 185,
+          "compliance": 0.7413127413127413,
+          "median": 2,
+          "p90": 6
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 211,
+          "onTime": 114,
+          "late": 97,
+          "overdueOpen": 0,
+          "compliance": 0.5402843601895735,
+          "median": 17,
+          "p90": 47
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 19,
+          "onTime": 11,
+          "late": 8,
+          "overdueOpen": 0,
+          "compliance": 0.5789473684210527,
+          "median": 11,
+          "p90": 106.19999999999997
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 49,
+          "onTime": 22,
+          "late": 27,
+          "overdueOpen": 0,
+          "compliance": 0.4489795918367347,
+          "median": 17,
+          "p90": 114.4
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 54,
+          "onTime": 21,
+          "late": 21,
+          "overdueOpen": 12,
+          "compliance": 0.3888888888888889,
+          "median": 11,
+          "p90": 25.499999999999993
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 19,
+          "onTime": 4,
+          "late": 7,
+          "overdueOpen": 8,
+          "compliance": 0.21052631578947367,
+          "median": 18,
+          "p90": 30
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 42,
+          "onTime": 31,
+          "late": 10,
+          "overdueOpen": 1,
+          "compliance": 0.7380952380952381,
+          "median": 5,
+          "p90": 22
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 39,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 39,
+          "compliance": 0,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 207,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 207,
+          "compliance": 0,
+          "median": null,
+          "p90": null
+        }
+      ],
+      "quarters": [
+        {
+          "quarter": "2026 Q3",
+          "reports": 25,
+          "assessable": 62,
+          "onTime": 50,
+          "compliance": 0.8064516129032258
+        },
+        {
+          "quarter": "2026 Q2",
+          "reports": 72,
+          "assessable": 270,
+          "onTime": 205,
+          "compliance": 0.7592592592592593
+        },
+        {
+          "quarter": "2026 Q1",
+          "reports": 88,
+          "assessable": 318,
+          "onTime": 223,
+          "compliance": 0.7012578616352201
+        },
+        {
+          "quarter": "2025 Q4",
+          "reports": 101,
+          "assessable": 402,
+          "onTime": 279,
+          "compliance": 0.6940298507462687
+        },
+        {
+          "quarter": "2025 Q3",
+          "reports": 74,
+          "assessable": 296,
+          "onTime": 192,
+          "compliance": 0.6486486486486487
+        },
+        {
+          "quarter": "2025 Q2",
+          "reports": 73,
+          "assessable": 280,
+          "onTime": 170,
+          "compliance": 0.6071428571428571
+        },
+        {
+          "quarter": "2025 Q1",
+          "reports": 78,
+          "assessable": 304,
+          "onTime": 192,
+          "compliance": 0.631578947368421
+        },
+        {
+          "quarter": "2024 Q4",
+          "reports": 57,
+          "assessable": 214,
+          "onTime": 113,
+          "compliance": 0.5280373831775701
+        },
+        {
+          "quarter": "2024 Q3",
+          "reports": 109,
+          "assessable": 400,
+          "onTime": 218,
+          "compliance": 0.545
+        },
+        {
+          "quarter": "2024 Q2",
+          "reports": 56,
+          "assessable": 221,
+          "onTime": 102,
+          "compliance": 0.46153846153846156
+        },
+        {
+          "quarter": "2024 Q1",
+          "reports": 62,
+          "assessable": 236,
+          "onTime": 110,
+          "compliance": 0.4661016949152542
+        }
+      ],
+      "extremes": [
+        {
+          "id": "30800",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-10-20",
+          "end": "2025-10-21",
+          "duration": 262,
+          "overBy": 246
+        },
+        {
+          "id": "30800",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2024-10-20",
+          "end": "2025-10-08",
+          "duration": 253,
+          "overBy": 233
+        },
+        {
+          "id": "33060",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2025-05-09",
+          "end": "2026-04-21",
+          "duration": 247,
+          "overBy": 231
+        },
+        {
+          "id": "28135",
+          "stage": "S1",
+          "label": "Laporan → disposisi",
+          "start": "2024-03-26",
+          "end": "2024-12-15",
+          "duration": 188,
+          "overBy": 184
+        },
+        {
+          "id": "28280",
+          "stage": "S1",
+          "label": "Laporan → disposisi",
+          "start": "2024-04-19",
+          "end": "2024-12-17",
+          "duration": 172,
+          "overBy": 168
+        },
+        {
+          "id": "37282",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2025-12-06",
+          "end": "2026-07-22",
+          "duration": 163,
+          "overBy": 147
+        },
+        {
+          "id": "32734",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2025-03-27",
+          "end": "2025-10-21",
+          "duration": 148,
+          "overBy": 132
+        },
+        {
+          "id": "27975",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-04-03",
+          "end": "2024-10-18",
+          "duration": 142,
+          "overBy": 123
+        },
+        {
+          "id": "32734",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2025-03-27",
+          "end": "2025-10-08",
+          "duration": 139,
+          "overBy": 119
+        },
+        {
+          "id": "29371",
+          "stage": "S1",
+          "label": "Laporan → disposisi",
+          "start": "2024-07-17",
+          "end": "2024-12-17",
+          "duration": 109,
+          "overBy": 105
+        }
+      ]
+    },
+    "150": {
+      "code": "150",
+      "label": "Inspektorat Wilayah V",
+      "reports": 0,
+      "assessable": 0,
+      "onTime": 0,
+      "late": 0,
+      "overdueOpen": 0,
+      "compliance": null,
+      "weakest": null,
+      "strongest": null,
+      "largestOverdue": null,
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        }
+      ],
+      "quarters": [],
+      "extremes": []
+    },
+    "all": {
+      "code": "all",
+      "label": "Seluruh unit",
+      "reports": 15460,
+      "assessable": 49778,
+      "onTime": 28819,
+      "late": 12605,
+      "overdueOpen": 8354,
+      "compliance": 0.5789505403993732,
+      "weakest": {
+        "code": "S10",
+        "label": "LHP → surat jawaban",
+        "sla": 23,
+        "assessable": 369,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 369,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "strongest": {
+        "code": "S3",
+        "label": "Penunjukan → selesai telaah",
+        "sla": 15,
+        "assessable": 13072,
+        "onTime": 9834,
+        "late": 223,
+        "overdueOpen": 3015,
+        "compliance": 0.7522949816401469,
+        "median": 2,
+        "p90": 7
+      },
+      "largestOverdue": {
+        "code": "S3",
+        "label": "Penunjukan → selesai telaah",
+        "sla": 15,
+        "assessable": 13072,
+        "onTime": 9834,
+        "late": 223,
+        "overdueOpen": 3015,
+        "compliance": 0.7522949816401469,
+        "median": 2,
+        "p90": 7
+      },
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 15300,
+          "onTime": 8588,
+          "late": 4773,
+          "overdueOpen": 1939,
+          "compliance": 0.5613071895424837,
+          "median": 3,
+          "p90": 19
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 13337,
+          "onTime": 8634,
+          "late": 4692,
+          "overdueOpen": 11,
+          "compliance": 0.6473719727075055,
+          "median": 1,
+          "p90": 38
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 13072,
+          "onTime": 9834,
+          "late": 223,
+          "overdueOpen": 3015,
+          "compliance": 0.7522949816401469,
+          "median": 2,
+          "p90": 7
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 3054,
+          "onTime": 974,
+          "late": 2080,
+          "overdueOpen": 0,
+          "compliance": 0.3189259986902423,
+          "median": 30,
+          "p90": 90
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 251,
+          "onTime": 64,
+          "late": 187,
+          "overdueOpen": 0,
+          "compliance": 0.2549800796812749,
+          "median": 48,
+          "p90": 120
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 436,
+          "onTime": 153,
+          "late": 283,
+          "overdueOpen": 0,
+          "compliance": 0.35091743119266056,
+          "median": 31,
+          "p90": 141
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 461,
+          "onTime": 253,
+          "late": 157,
+          "overdueOpen": 51,
+          "compliance": 0.5488069414316703,
+          "median": 8,
+          "p90": 23
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 250,
+          "onTime": 18,
+          "late": 101,
+          "overdueOpen": 131,
+          "compliance": 0.072,
+          "median": 28,
+          "p90": 53.2
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 406,
+          "onTime": 300,
+          "late": 95,
+          "overdueOpen": 11,
+          "compliance": 0.7389162561576355,
+          "median": 7,
+          "p90": 18.600000000000023
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 369,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 369,
+          "compliance": 0,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 2842,
+          "onTime": 1,
+          "late": 14,
+          "overdueOpen": 2827,
+          "compliance": 0.0003518648838845883,
+          "median": 68,
+          "p90": 98
+        }
+      ],
+      "quarters": [
+        {
+          "quarter": "2026 Q3",
+          "reports": 1048,
+          "assessable": 2094,
+          "onTime": 1573,
+          "compliance": 0.7511938872970392
+        },
+        {
+          "quarter": "2026 Q2",
+          "reports": 1812,
+          "assessable": 5273,
+          "onTime": 3242,
+          "compliance": 0.614830267399962
+        },
+        {
+          "quarter": "2026 Q1",
+          "reports": 1954,
+          "assessable": 6068,
+          "onTime": 3143,
+          "compliance": 0.5179630850362558
+        },
+        {
+          "quarter": "2025 Q4",
+          "reports": 1637,
+          "assessable": 5409,
+          "onTime": 2927,
+          "compliance": 0.5411351451284896
+        },
+        {
+          "quarter": "2025 Q3",
+          "reports": 1807,
+          "assessable": 6031,
+          "onTime": 3699,
+          "compliance": 0.6133311225335765
+        },
+        {
+          "quarter": "2025 Q2",
+          "reports": 1384,
+          "assessable": 4685,
+          "onTime": 2903,
+          "compliance": 0.6196371398078976
+        },
+        {
+          "quarter": "2025 Q1",
+          "reports": 1215,
+          "assessable": 4329,
+          "onTime": 2839,
+          "compliance": 0.6558096558096558
+        },
+        {
+          "quarter": "2024 Q4",
+          "reports": 809,
+          "assessable": 2791,
+          "onTime": 1687,
+          "compliance": 0.604442852024364
+        },
+        {
+          "quarter": "2024 Q3",
+          "reports": 1562,
+          "assessable": 5427,
+          "onTime": 3080,
+          "compliance": 0.5675327068361894
+        },
+        {
+          "quarter": "2024 Q2",
+          "reports": 952,
+          "assessable": 3302,
+          "onTime": 1612,
+          "compliance": 0.4881889763779528
+        },
+        {
+          "quarter": "2024 Q1",
+          "reports": 1280,
+          "assessable": 4369,
+          "onTime": 2114,
+          "compliance": 0.48386358434424354
+        }
+      ],
+      "extremes": [
+        {
+          "id": "29195",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-08-12",
+          "end": "2026-06-02",
+          "duration": 471,
+          "overBy": 455
+        },
+        {
+          "id": "28471",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-06-22",
+          "end": "2025-12-31",
+          "duration": 398,
+          "overBy": 379
+        },
+        {
+          "id": "28834",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-06-30",
+          "end": "2025-12-31",
+          "duration": 393,
+          "overBy": 374
+        },
+        {
+          "id": "28275",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-05-21",
+          "end": "2025-11-06",
+          "duration": 382,
+          "overBy": 366
+        },
+        {
+          "id": "28945",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-07-19",
+          "end": "2025-12-31",
+          "duration": 378,
+          "overBy": 359
+        },
+        {
+          "id": "28275",
+          "stage": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "start": "2024-05-21",
+          "end": "2025-10-15",
+          "duration": 366,
+          "overBy": 346
+        },
+        {
+          "id": "31497",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-12-17",
+          "end": "2026-04-29",
+          "duration": 356,
+          "overBy": 340
+        },
+        {
+          "id": "30142",
+          "stage": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "start": "2024-09-12",
+          "end": "2025-12-31",
+          "duration": 339,
+          "overBy": 320
+        },
+        {
+          "id": "31565",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-12-23",
+          "end": "2026-04-07",
+          "duration": 336,
+          "overBy": 320
+        },
+        {
+          "id": "30970",
+          "stage": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "start": "2024-11-10",
+          "end": "2026-02-23",
+          "duration": 336,
+          "overBy": 320
+        }
+      ]
+    },
+    "unassigned": {
+      "code": "unassigned",
+      "label": "Belum terklasifikasi",
+      "reports": 2095,
+      "assessable": 1939,
+      "onTime": 0,
+      "late": 0,
+      "overdueOpen": 1939,
+      "compliance": 0,
+      "weakest": {
+        "code": "S1",
+        "label": "Laporan → disposisi",
+        "sla": 4,
+        "assessable": 1939,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 1939,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "strongest": {
+        "code": "S1",
+        "label": "Laporan → disposisi",
+        "sla": 4,
+        "assessable": 1939,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 1939,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "largestOverdue": {
+        "code": "S1",
+        "label": "Laporan → disposisi",
+        "sla": 4,
+        "assessable": 1939,
+        "onTime": 0,
+        "late": 0,
+        "overdueOpen": 1939,
+        "compliance": 0,
+        "median": null,
+        "p90": null
+      },
+      "stages": [
+        {
+          "code": "S1",
+          "label": "Laporan → disposisi",
+          "sla": 4,
+          "assessable": 1939,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 1939,
+          "compliance": 0,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S2",
+          "label": "Disposisi → penunjukan penelaah",
+          "sla": 3,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S3",
+          "label": "Penunjukan → selesai telaah",
+          "sla": 15,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S4",
+          "label": "Selesai telaah → klarifikasi",
+          "sla": 19,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S5",
+          "label": "Selesai telaah → SK delegasi",
+          "sla": 20,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S6",
+          "label": "Selesai telaah → pembentukan tim",
+          "sla": 16,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S7",
+          "label": "Pembentukan tim → pemeriksaan",
+          "sla": 10,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S8",
+          "label": "SK delegasi → pemeriksaan",
+          "sla": 14,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S9",
+          "label": "Pemeriksaan → LHP",
+          "sla": 10,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S10",
+          "label": "LHP → surat jawaban",
+          "sla": 23,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        },
+        {
+          "code": "S11",
+          "label": "Klarifikasi → surat jawaban",
+          "sla": 23,
+          "assessable": 0,
+          "onTime": 0,
+          "late": 0,
+          "overdueOpen": 0,
+          "compliance": null,
+          "median": null,
+          "p90": null
+        }
+      ],
+      "quarters": [
+        {
+          "quarter": "2026 Q3",
+          "reports": 326,
+          "assessable": 170,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2026 Q2",
+          "reports": 322,
+          "assessable": 322,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2026 Q1",
+          "reports": 256,
+          "assessable": 256,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2025 Q4",
+          "reports": 171,
+          "assessable": 171,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2025 Q3",
+          "reports": 210,
+          "assessable": 210,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2025 Q2",
+          "reports": 196,
+          "assessable": 196,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2025 Q1",
+          "reports": 121,
+          "assessable": 121,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2024 Q4",
+          "reports": 100,
+          "assessable": 100,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2024 Q3",
+          "reports": 153,
+          "assessable": 153,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2024 Q2",
+          "reports": 112,
+          "assessable": 112,
+          "onTime": 0,
+          "compliance": 0
+        },
+        {
+          "quarter": "2024 Q1",
+          "reports": 128,
+          "assessable": 128,
+          "onTime": 0,
+          "compliance": 0
+        }
+      ],
+      "extremes": []
+    }
+  }
+}

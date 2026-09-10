@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "generate:siwas-inspektorat": "node scripts/generate-siwas-inspektorat.mjs",
+    "test:siwas-report": "node scripts/verify-siwas-report.mjs",
     "test:ppg": "node --experimental-strip-types scripts/verify-ppg.ts"
   },
   "dependencies": {
