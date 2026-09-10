@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  outputFileTracingIncludes: {
+    '/api/siwas-report': ['./src/content/laporan_ketepatan_waktu_SIWAS.html'],
+  },
 };
 
 export default nextConfig;

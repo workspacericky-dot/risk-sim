@@ -8,6 +8,7 @@ import {
   Home, Settings, Database, Users, LogOut, Briefcase,
   BarChart2, GaugeCircle, Map, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
   UserCheck, CalendarDays, Wallet, FileSpreadsheet, Plane, X,
+  FolderLock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { bisaAksesCa } from '@/lib/ca-audit-akses'
@@ -113,6 +114,9 @@ export default function Sidebar({ userRole, bisaEPerjadin = false }: { userRole:
           {/* Beranda */}
           <NavItem href="/dashboard" icon={<Home className="w-5 h-5 shrink-0" />} label="Beranda" isExpanded={tampilLabel} />
           <NavItem href="/dashboard/rals" icon={<GraduationCap className="w-5 h-5 shrink-0" />} label="RALS" isExpanded={tampilLabel} />
+          {userRole === 'admin_sistem' && (
+            <NavItem href="/dashboard/siwas" icon={<FolderLock className="w-5 h-5 shrink-0" />} label="Laporan Analisis SIWAS" isExpanded={tampilLabel} />
+          )}
 
           {/* ── MANAJEMEN RISIKO ────────────────────── */}
           <SectionLabel label="Manajemen Risiko" isExpanded={tampilLabel} />

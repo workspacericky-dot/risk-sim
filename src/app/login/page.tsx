@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Lock } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import HeroScene from '@/components/HeroScene'
 
 type Mode = 'masuk' | 'daftar'
@@ -201,6 +202,25 @@ export default function LoginPage() {
                   </Button>
                 </div>
               </form>
+
+              {mode === 'masuk' && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500/80">
+                    <span className="h-px flex-1 bg-white/60" /> Akses laporan publik <span className="h-px flex-1 bg-white/60" />
+                  </div>
+                  <Link
+                    href="/siwas"
+                    className="group flex w-full items-center gap-4 overflow-hidden rounded-xl border border-white/70 bg-white/45 p-2.5 pr-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:bg-white/65 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-500/20"
+                  >
+                    <Image src="/siwas-logo.png" alt="Buka Laporan Analisis SIWAS" width={76} height={62} className="h-14 w-[68px] rounded-lg object-cover shadow-sm transition duration-300 group-hover:scale-105" />
+                    <span className="min-w-0 text-left">
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">Tanpa login · dengan PIN</span>
+                      <span className="mt-0.5 block text-sm font-bold text-slate-700">Laporan Analisis SIWAS</span>
+                    </span>
+                    <span className="ml-auto text-lg text-emerald-700 transition-transform group-hover:translate-x-1">→</span>
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div

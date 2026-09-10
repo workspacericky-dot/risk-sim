@@ -135,6 +135,13 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
   const yearRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
 
+  const closeSearch = useCallback(() => {
+    clearHighlights()
+    setSearchQuery('')
+    setMatchCount(null)
+    setSearchOpen(false)
+  }, [])
+
   // Close dropdowns on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -150,10 +157,6 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
   useEffect(() => {
     if (searchOpen) {
       setTimeout(() => searchInputRef.current?.focus(), 50)
-    } else {
-      clearHighlights()
-      setSearchQuery('')
-      setMatchCount(null)
     }
   }, [searchOpen])
 
@@ -161,12 +164,12 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        setSearchOpen(false)
+        closeSearch()
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [closeSearch])
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query)
@@ -201,7 +204,7 @@ export function DashboardHeader({ userEmail, userName, userRole, initialYear }: 
               </span>
             )}
             <button
-              onClick={() => setSearchOpen(false)}
+              onClick={closeSearch}
               className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
             >
               <X className="size-4 text-slate-500" />
