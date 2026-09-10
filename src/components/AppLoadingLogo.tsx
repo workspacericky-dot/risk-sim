@@ -30,7 +30,6 @@ export function AppLoadingLogo({
             fill
             sizes="128px"
             className={styles.logo}
-            priority
           />
         </span>
       </div>
