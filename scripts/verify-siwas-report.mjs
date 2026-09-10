@@ -36,15 +36,14 @@ for (const expected of [
   'value="150"',
   'Non-Inspektorat',
   'id="analisis-inspektorat"',
-  'id="siwas-methodology-toggle"',
   '"assessable": 49778',
   'id="risiko-ekstrem"',
 ]) {
   if (!html.includes(expected)) throw new Error(`Markup tidak memuat ${expected}.`)
 }
 
-if (html.includes('href="analisis_teknis_ketepatan_waktu_SIWAS.md"')) {
-  throw new Error('Tautan metodologi yang tidak tersedia masih ditemukan.')
+for (const removed of ['id="metode"', '<nav>', 'Cetak laporan', 'Buka rincian metodologi']) {
+  if (html.includes(removed)) throw new Error(`Elemen yang harus dihapus masih ditemukan: ${removed}.`)
 }
 
 const script = html.match(/<script id="risk-sim-siwas-motion">([\s\S]*?)<\/script>/)?.[1]
