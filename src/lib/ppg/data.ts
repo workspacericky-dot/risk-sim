@@ -5,6 +5,7 @@ import { createPpgAdminClient } from './scenario'
 import { analyzePpgReports } from './analytics'
 import { calculatePpgControlEffectiveness, normalizePpgControlText } from './control-effectiveness'
 import { evaluatePpgAppetite } from './risk-appetite'
+import type { PpgAiRecommendation, PpgAiRecommendationRun } from './ai-recommendations'
 
 export async function getPpgOverview() {
   const { supabase } = await requirePpgAdmin()
@@ -105,9 +106,8 @@ export type PpgNationalRiskInsight = {
 export async function getPpgNationalRiskInsights(start: string, end: string) {
   const { supabase } = await requirePpgAdmin()
   const analysisYear = Number(start.slice(0, 4))
-  const [risks, units, events, registers, appetites] = await Promise.all([
+  const [risks, events, registers, appetites] = await Promise.all([
     supabase.from('ppg_risk_library').select('id,kode,kategori,peristiwa').eq('status', 'aktif').order('kode'),
-    supabase.from('unit_kerja').select('id'),
     supabase.from('ppg_loss_events')
       .select('id,risk_library_id,unit_kerja_id,level_dampak,kegagalan_kontrol,klasifikasi_limit,status')
       .gte('tanggal_kejadian', start).lte('tanggal_kejadian', end)
@@ -115,7 +115,6 @@ export async function getPpgNationalRiskInsights(start: string, end: string) {
     supabase.from('ppg_register').select('risk_library_id,unit_kerja_id,tahun,kategori,skor_existing').eq('tahun', analysisYear),
     supabase.from('ppg_risk_appetites').select('*').eq('tahun', analysisYear),
   ])
-  const denominator = units.data?.length ?? 0
   const eventRows = events.data ?? []
   const appetiteByUnit = new Map((appetites.data ?? []).map((row) => [String(row.unit_kerja_id), row]))
   const registerRows = registers.data ?? []
@@ -132,25 +131,28 @@ export async function getPpgNationalRiskInsights(start: string, end: string) {
     const controlFailure = [...byUnit.values()].filter((items) => items.some((item) => String(item.kegagalan_kontrol || '').trim())).length
     const upperLimit = [...byUnit.values()].filter((items) => items.some((item) => item.klasifikasi_limit === 'upper_limit')).length
     const relevantRegisters = registerRows.filter((register) => register.risk_library_id === risk.id)
+    const measuredUnits = new Set([...relevantRegisters.map((register) => String(register.unit_kerja_id)), ...byUnit.keys()])
+    const denominator = measuredUnits.size
     const appetiteSetUnits = new Set(relevantRegisters.filter((register) => appetiteByUnit.has(String(register.unit_kerja_id))).map((register) => String(register.unit_kerja_id)))
     const aboveAppetiteUnits = new Set(relevantRegisters.filter((register) => evaluatePpgAppetite(register.skor_existing, register.kategori, appetiteByUnit.get(String(register.unit_kerja_id))).status === 'di_atas_selera').map((register) => String(register.unit_kerja_id)))
     const cluster1 = [...byUnit.values()].filter((items) => items.length >= 2 || items.some((item) => Number(item.level_dampak) >= 4)).length
     const cluster2 = Math.max(0, affected - cluster1)
-    const percentage = (value: number) => denominator ? Math.round(value / denominator * 10_000) / 100 : 0
+    const observedPercentage = (value: number) => denominator ? Math.round(value / denominator * 10_000) / 100 : 0
+    const appetitePercentage = (value: number) => appetiteSetUnits.size ? Math.round(value / appetiteSetUnits.size * 10_000) / 100 : 0
     return {
       risk_library_id: String(risk.id), kode: String(risk.kode), kategori: String(risk.kategori), peristiwa: String(risk.peristiwa),
-      eligible_satkers: denominator, affected_satkers: affected, affected_pct: percentage(affected),
-      high_impact_satkers: highImpact, high_impact_pct: percentage(highImpact),
-      recurring_satkers: recurring, recurring_pct: percentage(recurring),
-      control_failure_satkers: controlFailure, control_failure_pct: percentage(controlFailure),
+      eligible_satkers: denominator, affected_satkers: affected, affected_pct: observedPercentage(affected),
+      high_impact_satkers: highImpact, high_impact_pct: observedPercentage(highImpact),
+      recurring_satkers: recurring, recurring_pct: observedPercentage(recurring),
+      control_failure_satkers: controlFailure, control_failure_pct: observedPercentage(controlFailure),
       cluster_1_satkers: cluster1, cluster_2_satkers: cluster2, cluster_3_satkers: Math.max(0, denominator - affected),
       appetite_set_satkers: appetiteSetUnits.size, above_appetite_satkers: aboveAppetiteUnits.size,
-      above_appetite_pct: percentage(aboveAppetiteUnits.size), upper_limit_satkers: upperLimit,
+      above_appetite_pct: appetitePercentage(aboveAppetiteUnits.size), upper_limit_satkers: upperLimit,
       recommended_for_program: aboveAppetiteUnits.size > 0 || upperLimit > 0,
       data_confidence: relevant.length && relevant.every((event) => event.risk_library_id && event.unit_kerja_id) ? 'tinggi' : 'terbatas',
     }
   })
-  return { rows, error: risks.error?.message ?? units.error?.message ?? events.error?.message ?? registers.error?.message ?? appetites.error?.message ?? null }
+  return { rows, error: risks.error?.message ?? events.error?.message ?? registers.error?.message ?? appetites.error?.message ?? null }
 }
 
 export async function getPpgActionCatalog() {
@@ -385,6 +387,39 @@ export async function getPpgControlEffectiveness() {
   return { rows, error: null }
 }
 
+export async function getPpgAiRecommendationWorkspace(year: number, quarter: number | null) {
+  const access = await requirePpgAdmin()
+  const admin = createPpgAdminClient(access.scenarioId)
+  let runQuery = admin
+    .from('ppg_ai_recommendation_runs')
+    .select('id,analysis_year,analysis_quarter,period_label,program_label,model,prompt_version,recommendations,created_at')
+    .eq('analysis_year', year)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  runQuery = quarter ? runQuery.eq('analysis_quarter', quarter) : runQuery.is('analysis_quarter', null)
+  const runResult = await runQuery.maybeSingle()
+  if (runResult.error) return { access, run: null, candidates: [], error: runResult.error.message }
+  const rawRun = runResult.data as Record<string, unknown> | null
+  if (!rawRun) return { access, run: null, candidates: [], error: null }
+  const candidateResult = await admin
+    .from('ppg_ai_action_candidates')
+    .select('id,run_id,recommendation_key,status,catatan_review,promoted_action_id,diajukan_at,reviewed_at,action:ppg_action_catalog(kode,nama)')
+    .eq('run_id', String(rawRun.id))
+    .order('diajukan_at', { ascending: false })
+  const run: PpgAiRecommendationRun = {
+    id: String(rawRun.id),
+    analysis_year: Number(rawRun.analysis_year),
+    analysis_quarter: rawRun.analysis_quarter === null ? null : Number(rawRun.analysis_quarter),
+    period_label: String(rawRun.period_label),
+    program_label: String(rawRun.program_label),
+    model: String(rawRun.model),
+    prompt_version: String(rawRun.prompt_version),
+    recommendations: Array.isArray(rawRun.recommendations) ? rawRun.recommendations as PpgAiRecommendation[] : [],
+    created_at: String(rawRun.created_at),
+  }
+  return { access, run, candidates: (candidateResult.data ?? []) as Record<string, unknown>[], error: candidateResult.error?.message ?? null }
+}
+
 export async function getPpgRiskAppetiteWorkspace(year: number) {
   const access = await requirePpgAccess()
   const admin = createPpgAdminClient(access.scenarioId)
@@ -417,15 +452,24 @@ export async function getPpgTreatedRiskWorkspace() {
     .limit(5000)
   if (access.isSatker && access.unitId) registerQuery = registerQuery.eq('unit_kerja_id', access.unitId)
 
-  const [registers, programs] = await Promise.all([
+  let assignmentsQuery = admin
+    .from('ppg_satker_program_assignments')
+    .select('*,register:ppg_register(id,kode,unit_kerja_id,unit_nama,risk_library_id,peristiwa,skor_existing,level_existing),item:ppg_program_items(id,risk_library_id,status,action:ppg_action_catalog(kode,nama),program:ppg_programs(id,kode,nama,status,ditetapkan_at,program_start,program_end))')
+    .order('updated_at', { ascending: false })
+    .limit(5000)
+  if (access.isSatker && access.unitId) assignmentsQuery = assignmentsQuery.eq('unit_kerja_id', access.unitId)
+
+  const [registers, programs, assignments] = await Promise.all([
     registerQuery,
-    admin.from('ppg_programs').select('id,kode,nama,status,program_start,program_end,items:ppg_program_items(id,risk_library_id,status)').order('created_at', { ascending: false }).limit(500),
+    admin.from('ppg_programs').select('id,kode,nama,status,ditetapkan_at,program_start,program_end,items:ppg_program_items(id,risk_library_id,status,action:ppg_action_catalog(kode,nama),clusters:ppg_program_clusters(id,units:ppg_program_cluster_units(unit_kerja_id)))').order('created_at', { ascending: false }).limit(500),
+    assignmentsQuery,
   ])
   return {
     access,
     registers: (registers.data ?? []) as Record<string, unknown>[],
     programs: (programs.data ?? []) as Record<string, unknown>[],
-    error: registers.error?.message ?? programs.error?.message ?? null,
+    assignments: (assignments.data ?? []) as Record<string, unknown>[],
+    error: registers.error?.message ?? programs.error?.message ?? assignments.error?.message ?? null,
   }
 }
 

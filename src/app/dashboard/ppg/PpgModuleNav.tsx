@@ -20,12 +20,12 @@ export function PpgModuleNav({ isSatker = false }: { isSatker?: boolean }) {
   const pathname = usePathname()
   const visibleItems = isSatker ? items.filter((item) => ['/dashboard/ppg/penilaian', '/dashboard/ppg/selera-risiko', '/dashboard/ppg/loss-event', '/dashboard/ppg/tindak-lanjut'].includes(item.href)) : items
   return (
-    <nav aria-label="Navigasi modul PPG" className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white/85 p-2 shadow-sm backdrop-blur">
+    <nav aria-label="Navigasi modul PPG" className="grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-white/85 p-2 shadow-sm backdrop-blur sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-8">
       {visibleItems.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href)
         return (
-          <Link key={href} href={href} className={cn('flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors', active ? 'bg-indigo-700 text-white shadow-sm' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-800')}>
-            <Icon className="h-4 w-4" />{label}
+          <Link key={href} href={href} className={cn('flex min-w-0 items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-center text-xs font-semibold leading-tight transition-colors xl:text-sm', active ? 'bg-indigo-700 text-white shadow-sm' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-800')}>
+            <Icon className="h-4 w-4 shrink-0" /><span>{label}</span>
           </Link>
         )
       })}

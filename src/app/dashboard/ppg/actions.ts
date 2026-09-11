@@ -12,6 +12,7 @@ import { fetchAllReports } from '@/lib/ppg/data'
 import { buildPpgAssistedInsights } from '@/lib/ppg/insights'
 import { matchLossEventReports } from '@/lib/ppg/led'
 import { evaluatePpgAppetite } from '@/lib/ppg/risk-appetite'
+import { isPpgProgramItemEligibleForPlanning } from '@/lib/ppg/program-eligibility'
 
 function text(data: FormData, key: string) { return String(data.get(key) ?? '').trim() }
 function integer(data: FormData, key: string, fallback = 0) { const value = Number(data.get(key)); return Number.isFinite(value) ? Math.trunc(value) : fallback }
@@ -168,51 +169,121 @@ export async function addPpgRegister(formData: FormData) {
   revalidatePath('/dashboard/ppg')
 }
 
-export type PpgTreatedRiskActionState = { status: 'idle' | 'success' | 'error'; message: string }
+export type PpgProgramPhaseState = { status: 'idle' | 'success' | 'error'; message: string }
 
-export async function updatePpgTreatedRisk(_previousState: PpgTreatedRiskActionState, formData: FormData): Promise<PpgTreatedRiskActionState> {
+export async function savePpgSatkerProgramPlan(_previousState: PpgProgramPhaseState, formData: FormData): Promise<PpgProgramPhaseState> {
   const access = await requirePpgAccess()
-  if (!access.isAdmin && !access.isSatker) return treatedRiskError('Penilaian dampak Program PPG hanya dapat diisi oleh UPG Satker atau Admin Sistem.')
+  if (!access.isAdmin && !access.isSatker) return phaseError('Perencanaan Program PPG hanya dapat diisi oleh UPG Satker atau Admin Sistem.')
   const registerId = text(formData, 'register_id')
-  const programId = text(formData, 'program_id')
-  const programEffectiveness = text(formData, 'efektivitas_program')
-  const evidenceUrl = text(formData, 'bukti_efektivitas_program_url')
-  if (!isUuid(registerId) || !isUuid(programId)) return treatedRiskError('Pilih Risk Register dan Program PPG yang terkait.')
-  if (!['tidak_efektif','kurang_efektif','cukup_efektif','efektif'].includes(programEffectiveness)) return treatedRiskError('Pilih efektivitas Program PPG.')
-  if (!isHttpsUrl(evidenceUrl)) return treatedRiskError('Evidence Program PPG wajib berupa tautan HTTPS yang valid.')
-  const kemungkinanTreated = integer(formData, 'kemungkinan_treated')
-  const dampakTreated = integer(formData, 'dampak_treated')
-  let treatedAssessment
-  try { treatedAssessment = ppgAssessment(kemungkinanTreated, dampakTreated) } catch { return treatedRiskError('Probabilitas dan dampak treated risk harus berada pada skala 1–5.') }
+  const itemId = text(formData, 'program_item_id')
+  const plannedStart = text(formData, 'planned_start')
+  const plannedEnd = text(formData, 'planned_end')
+  const pic = text(formData, 'pic_jabatan').slice(0, 500)
+  if (!isUuid(registerId) || !isUuid(itemId)) return phaseError('Pilih Risk Register dan Program PPG yang akan dialokasikan.')
+  if (!isIsoDate(plannedStart) || !isIsoDate(plannedEnd) || plannedStart > plannedEnd) return phaseError('Rentang waktu rencana tidak valid.')
+  if (pic.length < 3) return phaseError('PIC program wajib diisi.')
 
   const admin = createPpgAdminClient(access.scenarioId)
-  const { data: register } = await admin.from('ppg_register').select('id,kode,unit_kerja_id,risk_library_id,skor_existing').eq('id', registerId).single()
-  if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return treatedRiskError('Risk Register tidak ditemukan atau bukan milik Satker Anda.')
-  const { data: completedItem } = await admin.from('ppg_program_items').select('id').eq('program_id', programId).eq('risk_library_id', register.risk_library_id).eq('status', 'selesai').limit(1).maybeSingle()
-  if (!completedItem) return treatedRiskError('Program yang dipilih belum selesai atau tidak menangani risiko pada register tersebut.')
-  const { error } = await admin.from('ppg_register').update({
-    kemungkinan_treated: kemungkinanTreated,
-    dampak_treated: dampakTreated,
-    skor_treated: treatedAssessment.score,
-    level_treated: treatedAssessment.level,
-    treated_program_id: programId,
-    efektivitas_program: programEffectiveness,
-    bukti_efektivitas_program_url: evidenceUrl,
-    treated_assessed_by: access.user.id,
-    treated_assessed_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq('id', registerId)
-  if (error) return treatedRiskError(`Penilaian dampak program gagal disimpan: ${error.message}`)
-  await admin.from('ppg_audit_log').insert({ actor_id: access.user.id, entity_type: 'ppg_register', entity_id: registerId, action: 'nilai_dampak_program_ppg', changes: { program_id: programId, skor_residual: register.skor_existing, skor_treated: treatedAssessment.score, efektivitas_program: programEffectiveness, memiliki_bukti: true } })
-  revalidatePath('/dashboard/ppg/penilaian')
-  revalidatePath('/dashboard/ppg/tindak-lanjut')
-  revalidatePath('/dashboard/ppg')
-  const delta = treatedAssessment.score - Number(register.skor_existing)
-  const change = delta < 0 ? `turun ${Math.abs(delta)} poin` : delta > 0 ? `naik ${delta} poin` : 'tidak berubah'
-  return { status: 'success', message: `Dampak Program PPG tersimpan. Treated risk ${treatedAssessment.score} (${treatedAssessment.level}); dibanding residual risk, skor ${change}.` }
+  const [{ data: register }, { data: item }] = await Promise.all([
+    admin.from('ppg_register').select('id,kode,unit_kerja_id,risk_library_id').eq('id', registerId).single(),
+    admin.from('ppg_program_items').select('id,risk_library_id,program:ppg_programs(id,kode,status,ditetapkan_at,program_start,program_end),clusters:ppg_program_clusters(id,units:ppg_program_cluster_units(unit_kerja_id))').eq('id', itemId).single(),
+  ])
+  if (!register || (access.isSatker && register.unit_kerja_id !== access.unitId)) return phaseError('Risk Register tidak ditemukan atau bukan milik Satker Anda.')
+  const program = relation(item?.program)
+  if (!item || !isPpgProgramItemEligibleForPlanning({ ...program, items: [item] }, itemId, register)) return phaseError('Program belum ditetapkan, tidak menangani risiko ini, atau Satker tidak termasuk klaster penerima.')
+  if (plannedStart < String(program.program_start) || plannedEnd > String(program.program_end)) return phaseError('Jadwal Satker harus berada dalam rentang pelaksanaan yang ditetapkan UPG Pusat.')
+  const { data: existing } = await admin.from('ppg_satker_program_assignments').select('id,post_submitted_at').eq('program_item_id', itemId).eq('register_id', registerId).maybeSingle()
+  if (existing?.post_submitted_at) return phaseError('Rencana tidak dapat diubah setelah realisasi diajukan. Gunakan fase Pasca Pelaksanaan untuk menindaklanjuti hasil review.')
+
+  const now = new Date().toISOString()
+  const { error } = await admin.from('ppg_satker_program_assignments').upsert({
+    program_item_id: itemId,
+    register_id: registerId,
+    unit_kerja_id: register.unit_kerja_id,
+    planned_start: plannedStart,
+    planned_end: plannedEnd,
+    pic_jabatan: pic,
+    planning_notes: text(formData, 'planning_notes').slice(0, 1500),
+    planned_by: access.user.id,
+    planned_at: now,
+    updated_at: now,
+  }, { onConflict: 'program_item_id,register_id' })
+  if (error) return phaseError(`Rencana Program PPG gagal disimpan: ${error.message}`)
+  await admin.from('ppg_audit_log').insert({ actor_id: access.user.id, entity_type: 'ppg_satker_program_assignment', entity_id: `${itemId}:${registerId}`, action: 'rencanakan_program', changes: { kode_risiko: register.kode, program_item_id: itemId, planned_start: plannedStart, planned_end: plannedEnd, pic_jabatan: pic } })
+  revalidatePpgProgramPhases()
+  return { status: 'success', message: 'Rencana Program PPG tersimpan. Setelah pelaksanaan selesai, lanjutkan ke fase pascapelaksanaan.' }
 }
 
-function treatedRiskError(message: string): PpgTreatedRiskActionState { return { status: 'error', message } }
+export async function submitPpgSatkerProgramRealization(_previousState: PpgProgramPhaseState, formData: FormData): Promise<PpgProgramPhaseState> {
+  const access = await requirePpgAccess()
+  if (!access.isAdmin && !access.isSatker) return phaseError('Realisasi Program PPG hanya dapat diisi oleh UPG Satker atau Admin Sistem.')
+  const assignmentId = text(formData, 'assignment_id')
+  const actualEnd = text(formData, 'actual_end')
+  const effectiveness = text(formData, 'efektivitas_program')
+  const summary = text(formData, 'realization_summary').slice(0, 3000)
+  const evidenceUrl = text(formData, 'evidence_url')
+  if (!isUuid(assignmentId)) return phaseError('Referensi alokasi program tidak valid.')
+  if (!isIsoDate(actualEnd)) return phaseError('Tanggal selesai aktual wajib diisi.')
+  if (!['tidak_efektif','kurang_efektif','cukup_efektif','efektif'].includes(effectiveness)) return phaseError('Pilih efektivitas Program PPG.')
+  if (summary.length < 10) return phaseError('Uraian realisasi wajib diisi sedikitnya 10 karakter.')
+  if (!isHttpsUrl(evidenceUrl)) return phaseError('Evidence realisasi wajib berupa tautan HTTPS yang valid.')
+  const treatedProbability = integer(formData, 'kemungkinan_treated')
+  const treatedImpact = integer(formData, 'dampak_treated')
+  let assessment
+  try { assessment = ppgAssessment(treatedProbability, treatedImpact) } catch { return phaseError('Probabilitas dan dampak treated risk harus berada pada skala 1–5.') }
+
+  const admin = createPpgAdminClient(access.scenarioId)
+  const { data: assignment } = await admin.from('ppg_satker_program_assignments').select('id,register_id,unit_kerja_id,planned_start,program_item_id,register:ppg_register(id,skor_existing),item:ppg_program_items(id,program:ppg_programs(id,status,ditetapkan_at))').eq('id', assignmentId).single()
+  if (!assignment || (access.isSatker && assignment.unit_kerja_id !== access.unitId)) return phaseError('Alokasi program tidak ditemukan atau bukan milik Satker Anda.')
+  const program = relation(relation(assignment.item).program)
+  if (!program.ditetapkan_at || program.status === 'dibatalkan') return phaseError('Program belum ditetapkan atau telah dibatalkan UPG Pusat.')
+  if (actualEnd < String(assignment.planned_start)) return phaseError('Tanggal selesai aktual tidak boleh lebih awal dari tanggal mulai rencana.')
+  const now = new Date().toISOString()
+  const { error } = await admin.from('ppg_satker_program_assignments').update({
+    actual_end: actualEnd,
+    realization_summary: summary,
+    efektivitas_program: effectiveness,
+    evidence_url: evidenceUrl,
+    kemungkinan_treated: treatedProbability,
+    dampak_treated: treatedImpact,
+    skor_treated: assessment.score,
+    level_treated: assessment.level,
+    post_submitted_by: access.user.id,
+    post_submitted_at: now,
+    validation_status: 'menunggu',
+    validation_notes: '',
+    validated_by: null,
+    validated_at: null,
+    updated_at: now,
+  }).eq('id', assignmentId)
+  if (error) return phaseError(`Realisasi Program PPG gagal disimpan: ${error.message}`)
+  const register = relation(assignment.register)
+  await admin.from('ppg_register').update({ kemungkinan_treated: treatedProbability, dampak_treated: treatedImpact, skor_treated: assessment.score, level_treated: assessment.level, treated_program_id: program.id, efektivitas_program: effectiveness, bukti_efektivitas_program_url: evidenceUrl, treated_assessed_by: access.user.id, treated_assessed_at: now, updated_at: now }).eq('id', assignment.register_id)
+  await admin.from('ppg_audit_log').insert({ actor_id: access.user.id, entity_type: 'ppg_satker_program_assignment', entity_id: assignmentId, action: 'ajukan_realisasi_program', changes: { program_item_id: assignment.program_item_id, skor_residual: register.skor_existing, skor_treated: assessment.score, efektivitas_program: effectiveness, actual_end: actualEnd } })
+  revalidatePpgProgramPhases()
+  return { status: 'success', message: `Realisasi diajukan. Treated risk ${assessment.score} (${assessment.level}) menunggu validasi UPG Pusat.` }
+}
+
+export async function validatePpgSatkerProgramRealization(_previousState: PpgProgramPhaseState, formData: FormData): Promise<PpgProgramPhaseState> {
+  const { supabase, user } = await requirePpgAdmin()
+  const assignmentId = text(formData, 'assignment_id')
+  const decision = text(formData, 'decision')
+  const notes = text(formData, 'validation_notes').slice(0, 1500)
+  if (!isUuid(assignmentId) || !['disetujui','perlu_perbaikan','ditolak'].includes(decision)) return phaseError('Keputusan validasi tidak valid.')
+  if (decision !== 'disetujui' && notes.length < 5) return phaseError('Catatan wajib diisi untuk keputusan perbaikan atau penolakan.')
+  const { data: assignment } = await supabase.from('ppg_satker_program_assignments').select('id,post_submitted_at,evidence_url,efektivitas_program,skor_treated').eq('id', assignmentId).single()
+  if (!assignment?.post_submitted_at) return phaseError('Satker belum mengajukan realisasi program.')
+  if (decision === 'disetujui' && (!assignment.evidence_url || !assignment.efektivitas_program || !assignment.skor_treated)) return phaseError('Realisasi belum lengkap dan tidak dapat disetujui.')
+  const now = new Date().toISOString()
+  const { error } = await supabase.from('ppg_satker_program_assignments').update({ validation_status: decision, validation_notes: notes, validated_by: user.id, validated_at: now, updated_at: now }).eq('id', assignmentId)
+  if (error) return phaseError(`Validasi realisasi gagal disimpan: ${error.message}`)
+  await supabase.from('ppg_audit_log').insert({ actor_id: user.id, entity_type: 'ppg_satker_program_assignment', entity_id: assignmentId, action: 'validasi_realisasi_program', changes: { status: decision, catatan: notes } })
+  revalidatePpgProgramPhases()
+  return { status: 'success', message: `Realisasi Program PPG ${decision.replaceAll('_', ' ')}.` }
+}
+
+function phaseError(message: string): PpgProgramPhaseState { return { status: 'error', message } }
+function revalidatePpgProgramPhases() { revalidatePath('/dashboard/ppg/tindak-lanjut'); revalidatePath('/dashboard/ppg/penilaian'); revalidatePath('/dashboard/ppg') }
 
 export async function deletePpgRegister(formData: FormData) {
   const access = await requirePpgAccess()
@@ -283,7 +354,8 @@ export async function addPpgMitigation(formData: FormData) {
 }
 
 export async function createPpgProgram(formData: FormData) {
-  const { supabase, user } = await requirePpgAdmin()
+  const access = await requirePpgAdmin()
+  const { supabase, user } = access
   const actionId = text(formData, 'action_catalog_id')
   const controlIds = uniqueUuids(formData.getAll('control_ids'))
   const riskLibraryId = text(formData, 'risk_library_id')
@@ -311,6 +383,18 @@ export async function createPpgProgram(formData: FormData) {
   if (!mappedControls || mappedControls.length !== controlIds.length) return
   const allowedRiskCategories = Array.isArray(action.risk_categories) ? action.risk_categories.map(String) : []
   if (allowedRiskCategories.length && !allowedRiskCategories.includes(String(risk.kategori))) return
+  const aiRunId = text(formData, 'ai_run_id')
+  const aiRecommendationKey = text(formData, 'ai_recommendation_key')
+  let aiRecommendation: Record<string, unknown> | null = null
+  if (access.isDemo && isUuid(aiRunId) && aiRecommendationKey) {
+    const { data: aiRun } = await supabase.from('ppg_ai_recommendation_runs').select('id,model,prompt_version,recommendations').eq('id', aiRunId).single()
+    const candidate = (Array.isArray(aiRun?.recommendations) ? aiRun.recommendations : []).map(record).find((item) => item.key === aiRecommendationKey && item.linked_risk_id === risk.id)
+    if (candidate && aiRun) {
+      const matchesExisting = candidate.existing_action_code === action.kode
+      const { data: promoted } = matchesExisting ? { data: null } : await supabase.from('ppg_ai_action_candidates').select('id').eq('run_id', aiRunId).eq('recommendation_key', aiRecommendationKey).eq('status', 'disetujui').eq('promoted_action_id', action.id).maybeSingle()
+      if (matchesExisting || promoted) aiRecommendation = { ...candidate, run_id: aiRun.id, model: aiRun.model, prompt_version: aiRun.prompt_version }
+    }
+  }
   const analytics = analyzePpgReports(reports, analysisYear, quarter)
   const [{ data: lossEvents }, { data: riskRegisters }, { data: riskAppetites }] = await Promise.all([
     supabase.from('ppg_loss_events').select('id,unit_kerja_id,level_dampak,kegagalan_kontrol,klasifikasi_limit').eq('risk_library_id', riskLibraryId).gte('tanggal_kejadian', analytics.period.start).lte('tanggal_kejadian', analytics.period.end).in('status', ['tervalidasi','tindak_lanjut','ditutup']),
@@ -324,17 +408,22 @@ export async function createPpgProgram(formData: FormData) {
     eventsByUnit.set(unitId, [...(eventsByUnit.get(unitId) ?? []), event])
   })
   const affectedSatkers = eventsByUnit.size
-  const affectedPct = units.length ? Math.round(affectedSatkers / units.length * 10_000) / 100 : 0
+  const measuredUnitIds = new Set([...(riskRegisters ?? []).map((register) => String(register.unit_kerja_id)), ...eventsByUnit.keys()])
+  const measuredUnits = units.filter((unit) => measuredUnitIds.has(String(unit.id)))
+  const observedDenominator = measuredUnitIds.size
+  const observedPct = (value: number) => observedDenominator ? Math.round(value / observedDenominator * 10_000) / 100 : 0
+  const affectedPct = observedPct(affectedSatkers)
   const highImpactSatkers = [...eventsByUnit.values()].filter((items) => items.some((event) => Number(event.level_dampak) >= 4)).length
   const recurringSatkers = [...eventsByUnit.values()].filter((items) => items.length >= 2).length
   const controlFailureSatkers = [...eventsByUnit.values()].filter((items) => items.some((event) => String(event.kegagalan_kontrol || '').trim())).length
   const upperLimitSatkers = new Set((lossEvents ?? []).filter((event) => event.klasifikasi_limit === 'upper_limit').map((event) => String(event.unit_kerja_id))).size
   const appetiteByUnit = new Map((riskAppetites ?? []).map((row) => [String(row.unit_kerja_id), row]))
-  const appetiteSetSatkers = new Set((riskAppetites ?? []).map((row) => String(row.unit_kerja_id))).size
+  const appetiteSetUnitIds = new Set((riskRegisters ?? []).filter((register) => appetiteByUnit.has(String(register.unit_kerja_id))).map((register) => String(register.unit_kerja_id)))
+  const appetiteSetSatkers = appetiteSetUnitIds.size
   const aboveAppetiteSatkers = new Set((riskRegisters ?? []).filter((register) => evaluatePpgAppetite(register.skor_existing, register.kategori, appetiteByUnit.get(String(register.unit_kerja_id))).status === 'di_atas_selera').map((register) => String(register.unit_kerja_id))).size
-  const asPct = (value: number) => units.length ? Math.round(value / units.length * 10_000) / 100 : 0
+  const appetitePct = (value: number) => appetiteSetSatkers ? Math.round(value / appetiteSetSatkers * 10_000) / 100 : 0
   const clusterCounts = { kritis: 0, preventif: 0, monitoring: 0 }
-  units.forEach((unit) => {
+  measuredUnits.forEach((unit) => {
     const items = eventsByUnit.get(String(unit.id)) ?? []
     if (items.length >= 2 || items.some((event) => Number(event.level_dampak) >= 4)) clusterCounts.kritis += 1
     else if (items.length) clusterCounts.preventif += 1
@@ -342,12 +431,12 @@ export async function createPpgProgram(formData: FormData) {
   })
   const machineInsight = buildPpgAssistedInsights(analytics, [{
     risk_library_id: String(risk.id), kode: String(risk.kode), kategori: String(risk.kategori), peristiwa: String(risk.peristiwa),
-    eligible_satkers: units.length, affected_satkers: affectedSatkers, affected_pct: affectedPct,
-    high_impact_satkers: highImpactSatkers, high_impact_pct: asPct(highImpactSatkers),
-    recurring_satkers: recurringSatkers, recurring_pct: asPct(recurringSatkers),
-    control_failure_satkers: controlFailureSatkers, control_failure_pct: asPct(controlFailureSatkers),
+    eligible_satkers: observedDenominator, affected_satkers: affectedSatkers, affected_pct: affectedPct,
+    high_impact_satkers: highImpactSatkers, high_impact_pct: observedPct(highImpactSatkers),
+    recurring_satkers: recurringSatkers, recurring_pct: observedPct(recurringSatkers),
+    control_failure_satkers: controlFailureSatkers, control_failure_pct: observedPct(controlFailureSatkers),
     cluster_1_satkers: clusterCounts.kritis, cluster_2_satkers: clusterCounts.preventif, cluster_3_satkers: clusterCounts.monitoring,
-    appetite_set_satkers: appetiteSetSatkers, above_appetite_satkers: aboveAppetiteSatkers, above_appetite_pct: asPct(aboveAppetiteSatkers),
+    appetite_set_satkers: appetiteSetSatkers, above_appetite_satkers: aboveAppetiteSatkers, above_appetite_pct: appetitePct(aboveAppetiteSatkers),
     upper_limit_satkers: upperLimitSatkers, recommended_for_program: aboveAppetiteSatkers > 0 || upperLimitSatkers > 0,
     data_confidence: lossEvents?.length ? 'tinggi' : 'terbatas',
   }])[0]
@@ -361,15 +450,17 @@ export async function createPpgProgram(formData: FormData) {
     topScenarios: analytics.scenarios.slice(0, 10),
     associations: analytics.associations,
     insightB: {
-      risk_library_id: risk.id, risk_code: risk.kode, eligible_satkers: units.length,
+      risk_library_id: risk.id, risk_code: risk.kode, eligible_satkers: observedDenominator,
       affected_satkers: affectedSatkers, affected_satkers_pct: affectedPct,
       appetite_set_satkers: appetiteSetSatkers, above_appetite_satkers: aboveAppetiteSatkers,
-      above_appetite_satkers_pct: asPct(aboveAppetiteSatkers), upper_limit_satkers: upperLimitSatkers,
+      above_appetite_satkers_pct: appetitePct(aboveAppetiteSatkers), upper_limit_satkers: upperLimitSatkers,
       recommended_for_program: aboveAppetiteSatkers > 0 || upperLimitSatkers > 0,
       cluster_counts: clusterCounts,
-      metric_basis: 'persentase_satker',
+      metric_basis: 'persentase_satker_terukur',
+      denominator_note: 'Loss event memakai Satker yang memiliki register risiko atau event pada periode; appetite memakai Satker yang telah menetapkan appetite untuk register tersebut.',
     },
     assistedInsight: machineInsight,
+    aiRecommendation,
   }
   const { data: snapshot } = await supabase.from('ppg_analysis_snapshots').insert({
     analysis_start: analytics.period.start,
@@ -378,9 +469,9 @@ export async function createPpgProgram(formData: FormData) {
     baseline_end: analytics.period.baselineEnd,
     period_label: analytics.period.label,
     program_label: analytics.period.programLabel,
-    method_version: 'combined-a-b-v2',
+    method_version: 'combined-a-b-v3',
     summary: snapshotSummary,
-    recommendations: analytics.recommendations,
+    recommendations: aiRecommendation ? [aiRecommendation] : analytics.recommendations,
     created_by: user.id,
   }).select('id').single()
   if (!snapshot) return
@@ -407,7 +498,7 @@ export async function createPpgProgram(formData: FormData) {
     risk_library_id: risk.id,
     control_id: controls[0].id,
     action_catalog_id: action.id,
-    rationale: `${recommendation?.rationale || `Tindakan katalog dipilih untuk risiko ${risk.kode}: ${risk.peristiwa}`} Insight B menunjukkan ${affectedPct.toFixed(1)}% Satker mengalami loss event tervalidasi pada risiko generik ini.`,
+    rationale: `${String(aiRecommendation?.reasoning_summary || recommendation?.rationale || `Tindakan katalog dipilih untuk risiko ${risk.kode}: ${risk.peristiwa}`)} Insight B menunjukkan ${affectedPct.toFixed(1)}% Satker mengalami loss event tervalidasi pada risiko generik ini.`,
     target: text(formData, 'target') || recommendation?.target || action.target_default,
     sasaran_program: text(formData, 'sasaran_program'),
     indikator_program: machineInsight.suggested_outcome_b,
@@ -447,7 +538,7 @@ export async function createPpgProgram(formData: FormData) {
   const { data: clusters, error: clusterError } = await supabase.from('ppg_program_clusters').insert(clusterDefinitions.map((cluster) => ({ ...cluster, program_item_id: programItem.id, target_cakupan_satker: percentage(formData, `cluster_${cluster.kode}_target_pct`, 100) }))).select('id,kode')
   if (clusterError || !clusters) { await supabase.from('ppg_programs').delete().eq('id', program.id); await supabase.from('ppg_analysis_snapshots').delete().eq('id', snapshot.id); return }
   const clusterIdByCode = new Map(clusters.map((cluster) => [Number(cluster.kode), String(cluster.id)]))
-  const assignments = units.map((unit) => {
+  const assignments = measuredUnits.map((unit) => {
     const items = eventsByUnit.get(String(unit.id)) ?? []
     const code = items.length >= 2 || items.some((event) => Number(event.level_dampak) >= 4) ? 1 : items.length ? 2 : 3
     return { program_cluster_id: clusterIdByCode.get(code), unit_kerja_id: unit.id, basis: { event_count: items.length, highest_impact: items.reduce((highest, event) => Math.max(highest, Number(event.level_dampak || 0)), 0), source: 'insight_b' } }
@@ -462,13 +553,47 @@ export async function createPpgProgram(formData: FormData) {
   revalidatePath('/dashboard/ppg/analitik')
 }
 
-export async function addPpgProgramUpdate(formData: FormData) {
+export type PpgProgramApprovalState = { status: 'idle' | 'success' | 'error'; message: string }
+
+export async function approvePpgProgram(_previousState: PpgProgramApprovalState, formData: FormData): Promise<PpgProgramApprovalState> {
   const { supabase, user } = await requirePpgAdmin()
+  const programId = text(formData, 'program_id')
+  const note = text(formData, 'catatan_penetapan').slice(0, 1500)
+  if (!isUuid(programId)) return programApprovalError('Referensi Program PPG tidak valid.')
+  if (note.length < 10) return programApprovalError('Catatan penetapan wajib diisi sedikitnya 10 karakter.')
+  const { data: program, error: loadError } = await supabase.from('ppg_programs').select('id,kode,status,ditetapkan_at,items:ppg_program_items(id)').eq('id', programId).single()
+  if (loadError || !program) return programApprovalError('Program PPG tidak ditemukan pada save slot aktif.')
+  if (program.ditetapkan_at) return programApprovalError('Program PPG ini sudah pernah ditetapkan.')
+  if (program.status === 'dibatalkan') return programApprovalError('Program yang dibatalkan tidak dapat ditetapkan.')
+  if (!Array.isArray(program.items) || !program.items.length) return programApprovalError('Program belum mempunyai item tindakan yang dapat ditetapkan.')
+  const now = new Date().toISOString()
+  const { data: established, error } = await supabase.from('ppg_programs').update({
+    status: program.status === 'dirancang' ? 'ditetapkan' : program.status,
+    ditetapkan_by: user.id,
+    ditetapkan_at: now,
+    catatan_penetapan: note,
+    updated_at: now,
+  }).eq('id', programId).is('ditetapkan_at', null).select('id').maybeSingle()
+  if (error) return programApprovalError(`Penetapan program gagal disimpan: ${error.message}`)
+  if (!established) return programApprovalError('Program telah ditetapkan oleh pengguna lain. Muat ulang halaman untuk melihat status terbaru.')
+  await supabase.from('ppg_audit_log').insert({ actor_id: user.id, entity_type: 'ppg_program', entity_id: programId, action: 'tetapkan', changes: { kode: program.kode, status_sebelum: program.status, status_sesudah: program.status === 'dirancang' ? 'ditetapkan' : program.status, catatan_penetapan: note } })
+  revalidatePath('/dashboard/ppg/tindak-lanjut')
+  revalidatePath('/dashboard/ppg')
+  return { status: 'success', message: 'Program PPG telah ditetapkan dan dapat memasuki tahap pelaksanaan.' }
+}
+
+export async function addPpgProgramUpdate(formData: FormData) {
+  const access = await requirePpgAccess()
+  if (!access.isAdmin) return
+  const { supabase, user } = access
   const itemId = text(formData, 'program_item_id')
   const status = text(formData, 'status')
   const progress = integer(formData, 'progres')
   const allowed = ['belum_dimulai', 'berjalan', 'terhambat', 'selesai', 'dibatalkan']
   if (!isUuid(itemId) || !allowed.includes(status) || progress < 0 || progress > 100) return
+  const { data: item } = await supabase.from('ppg_program_items').select('id,program_id,program:ppg_programs(id,ditetapkan_at,status)').eq('id', itemId).single()
+  const parent = relation(item?.program)
+  if (!item || !parent.ditetapkan_at || parent.status === 'dibatalkan') return
   const payload = {
     program_item_id: itemId,
     tanggal: text(formData, 'tanggal') || new Date().toISOString().slice(0, 10),
@@ -484,6 +609,14 @@ export async function addPpgProgramUpdate(formData: FormData) {
   const { error } = await supabase.from('ppg_program_updates').insert(payload)
   if (error) return
   await supabase.from('ppg_program_items').update({ status, progres: progress, updated_at: new Date().toISOString() }).eq('id', itemId)
+  const { data: siblings } = await supabase.from('ppg_program_items').select('status').eq('program_id', item.program_id)
+  const statuses = (siblings ?? []).map((row) => String(row.status))
+  const programStatus = statuses.length && statuses.every((value) => value === 'dibatalkan') ? 'dibatalkan'
+    : statuses.length && statuses.every((value) => ['selesai', 'dibatalkan'].includes(value)) ? 'selesai'
+      : statuses.includes('terhambat') ? 'terhambat'
+        : statuses.some((value) => ['berjalan', 'selesai'].includes(value)) ? 'berjalan'
+          : 'ditetapkan'
+  await supabase.from('ppg_programs').update({ status: programStatus, updated_at: new Date().toISOString() }).eq('id', item.program_id)
   revalidatePath('/dashboard/ppg/tindak-lanjut')
 }
 
@@ -504,6 +637,7 @@ export type PpgLossEventActionState = { status: 'idle' | 'success' | 'error'; me
 
 export async function createPpgLossEvent(_previousState: PpgLossEventActionState, formData: FormData): Promise<PpgLossEventActionState> {
   const access = await requirePpgAccess()
+  if (!access.isSatker && !access.isAdmin) return lossEventError('Pembuatan Loss Event hanya tersedia bagi UPG Satker. Admin Sistem tetap dapat mengaksesnya untuk debugging dan pengembangan.')
   const admin = createPpgAdminClient(access.scenarioId)
   const unitId = access.isSatker ? access.unitId : text(formData, 'unit_kerja_id')
   const eventDate = text(formData, 'tanggal_kejadian')
@@ -682,4 +816,16 @@ function lossEventError(message: string): PpgLossEventActionState {
 
 function normalizeLabel(value: unknown) {
   return String(value ?? '').toLocaleLowerCase('id-ID').replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+function programApprovalError(message: string): PpgProgramApprovalState {
+  return { status: 'error', message }
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function relation(value: unknown): Record<string, unknown> {
+  return Array.isArray(value) ? record(value[0]) : record(value)
 }

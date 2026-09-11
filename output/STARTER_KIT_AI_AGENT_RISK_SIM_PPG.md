@@ -1,6 +1,6 @@
 # Starter Kit AI Agent — Risk Sim dan Modul Khusus PPG
 
-**Versi handoff:** 1.0  
+**Versi handoff:** 1.1
 **Tanggal snapshot:** 8 September 2026  
 **Repository:** `workspacericky-dot/risk-sim`  
 **Branch aktif saat snapshot:** `main`  
@@ -108,7 +108,7 @@ Bagian ini menjelaskan urutan evolusi fitur agar agent baru memahami alasan di b
 
 - Menambahkan laporan perencanaan dan pelaksanaan Program PPG dalam tampilan siap-cetak sehingga pengguna dapat menyimpan PDF melalui browser, serta ekspor XLSX untuk pengolahan lanjutan.
 - Menyusun panduan pengguna dan spesifikasi teknis awal dalam PDF, kemudian memperbaruinya sebagai Markdown di folder `output/` agar mudah dipelihara bersama source code.
-- Menjelaskan rumus Insight A/B, fusi skor, sumber data, pembobotan, interpretasi, keterbatasan, dan kebutuhan kalibrasi berkala pada spesifikasi teknis.
+- Menjelaskan rumus Insight A/B, gabungan skor, sumber data, pembobotan, interpretasi, keterbatasan, dan kebutuhan kalibrasi berkala pada spesifikasi teknis.
 
 #### E. Identitas deployment
 
@@ -175,7 +175,7 @@ flowchart LR
   KC --> RL[Risk Library generik]
   RL --> PR[Penilaian satker: inherent + residual]
   LE[Loss Event tervalidasi] --> IB[Insight B: realisasi]
-  IA --> F[Fusi A x B]
+  IA --> F[Gabungan A x B]
   IB --> F
   F --> PG[Assisted generation Program PPG]
   RL --> PG
@@ -242,7 +242,7 @@ UI bukan batas keamanan. Gunakan profil autentikasi, ownership unit, dan RLS pad
 | `src/lib/ppg/import-workbook.ts` | Parser laporan gratifikasi dengan sanitasi PII. |
 | `src/lib/ppg/risk-register-workbook.ts` | Parser Risk Register 2026, normalisasi, signature, similarity. |
 | `src/lib/ppg/analytics.ts` | Analisis tren, objek, musim, asosiasi, kualitas, rekomendasi. |
-| `src/lib/ppg/insights.ts` | Insight A, fusi A/B, baseline, KRI, klaster, assisted insight. |
+| `src/lib/ppg/insights.ts` | Insight A, gabungan A/B, baseline, KRI, klaster, assisted insight. |
 | `src/lib/ppg/led.ts` | Matching kandidat laporan gratifikasi dengan loss event. |
 | `src/app/dashboard/ppg/actions.ts` | Command utama PPG di luar pipeline Risk Register. |
 | `src/app/dashboard/ppg/risk-import-actions.ts` | Import, kurasi, pembuatan register, penghapusan batch. |
@@ -525,6 +525,15 @@ Sesuai prinsip PPG (mesin hanya mengusulkan, manusia memutuskan):
 - Loss Event dapat mereferensikan satu atau beberapa kontrol aktual dari Risk Register melalui `ppg_loss_event_controls`; kolom teks `kegagalan_kontrol` tetap dipertahankan sebagai keterangan tambahan.
 - Untuk Loss Event baru yang memiliki referensi kontrol, penalti CEI hanya dikenakan pada kontrol yang dipilih. Data historis tanpa referensi terstruktur tetap memakai fallback register agar riwayat lama tidak hilang.
 - Kriteria sementara CEI: `0–49` rendah/merah, `50–79` kurang efektif/kuning, dan `80–100` tinggi/hijau. Penonaktifan selalu memerlukan keputusan manusia.
+
+## 18. Update: Rekomendasi Gemini & Pemisahan Role Loss Event (11 Sep 2026)
+
+- Form create Loss Event hanya dirender untuk UPG Satker dan Admin Sistem. UPG Pusat tetap dapat membaca, menghubungkan laporan, mengatur upper limit, dan memvalidasi, tetapi Server Action menolak pembuatan event oleh role tersebut.
+- Rekomendasi AI hanya aktif pada save slot `demo`. `GEMINI_API_KEY` dibaca server-only; `GEMINI_MODEL` opsional dan default-nya `gemini-2.5-flash`.
+- `buildPpgAiAggregateInput()` memakai allowlist agregat: kategori jabatan, objek, skenario, musim, asosiasi jabatan–objek, dan metrik nasional per risiko. DTO tidak membawa nama Satker/individu, pemberi, momen/kegiatan bebas, nomor laporan, uraian risiko, kronologi, atau `PpgAnalyticsResult.rows`.
+- Gemini wajib menghasilkan 3–5 rekomendasi melalui JSON Schema. Parser mengikat kembali risk ID dan action code terhadap master yang tersedia serta menolak keluaran yang tidak lengkap.
+- Snapshot tersimpan pada `ppg_ai_recommendation_runs`. Usulan baru masuk `ppg_ai_action_candidates` dan hanya menjadi `ppg_action_catalog` setelah persetujuan UPG Pusat/Admin. Semua langkah penting ditulis ke audit log.
+- Jalankan `supabase/migration_ppg.sql` terbaru sebelum menguji halaman. Setelah migrasi, pindah ke **Simulasi Lengkap**, lalu gunakan tombol Generate pada **Titik Rawan**.
 
 ---
 

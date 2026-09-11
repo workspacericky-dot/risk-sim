@@ -43,7 +43,7 @@ export function buildPpgAssistedInsights(analytics: PpgAnalyticsResult, risks: P
     const insightA = calculateInsightA(analytics)
     const insightAScore = insightA.score
     const insightBScore = clamp(
-      risk.affected_pct * 2 + risk.high_impact_pct * 4 + risk.recurring_pct * 4 + risk.control_failure_pct * 2,
+      risk.affected_pct * 0.25 + risk.high_impact_pct * 0.35 + risk.recurring_pct * 0.25 + risk.control_failure_pct * 0.15,
       0,
       100,
     )
@@ -60,7 +60,7 @@ export function buildPpgAssistedInsights(analytics: PpgAnalyticsResult, risks: P
       priority,
       insight_a_narrative: recommendation?.rationale || `Belum ada sinyal paparan yang melampaui ambang rekomendasi mesin untuk kategori ${risk.kategori}. Risiko tetap dipantau karena berada dalam Risk Library aktif.`,
       insight_b_narrative: risk.affected_satkers
-        ? `${risk.affected_pct.toFixed(1)}% Satker mengalami loss event tervalidasi; ${risk.high_impact_pct.toFixed(1)}% berdampak tinggi, ${risk.recurring_pct.toFixed(1)}% berulang, dan ${risk.control_failure_pct.toFixed(1)}% mencatat kegagalan kontrol.`
+        ? `${risk.affected_satkers} dari ${risk.eligible_satkers} Satker terukur (${risk.affected_pct.toFixed(1)}%) mengalami loss event tervalidasi; ${risk.high_impact_pct.toFixed(1)}% berdampak tinggi, ${risk.recurring_pct.toFixed(1)}% berulang, dan ${risk.control_failure_pct.toFixed(1)}% mencatat kegagalan kontrol.`
         : `Belum ada loss event tervalidasi untuk risiko ini pada periode analisis. Kondisi ini tidak otomatis berarti tanpa risiko dan harus dibaca bersama kualitas pelaporan.`,
       action_code: recommendation?.actionCode || '',
       action_title: recommendation?.title || 'Monitoring dan pemeliharaan kontrol',

@@ -10,6 +10,8 @@ import { matchLossEventReports } from '../src/lib/ppg/led.ts'
 import { parsePpgRiskRegisterWorkbook, riskSimilarity } from '../src/lib/ppg/risk-register-workbook.ts'
 import { calculatePpgControlEffectiveness, normalizePpgControlText } from '../src/lib/ppg/control-effectiveness.ts'
 import { evaluatePpgAppetite } from '../src/lib/ppg/risk-appetite.ts'
+import { buildPpgAiAggregateInput, parsePpgAiJsonText, parsePpgAiRecommendations } from '../src/lib/ppg/ai-recommendations.ts'
+import { eligiblePpgProgramItemsForPlanning, isPpgProgramEligibleForTreatedRisk } from '../src/lib/ppg/program-eligibility.ts'
 
 assert.equal(ppgRiskLevel(5), 'Sangat Rendah')
 assert.equal(ppgRiskLevel(6), 'Rendah')
@@ -132,9 +134,32 @@ const assisted = buildPpgAssistedInsights(analytics, [{ risk_library_id: 'risk-1
 assert.equal(assisted.length, 1)
 assert.equal(assisted[0].insight_a_method_version, 'exposure-components-v2')
 assert.equal(assisted[0].insight_a_components.length, 5)
+assert.equal(assisted[0].insight_b_score, 5.9)
 assert.equal(assisted[0].suggested_outcome_b_baseline, 12)
 assert.ok(assisted[0].insight_a_narrative.length > 0)
 assert.ok(assisted[0].suggested_kri.length > 0)
+const aiInput = buildPpgAiAggregateInput(analytics, assisted, [{ kode: 'PPG-UANG-01', nama: 'Simulasi penolakan', uraian: 'Latihan langsung', risk_categories: ['Risiko Kecurangan'] }])
+assert.equal(aiInput.privacy_notice.includes('tidak memuat nama'), true)
+assert.equal('rows' in aiInput, false)
+assert.equal(JSON.stringify(aiInput).includes('Pengadilan Negeri Contoh'), false)
+const parsedAi = parsePpgAiRecommendations({ recommendations: [1, 2, 3].map((index) => ({
+  key: `rec-${index}`, title: `Program ${index}`, finding: 'Paparan dan realisasi membutuhkan intervensi.', evidence: ['12% Satker terdampak', '14% Satker di atas selera'], reasoning_summary: 'Intervensi spesifik lebih relevan daripada himbauan umum.', timing: 'Empat minggu sebelum periode puncak', target_roles: ['Petugas PTSP'], concrete_actions: ['Simulasi penolakan', 'Uji kepatuhan'], linked_risk_id: 'risk-1', linked_risk_code: 'PPG.3.1', existing_action_code: index === 1 ? 'PPG-UANG-01' : '', proposed_action: index === 1 ? null : { name: `Tindakan ${index}`, description: 'Tindakan baru berbasis pola agregat.', control_type: 'preventif', risk_categories: ['Risiko Kecurangan'], target_default: 'Petugas layanan', lead_time_days: 30, output_indicator: 'Cakupan simulasi', outcome_indicator: 'Penurunan paparan' }, limitations: ['Data agregat tidak membuktikan kausalitas.'], confidence: 'sedang',
+})) }, assisted, ['PPG-UANG-01'])
+assert.equal(parsedAi.length, 3)
+assert.equal(parsedAi[0].existing_action_code, 'PPG-UANG-01')
+assert.equal(parsedAi[1].proposed_action?.name, 'Tindakan 2')
+assert.deepEqual(parsePpgAiJsonText('```json\n{"recommendations":[]}\n```'), { recommendations: [] })
+assert.deepEqual(parsePpgAiJsonText('Berikut hasilnya: {"recommendations":[]} selesai.'), { recommendations: [] })
+assert.throws(() => parsePpgAiJsonText('{"recommendations":['), SyntaxError)
+
+const treatedRegister = { unit_kerja_id: 'unit-1', risk_library_id: 'risk-1' }
+const assignedCompletedProgram = { status: 'selesai', ditetapkan_at: '2026-08-31T08:00:00Z', items: [{ risk_library_id: 'risk-1', status: 'selesai', clusters: [{ units: [{ unit_kerja_id: 'unit-1' }] }] }] }
+assert.equal(isPpgProgramEligibleForTreatedRisk(assignedCompletedProgram, treatedRegister), true)
+assert.equal(isPpgProgramEligibleForTreatedRisk({ ...assignedCompletedProgram, ditetapkan_at: null }, treatedRegister), false)
+assert.equal(isPpgProgramEligibleForTreatedRisk({ ...assignedCompletedProgram, status: 'berjalan' }, treatedRegister), false)
+assert.equal(isPpgProgramEligibleForTreatedRisk({ ...assignedCompletedProgram, items: [{ risk_library_id: 'risk-1', status: 'selesai', clusters: [{ units: [{ unit_kerja_id: 'unit-2' }] }] }] }, treatedRegister), false)
+assert.equal(eligiblePpgProgramItemsForPlanning({ ...assignedCompletedProgram, status: 'ditetapkan', items: [{ id: 'item-1', risk_library_id: 'risk-1', status: 'belum_dimulai', clusters: [{ units: [{ unit_kerja_id: 'unit-1' }] }] }] }, treatedRegister).length, 1)
+assert.equal(eligiblePpgProgramItemsForPlanning({ ...assignedCompletedProgram, status: 'dibatalkan' }, treatedRegister).length, 0)
 
 const candidates = matchLossEventReports({
   unit_nama: 'Pengadilan Negeri Contoh',
@@ -211,6 +236,15 @@ assert.match(migration, /create table if not exists public\.ppg_risk_candidate_m
 assert.match(migration, /kemungkinan_treated smallint/)
 assert.match(migration, /create table if not exists public\.ppg_scenarios/)
 assert.match(migration, /create table if not exists public\.ppg_risk_appetites/)
+assert.match(migration, /create table if not exists public\.ppg_ai_recommendation_runs/)
+assert.match(migration, /create table if not exists public\.ppg_ai_action_candidates/)
+assert.match(migration, /create table if not exists public\.ppg_satker_program_assignments/)
+assert.match(migration, /ditetapkan_by uuid references auth\.users/)
+assert.match(migration, /ditetapkan_at timestamptz/)
+assert.match(migration, /catatan_penetapan text not null/)
+assert.match(migration, /ppg_programs_status_check[\s\S]*'ditetapkan'/)
+assert.match(migration, /unique\(scenario_id,run_id,recommendation_key\)/)
+assert.match(migration, /create policy "ppg ai runs pusat"/)
 assert.match(migration, /unique\(scenario_id,unit_kerja_id,tahun\)/)
 assert.match(migration, /alter table public\.ppg_risk_appetites enable row level security/)
 assert.match(migration, /grant select, insert, update, delete on table public\.ppg_risk_appetites to authenticated/)
@@ -234,5 +268,16 @@ assert.match(fs.readFileSync('src/lib/ppg/data.ts', 'utf8'), /ppg_control_librar
 assert.match(fs.readFileSync('src/app/dashboard/ppg/penilaian/RiskControlEvidencePanel.tsx', 'utf8'), /useActionState\(validatePpgRiskControlEvidence/)
 assert.match(fs.readFileSync('src/app/dashboard/ppg/penilaian/ImportedRiskDraftReview.tsx', 'utf8'), /<details className="group/)
 assert.match(fs.readFileSync('src/app/dashboard/ppg/loss-event/LossEventControlFields.tsx', 'utf8'), /failed_control_ids/)
-assert.match(fs.readFileSync('src/app/dashboard/ppg/tindak-lanjut/ProgramEffectivenessPanel.tsx', 'utf8'), /bukti_efektivitas_program_url/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/actions.ts', 'utf8'), /Pembuatan Loss Event hanya tersedia bagi UPG Satker/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/loss-event/page.tsx', 'utf8'), /data\.access\.isSatker \|\| data\.access\.isAdmin/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/analitik/AiRecommendationPanel.tsx', 'utf8'), /Rekomendasi Program PPG dengan AI/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/tindak-lanjut/ProgramEffectivenessPanel.tsx', 'utf8'), /Fase 1 · Pra Pelaksanaan/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/tindak-lanjut/ProgramEffectivenessPanel.tsx', 'utf8'), /Fase 2 · Pasca Pelaksanaan/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/tindak-lanjut/ProgramEffectivenessPanel.tsx', 'utf8'), /eligiblePpgProgramItemsForPlanning/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/actions.ts', 'utf8'), /validatePpgSatkerProgramRealization/)
+assert.match(fs.readFileSync('src/lib/ppg/data.ts', 'utf8'), /const denominator = measuredUnits\.size/)
+assert.match(fs.readFileSync('src/lib/ppg/data.ts', 'utf8'), /value \/ appetiteSetUnits\.size/)
+assert.doesNotMatch(fs.readFileSync('src/app/dashboard/ppg/PpgModuleNav.tsx', 'utf8'), /overflow-x-auto/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/PpgModuleNav.tsx', 'utf8'), /grid-cols-2/)
+assert.match(fs.readFileSync('src/app/dashboard/ppg/actions.ts', 'utf8'), /action: 'tetapkan'/)
 console.log('PPG scoring, workbook import, analytics, LED matching, and migration verification passed.')

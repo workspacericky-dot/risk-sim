@@ -244,7 +244,10 @@ create table if not exists public.ppg_programs (
   analysis_start date not null, analysis_end date not null,
   program_start date not null, program_end date not null, period_label text not null,
   cakupan_model text not null default 'nasional_berklaster' check (cakupan_model in ('nasional','nasional_berklaster')),
-  status text not null default 'dirancang' check (status in ('dirancang','dijadwalkan','berjalan','terhambat','selesai','dibatalkan')),
+  status text not null default 'dirancang' check (status in ('dirancang','ditetapkan','dijadwalkan','berjalan','terhambat','selesai','dibatalkan')),
+  ditetapkan_by uuid references auth.users(id) on delete set null,
+  ditetapkan_at timestamptz,
+  catatan_penetapan text not null default '',
   created_by uuid references auth.users(id), created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   check (analysis_start <= analysis_end), check (program_start <= program_end)
 );
@@ -304,6 +307,34 @@ create table if not exists public.ppg_program_item_controls (
   program_item_id uuid not null references public.ppg_program_items(id) on delete cascade,
   control_id uuid not null references public.ppg_control_library(id) on delete restrict,
   primary key(program_item_id, control_id)
+);
+
+-- Tahapan pelaksanaan pada tingkat Satker dipisahkan dari desain program
+-- nasional: rencana/alokasi lebih dahulu, kemudian realisasi dan treated risk.
+create table if not exists public.ppg_satker_program_assignments (
+  id uuid primary key default gen_random_uuid(),
+  program_item_id uuid not null references public.ppg_program_items(id) on delete cascade,
+  register_id uuid not null references public.ppg_register(id) on delete cascade,
+  unit_kerja_id uuid not null references public.unit_kerja(id) on delete restrict,
+  planned_start date not null, planned_end date not null,
+  pic_jabatan text not null, planning_notes text not null default '',
+  planned_by uuid references auth.users(id) on delete set null, planned_at timestamptz not null default now(),
+  actual_end date, realization_summary text not null default '',
+  efektivitas_program text,
+  evidence_url text not null default '',
+  kemungkinan_treated smallint, dampak_treated smallint, skor_treated smallint, level_treated text,
+  post_submitted_by uuid references auth.users(id) on delete set null, post_submitted_at timestamptz,
+  validation_status text not null default 'belum_diajukan', validation_notes text not null default '',
+  validated_by uuid references auth.users(id) on delete set null, validated_at timestamptz,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  unique(program_item_id, register_id),
+  check (planned_start <= planned_end),
+  check (actual_end is null or actual_end >= planned_start),
+  check (efektivitas_program is null or efektivitas_program in ('tidak_efektif','kurang_efektif','cukup_efektif','efektif')),
+  check (validation_status in ('belum_diajukan','menunggu','disetujui','perlu_perbaikan','ditolak')),
+  check ((kemungkinan_treated is null and dampak_treated is null and skor_treated is null and level_treated is null) or
+    (kemungkinan_treated between 1 and 5 and dampak_treated between 1 and 5 and skor_treated = kemungkinan_treated * dampak_treated and
+      level_treated in ('Sangat Rendah','Rendah','Sedang','Tinggi','Sangat Tinggi')))
 );
 
 -- Hasil treated risk merupakan evaluasi dampak Program PPG terhadap residual
@@ -513,6 +544,9 @@ alter table public.ppg_register add column if not exists kategori text not null 
 alter table public.ppg_register add column if not exists subproses_bisnis text not null default '';
 alter table public.ppg_program_items add column if not exists sasaran_program text not null default '';
 alter table public.ppg_programs add column if not exists cakupan_model text not null default 'nasional_berklaster';
+alter table public.ppg_programs add column if not exists ditetapkan_by uuid references auth.users(id) on delete set null;
+alter table public.ppg_programs add column if not exists ditetapkan_at timestamptz;
+alter table public.ppg_programs add column if not exists catatan_penetapan text not null default '';
 alter table public.ppg_program_items add column if not exists risk_library_id uuid references public.ppg_risk_library(id) on delete restrict;
 alter table public.ppg_program_items add column if not exists control_id uuid references public.ppg_control_library(id) on delete set null;
 alter table public.ppg_program_items add column if not exists indikator_program text not null default '';
@@ -563,6 +597,9 @@ alter table public.ppg_program_items add constraint ppg_program_items_generic_ri
 alter table public.ppg_programs drop constraint if exists ppg_programs_cakupan_model_check;
 alter table public.ppg_programs add constraint ppg_programs_cakupan_model_check
   check (cakupan_model in ('nasional','nasional_berklaster')) not valid;
+alter table public.ppg_programs drop constraint if exists ppg_programs_status_check;
+alter table public.ppg_programs add constraint ppg_programs_status_check
+  check (status in ('dirancang','ditetapkan','dijadwalkan','berjalan','terhambat','selesai','dibatalkan')) not valid;
 alter table public.ppg_program_items drop constraint if exists ppg_program_items_target_cakupan_satker_check;
 alter table public.ppg_program_items add constraint ppg_program_items_target_cakupan_satker_check
   check (target_cakupan_satker between 0 and 100) not valid;
@@ -619,6 +656,8 @@ create index if not exists ppg_reports_role_idx on public.ppg_reports(jabatan_pe
 create index if not exists ppg_programs_period_idx on public.ppg_programs(program_start, program_end, status);
 create index if not exists ppg_program_items_program_idx on public.ppg_program_items(program_id, status);
 create index if not exists ppg_program_updates_item_idx on public.ppg_program_updates(program_item_id, tanggal desc);
+create index if not exists ppg_satker_program_assignments_unit_idx on public.ppg_satker_program_assignments(unit_kerja_id, validation_status, planned_end);
+create index if not exists ppg_satker_program_assignments_register_idx on public.ppg_satker_program_assignments(register_id, updated_at desc);
 create index if not exists ppg_loss_events_unit_date_idx on public.ppg_loss_events(unit_kerja_id, tanggal_kejadian desc);
 create index if not exists ppg_loss_events_status_idx on public.ppg_loss_events(status, klasifikasi_limit);
 create index if not exists ppg_loss_links_report_idx on public.ppg_loss_event_report_links(report_id, link_type);
@@ -720,7 +759,7 @@ end
 $ppg_knowledge$;
 
 do $$ declare t text; begin
-  foreach t in array array['ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register','ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches','ppg_reports','ppg_classification_rules','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches','ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_action_catalog','ppg_programs','ppg_program_items','ppg_program_item_controls','ppg_program_clusters','ppg_program_cluster_units','ppg_program_updates','ppg_led_limit_versions','ppg_loss_events','ppg_loss_event_controls','ppg_loss_event_report_links','ppg_program_loss_events'] loop
+  foreach t in array array['ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register','ppg_risk_controls','ppg_risk_control_validations','ppg_mitigations','ppg_import_batches','ppg_reports','ppg_classification_rules','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches','ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_action_catalog','ppg_programs','ppg_program_items','ppg_program_item_controls','ppg_program_clusters','ppg_program_cluster_units','ppg_program_updates','ppg_satker_program_assignments','ppg_led_limit_versions','ppg_loss_events','ppg_loss_event_controls','ppg_loss_event_report_links','ppg_program_loss_events'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "ppg admin select" on public.%I', t);
     execute format('drop policy if exists "ppg admin insert" on public.%I', t);
@@ -789,6 +828,62 @@ create policy "ppg register update" on public.ppg_register for update using (
 create policy "ppg register delete" on public.ppg_register for delete using (
   public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
 );
+
+-- Pelaksanaan Program PPG: Pusat membaca seluruh rencana/realisasi dan
+-- memvalidasi hasil; Satker hanya mengelola record unitnya sendiri.
+grant select, insert, update, delete on table public.ppg_satker_program_assignments to authenticated;
+drop policy if exists "ppg admin select" on public.ppg_satker_program_assignments;
+drop policy if exists "ppg admin insert" on public.ppg_satker_program_assignments;
+drop policy if exists "ppg admin update" on public.ppg_satker_program_assignments;
+drop policy if exists "ppg admin delete" on public.ppg_satker_program_assignments;
+drop policy if exists "ppg assignment select" on public.ppg_satker_program_assignments;
+drop policy if exists "ppg assignment insert" on public.ppg_satker_program_assignments;
+drop policy if exists "ppg assignment update" on public.ppg_satker_program_assignments;
+drop policy if exists "ppg assignment delete" on public.ppg_satker_program_assignments;
+create policy "ppg assignment select" on public.ppg_satker_program_assignments for select using (
+  public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
+);
+create policy "ppg assignment insert" on public.ppg_satker_program_assignments for insert with check (
+  public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id() and planned_by = auth.uid())
+);
+create policy "ppg assignment update" on public.ppg_satker_program_assignments for update using (
+  public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
+) with check (
+  public.ppg_is_pusat() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
+);
+create policy "ppg assignment delete" on public.ppg_satker_program_assignments for delete using (
+  public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id() and post_submitted_at is null)
+);
+
+create or replace function public.ppg_guard_assignment_role_update()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+  if current_setting('request.jwt.claim.role', true) = 'service_role' then return new; end if;
+  if public.is_admin_sistem() then return new; end if;
+  if public.ppg_is_satker() then
+    if old.unit_kerja_id <> public.ppg_user_unit_id() or new.unit_kerja_id <> public.ppg_user_unit_id() then
+      raise exception 'Satker hanya dapat mengubah pelaksanaan unitnya sendiri';
+    end if;
+    if row(new.validation_status,new.validation_notes,new.validated_by,new.validated_at)
+       is distinct from row(old.validation_status,old.validation_notes,old.validated_by,old.validated_at) then
+      raise exception 'Satker tidak dapat memvalidasi realisasinya sendiri';
+    end if;
+    return new;
+  end if;
+  if public.ppg_is_pusat() then
+    if row(new.program_item_id,new.register_id,new.unit_kerja_id,new.planned_start,new.planned_end,new.pic_jabatan,new.planning_notes,new.planned_by,new.planned_at,new.actual_end,new.realization_summary,new.efektivitas_program,new.evidence_url,new.kemungkinan_treated,new.dampak_treated,new.skor_treated,new.level_treated,new.post_submitted_by,new.post_submitted_at)
+       is distinct from row(old.program_item_id,old.register_id,old.unit_kerja_id,old.planned_start,old.planned_end,old.pic_jabatan,old.planning_notes,old.planned_by,old.planned_at,old.actual_end,old.realization_summary,old.efektivitas_program,old.evidence_url,old.kemungkinan_treated,old.dampak_treated,old.skor_treated,old.level_treated,old.post_submitted_by,old.post_submitted_at) then
+      raise exception 'UPG Pusat hanya dapat mengubah metadata validasi realisasi';
+    end if;
+    return new;
+  end if;
+  raise exception 'Role tidak berwenang mengubah pelaksanaan Program PPG';
+end
+$$;
+drop trigger if exists ppg_guard_assignment_role_update on public.ppg_satker_program_assignments;
+create trigger ppg_guard_assignment_role_update before update on public.ppg_satker_program_assignments
+for each row execute function public.ppg_guard_assignment_role_update();
 
 -- Satker boleh membaca library pusat sebagai sumber adopsi, tanpa hak ubah.
 drop policy if exists "ppg satker reference select" on public.ppg_risk_library;
@@ -897,6 +992,56 @@ create table if not exists public.ppg_risk_appetites (
 alter table public.ppg_risk_appetites enable row level security;
 grant select, insert, update, delete on table public.ppg_risk_appetites to authenticated;
 
+-- Snapshot rekomendasi AI hanya menyimpan agregat anonim dan hanya digunakan
+-- pada slot simulasi. Kandidat tindakan harus direview sebelum masuk katalog.
+create table if not exists public.ppg_ai_recommendation_runs (
+  id uuid primary key default gen_random_uuid(),
+  scenario_id uuid not null default public.ppg_current_scenario_id()
+    references public.ppg_scenarios(id) on delete restrict,
+  analysis_year integer not null check (analysis_year between 2000 and 2200),
+  analysis_quarter smallint check (analysis_quarter between 1 and 4),
+  analysis_start date not null,
+  analysis_end date not null,
+  period_label text not null,
+  program_label text not null,
+  model text not null,
+  prompt_version text not null,
+  input_summary jsonb not null default '{}'::jsonb,
+  recommendations jsonb not null default '[]'::jsonb,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  check (analysis_start <= analysis_end)
+);
+
+create table if not exists public.ppg_ai_action_candidates (
+  id uuid primary key default gen_random_uuid(),
+  scenario_id uuid not null default public.ppg_current_scenario_id()
+    references public.ppg_scenarios(id) on delete restrict,
+  run_id uuid not null references public.ppg_ai_recommendation_runs(id) on delete cascade,
+  recommendation_key text not null,
+  nama text not null,
+  uraian text not null,
+  jenis_kontrol text not null check (jenis_kontrol in ('preventif','detektif','korektif')),
+  risk_categories text[] not null default '{}',
+  target_default text not null default '',
+  lead_time_days integer not null default 30 check (lead_time_days between 0 and 365),
+  output_indicator text not null default '',
+  outcome_indicator text not null default '',
+  status text not null default 'menunggu' check (status in ('menunggu','disetujui','ditolak')),
+  diajukan_by uuid references auth.users(id) on delete set null,
+  diajukan_at timestamptz not null default now(),
+  reviewed_by uuid references auth.users(id) on delete set null,
+  reviewed_at timestamptz,
+  catatan_review text not null default '',
+  promoted_action_id uuid references public.ppg_action_catalog(id) on delete set null,
+  unique(scenario_id,run_id,recommendation_key)
+);
+
+alter table public.ppg_ai_recommendation_runs enable row level security;
+alter table public.ppg_ai_action_candidates enable row level security;
+grant select, insert, update, delete on table public.ppg_ai_recommendation_runs to authenticated;
+grant select, insert, update, delete on table public.ppg_ai_action_candidates to authenticated;
+
 do $$ declare t text; begin
   foreach t in array array[
     'ppg_risk_appetites','ppg_risk_library','ppg_control_library','ppg_library_risk_controls','ppg_register',
@@ -904,8 +1049,9 @@ do $$ declare t text; begin
     'ppg_reports','ppg_audit_log','ppg_analysis_snapshots','ppg_risk_import_batches',
     'ppg_risk_import_rows','ppg_risk_candidates','ppg_risk_candidate_members','ppg_programs',
     'ppg_program_items','ppg_program_item_controls','ppg_program_clusters',
-    'ppg_program_cluster_units','ppg_program_updates','ppg_loss_events',
-    'ppg_loss_event_controls','ppg_loss_event_code_counters','ppg_loss_event_report_links','ppg_program_loss_events'
+    'ppg_program_cluster_units','ppg_program_updates','ppg_satker_program_assignments','ppg_loss_events',
+    'ppg_loss_event_controls','ppg_loss_event_code_counters','ppg_loss_event_report_links','ppg_program_loss_events',
+    'ppg_ai_recommendation_runs','ppg_ai_action_candidates'
   ] loop
     execute format(
       'alter table public.%I add column if not exists scenario_id uuid not null default public.ppg_current_scenario_id() references public.ppg_scenarios(id) on delete restrict', t
@@ -990,6 +1136,13 @@ create policy "ppg appetite update" on public.ppg_risk_appetites for update to a
 create policy "ppg appetite delete" on public.ppg_risk_appetites for delete to authenticated using (
   public.is_admin_sistem() or (public.ppg_is_satker() and unit_kerja_id = public.ppg_user_unit_id())
 );
+
+drop policy if exists "ppg ai runs pusat" on public.ppg_ai_recommendation_runs;
+create policy "ppg ai runs pusat" on public.ppg_ai_recommendation_runs for all to authenticated
+  using (public.ppg_is_pusat()) with check (public.ppg_is_pusat() and created_by = auth.uid());
+drop policy if exists "ppg ai candidates pusat" on public.ppg_ai_action_candidates;
+create policy "ppg ai candidates pusat" on public.ppg_ai_action_candidates for all to authenticated
+  using (public.ppg_is_pusat()) with check (public.ppg_is_pusat());
 
 revoke all on function public.ppg_current_scenario_id() from public;
 grant execute on function public.ppg_current_scenario_id() to authenticated;
