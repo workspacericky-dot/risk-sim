@@ -7,7 +7,7 @@ import { createAdminClient } from '@/utils/supabase/admin'
 const ALLOWED_ROLES = new Set([
   'admin_sistem', 'admin_satker', 'pemilik_risiko', 'pengelola_risiko',
   'kepala_umr', 'anggota_umr', 'kepala_apip', 'anggota_apip',
-  'pemilik_risiko_ma', 'peserta_consulting', 'upg_pusat', 'upg_satker',
+  'pemilik_risiko_ma', 'peserta_consulting', 'upg_pusat', 'upg_satker', 'evaluator_apip',
 ])
 
 async function assertAdmin() {

@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "generate:siwas-inspektorat": "node scripts/generate-siwas-inspektorat.mjs",
+    "generate:uji-publik-template": "node scripts/generate-uji-publik-template.mjs",
     "test:siwas-report": "node scripts/verify-siwas-report.mjs",
-    "test:ppg": "node --experimental-strip-types scripts/verify-ppg.ts"
+    "test:ppg": "node --experimental-strip-types scripts/verify-ppg.ts",
+    "test:uji-publik-zi": "node --experimental-strip-types scripts/verify-uji-publik-zi.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

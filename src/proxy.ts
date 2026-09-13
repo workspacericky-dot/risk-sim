@@ -17,6 +17,9 @@ export async function proxy(request: NextRequest) {
       if (profile?.role === 'peserta_consulting' && !pathname.startsWith('/dashboard/rals')) {
         return NextResponse.redirect(new URL('/dashboard/rals', request.url))
       }
+      if (profile?.role === 'evaluator_apip' && !pathname.startsWith('/dashboard/uji-publik-zi')) {
+        return NextResponse.redirect(new URL('/dashboard/uji-publik-zi', request.url))
+      }
       if (['upg_pusat', 'upg_satker'].includes(profile?.role ?? '') && !pathname.startsWith('/dashboard/ppg')) {
         return NextResponse.redirect(new URL('/dashboard/ppg', request.url))
       }

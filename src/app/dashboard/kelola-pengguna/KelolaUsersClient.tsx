@@ -17,6 +17,7 @@ const ROLE_OPTIONS = [
   { value: 'peserta_consulting', label: 'Peserta Consulting (RALS)' },
   { value: 'upg_pusat', label: 'UPG Pusat' },
   { value: 'upg_satker', label: 'UPG Satker' },
+  { value: 'evaluator_apip', label: 'Evaluator APIP (Uji Publik ZI)' },
 ]
 
 type User = {

@@ -18,6 +18,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin_sistem: 'Administrator Sistem',
   upg_pusat: 'UPG Pusat',
   upg_satker: 'UPG Satker',
+  evaluator_apip: 'Evaluator APIP',
 }
 
 // --- Types ---
