@@ -27,6 +27,24 @@ const groups = [
   { code: 'unassigned', label: 'Belum terklasifikasi' },
 ]
 
+const periods = [
+  { key: 'all', label: 'Semua periode', kind: 'all' },
+  { key: '2026', label: 'Tahun 2026', kind: 'year', year: 2026 },
+  { key: '2025', label: 'Tahun 2025', kind: 'year', year: 2025 },
+  { key: '2024', label: 'Tahun 2024', kind: 'year', year: 2024 },
+  { key: '2026-Q3', label: '2026 · Kuartal III', kind: 'quarter', year: 2026, quarter: 3 },
+  { key: '2026-Q2', label: '2026 · Kuartal II', kind: 'quarter', year: 2026, quarter: 2 },
+  { key: '2026-Q1', label: '2026 · Kuartal I', kind: 'quarter', year: 2026, quarter: 1 },
+  { key: '2025-Q4', label: '2025 · Kuartal IV', kind: 'quarter', year: 2025, quarter: 4 },
+  { key: '2025-Q3', label: '2025 · Kuartal III', kind: 'quarter', year: 2025, quarter: 3 },
+  { key: '2025-Q2', label: '2025 · Kuartal II', kind: 'quarter', year: 2025, quarter: 2 },
+  { key: '2025-Q1', label: '2025 · Kuartal I', kind: 'quarter', year: 2025, quarter: 1 },
+  { key: '2024-Q4', label: '2024 · Kuartal IV', kind: 'quarter', year: 2024, quarter: 4 },
+  { key: '2024-Q3', label: '2024 · Kuartal III', kind: 'quarter', year: 2024, quarter: 3 },
+  { key: '2024-Q2', label: '2024 · Kuartal II', kind: 'quarter', year: 2024, quarter: 2 },
+  { key: '2024-Q1', label: '2024 · Kuartal I', kind: 'quarter', year: 2024, quarter: 1 },
+]
+
 const stages = [
   ['S1', 'Laporan → disposisi', 'tanggal_laporan', 'tanggal_disposisi', 4, true],
   ['S2', 'Disposisi → penunjukan penelaah', 'tanggal_disposisi', 'tanggal_penunjukan_penelaah', 3, true],
@@ -92,8 +110,15 @@ const records = [...reports].map(([id, reportRows]) => {
   return { id, code, values, reportDate: values('tanggal_laporan')[0] ?? null }
 })
 
-function summarize(group) {
-  const selected = group.code === 'all' ? records : records.filter((record) => record.code === group.code)
+function isInPeriod(report, period) {
+  if (period.kind === 'all') return true
+  if (!report.reportDate || report.reportDate.getFullYear() !== period.year) return false
+  return period.kind === 'year' || Math.floor(report.reportDate.getMonth() / 3) + 1 === period.quarter
+}
+
+function summarize(group, period) {
+  const selected = records.filter((record) =>
+    (group.code === 'all' || record.code === group.code) && isInPeriod(record, period))
   const stageResults = stages.map(([code, label, startColumn, endColumn, sla, trackOpen]) => {
     let onTime = 0
     let late = 0
@@ -183,6 +208,8 @@ function summarize(group) {
   return {
     code: group.code,
     label: group.label,
+    periodKey: period.key,
+    periodLabel: period.label,
     reports: selected.filter((record) => record.reportDate).length,
     ...totals,
     compliance: totals.assessable ? totals.onTime / totals.assessable : null,
@@ -190,10 +217,12 @@ function summarize(group) {
     strongest: ranked.at(-1) ?? null,
     largestOverdue: overdueRanked[0] ?? null,
     stages: cleanedStages,
-    quarters: [...quarterMap.values()].map((quarter) => ({
-      ...quarter,
-      compliance: quarter.assessable ? quarter.onTime / quarter.assessable : null,
-    })),
+    quarters: [...quarterMap.values()]
+      .map((quarter) => ({
+        ...quarter,
+        compliance: quarter.assessable ? quarter.onTime / quarter.assessable : null,
+      }))
+      .sort((a, b) => a.quarter.localeCompare(b.quarter)),
     extremes,
   }
 }
@@ -201,12 +230,27 @@ function summarize(group) {
 const payload = {
   generatedFrom: 'SIWASzz.xlsx',
   dataThrough: '2026-08-04',
-  groups: Object.fromEntries(groups.map((group) => [group.code, summarize(group)])),
+  periods,
+  groups: Object.fromEntries(groups.map((group) => [group.code, {
+    code: group.code,
+    label: group.label,
+    periods: Object.fromEntries(periods.map((period) => [period.key, summarize(group, period)])),
+  }])),
 }
 
-const overall = payload.groups.all
+const overall = payload.groups.all.periods.all
 if (overall.reports !== 15460 || overall.assessable !== 49778 || overall.onTime !== 28819 || overall.late !== 12605 || overall.overdueOpen !== 8354) {
   throw new Error(`Rekonsiliasi agregat gagal: ${JSON.stringify({ reports: overall.reports, assessable: overall.assessable, onTime: overall.onTime, late: overall.late, overdueOpen: overall.overdueOpen })}`)
+}
+
+for (const group of Object.values(payload.groups)) {
+  const annualReports = ['2024', '2025', '2026'].reduce((total, key) => total + group.periods[key].reports, 0)
+  const quarterlyReports = periods
+    .filter((period) => period.kind === 'quarter')
+    .reduce((total, period) => total + group.periods[period.key].reports, 0)
+  if (annualReports !== group.periods.all.reports || quarterlyReports !== group.periods.all.reports) {
+    throw new Error(`Rekonsiliasi periode gagal untuk ${group.label}.`)
+  }
 }
 
 fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`)

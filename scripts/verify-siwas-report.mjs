@@ -30,16 +30,30 @@ const reportResponse = await fetch('http://localhost:3000/api/siwas-report', {
 })
 const html = await reportResponse.text()
 if (!reportResponse.ok) throw new Error(`Laporan gagal dimuat (${reportResponse.status}).`)
+const analytics = JSON.parse(fs.readFileSync('src/content/siwas-inspektorat.json', 'utf8'))
 
 for (const expected of [
   'id="siwas-inspektorat"',
+  'id="siwas-period"',
   'value="150"',
   'Non-Inspektorat',
   'id="analisis-inspektorat"',
   '"assessable": 49778',
+  '"periodKey": "2026-Q3"',
   'id="risiko-ekstrem"',
 ]) {
   if (!html.includes(expected)) throw new Error(`Markup tidak memuat ${expected}.`)
+}
+
+if (analytics.periods.length !== 15) throw new Error('Jumlah opsi periode tidak sesuai.')
+for (const unit of Object.values(analytics.groups)) {
+  const annual = ['2024', '2025', '2026'].reduce((total, key) => total + unit.periods[key].reports, 0)
+  const quarterly = analytics.periods
+    .filter((period) => period.kind === 'quarter')
+    .reduce((total, period) => total + unit.periods[period.key].reports, 0)
+  if (annual !== unit.periods.all.reports || quarterly !== unit.periods.all.reports) {
+    throw new Error(`Rekonsiliasi periode gagal untuk ${unit.label}.`)
+  }
 }
 
 for (const removed of ['id="metode"', '<nav>', 'Cetak laporan', 'Buka rincian metodologi']) {
@@ -53,6 +67,7 @@ new Function(script)
 console.log(JSON.stringify({
   status: reportResponse.status,
   htmlBytes: html.length,
-  filterOptions: (html.match(/<option /g) || []).length,
+  unitOptions: 8,
+  periodOptions: analytics.periods.length,
   scriptSyntax: 'valid',
 }))
