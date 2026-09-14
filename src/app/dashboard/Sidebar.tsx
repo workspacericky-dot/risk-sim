@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   Home, Settings, Database, Users, LogOut, Briefcase,
   BarChart2, GaugeCircle, Map, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
@@ -25,6 +25,7 @@ export default function Sidebar({ userRole, bisaEPerjadin = false }: { userRole:
   const [isExpanded, setIsExpanded] = useState(false)
   const [petaOpen,   setPetaOpen]   = useState(false)
   const { open, setOpen } = useMobileNav()
+  const pathname = usePathname()
 
   const tampilLabel = isExpanded || open
   const closeNav = () => setOpen(false)
@@ -94,15 +95,17 @@ export default function Sidebar({ userRole, bisaEPerjadin = false }: { userRole:
     )
   }
 
-  // Evaluator APIP memiliki ruang kerja tunggal untuk Uji Publik ZI.
+  // Evaluator APIP memiliki ruang kerja khusus Zona Integritas.
   if (userRole === 'evaluator_apip') {
     return (
       <>
         {overlay}
         <aside className={cn(asideBase, open ? 'translate-x-0 shadow-2xl' : '-translate-x-full', isExpanded ? 'md:w-64' : 'md:w-[72px]')} onMouseEnter={() => setIsExpanded(true)} onMouseLeave={() => setIsExpanded(false)}>
-          {logo('Uji Publik ZI', <UjiPublikZiLogo size={36} priority />)}
+          {logo('Zona Integritas', <UjiPublikZiLogo size={36} priority />)}
           <nav onClick={closeNav} className="mt-6 flex-1 space-y-1 overflow-hidden overflow-y-auto px-3 text-sm font-medium">
-            <NavItem href="/dashboard/uji-publik-zi" icon={<UjiPublikZiLogo size={22} />} label="Uji Publik ZI" isExpanded={tampilLabel} active/>
+            <SectionLabel label="Zona Integritas" isExpanded={tampilLabel} />
+            <NavItem href="/dashboard/uji-publik-zi" icon={<UjiPublikZiLogo size={22} />} label="Uji Publik ZI" isExpanded={tampilLabel} active={pathname.startsWith('/dashboard/uji-publik-zi')}/>
+            <NavItem href="/dashboard/wawancara-zi" icon={<UjiPublikZiLogo size={22} />} label="Wawancara ZI" isExpanded={tampilLabel} active={pathname.startsWith('/dashboard/wawancara-zi')}/>
           </nav>
           <div className="mb-2 border-t border-slate-100 p-3"><form action="/auth/signout" method="post"><button type="submit" className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800" title="Keluar (Logout)"><LogOut className="h-5 w-5 shrink-0"/>{tampilLabel&&<span className="whitespace-nowrap">Logout</span>}</button></form></div>
         </aside>
@@ -185,9 +188,6 @@ export default function Sidebar({ userRole, bisaEPerjadin = false }: { userRole:
             label="Program Kerja Audit"
             isExpanded={tampilLabel}
           />
-          {userRole === 'admin_sistem' && (
-            <NavItem href="/dashboard/uji-publik-zi" icon={<UjiPublikZiLogo size={22} />} label="Uji Publik ZI" isExpanded={tampilLabel}/>
-          )}
           {bisaAksesCa(userRole) && (
             <>
               <NavItem
@@ -208,6 +208,15 @@ export default function Sidebar({ userRole, bisaEPerjadin = false }: { userRole:
                 label="CA Laporan Keuangan"
                 isExpanded={tampilLabel}
               />
+            </>
+          )}
+
+          {/* ── ZONA INTEGRITAS ─────────────────────────── */}
+          {userRole === 'admin_sistem' && (
+            <>
+              <SectionLabel label="Zona Integritas" isExpanded={tampilLabel} />
+              <NavItem href="/dashboard/uji-publik-zi" icon={<UjiPublikZiLogo size={22} />} label="Uji Publik ZI" isExpanded={tampilLabel} active={pathname.startsWith('/dashboard/uji-publik-zi')}/>
+              <NavItem href="/dashboard/wawancara-zi" icon={<UjiPublikZiLogo size={22} />} label="Wawancara ZI" isExpanded={tampilLabel} active={pathname.startsWith('/dashboard/wawancara-zi')}/>
             </>
           )}
 
