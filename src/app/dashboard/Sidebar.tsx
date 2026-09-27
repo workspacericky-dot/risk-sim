@@ -133,7 +133,7 @@ export default function Sidebar({ userRole, bisaEPerjadin = false }: { userRole:
           <NavItem href="/dashboard" icon={<Home className="w-5 h-5 shrink-0" />} label="Beranda" isExpanded={tampilLabel} />
           <NavItem href="/dashboard/rals" icon={<GraduationCap className="w-5 h-5 shrink-0" />} label="RALS" isExpanded={tampilLabel} />
           {userRole === 'admin_sistem' && (
-            <NavItem href="/dashboard/siwas" icon={<FolderLock className="w-5 h-5 shrink-0" />} label="Laporan Analisis SIWAS" isExpanded={tampilLabel} />
+            <NavItem href="/dashboard/siwas" icon={<FolderLock className="w-5 h-5 shrink-0" />} label="Menu Lainnya" isExpanded={tampilLabel} />
           )}
 
           {/* ── MANAJEMEN RISIKO ────────────────────── */}

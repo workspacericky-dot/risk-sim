@@ -1,0 +1,880 @@
+{
+  "source": "ref/Cascading_Crosscutting/cascading-2025.md",
+  "year": 2025,
+  "nodes": [
+    {
+      "id": "A",
+      "title": "Meningkatnya tingkat keyakinan dan kepercayaan publik",
+      "indicators": [
+        "Indeks Kepatuhan Pelaporan LHKPN",
+        "Persentase Penanganan Pengaduan yang Tepat Waktu",
+        "Persentase Rekomendasi Hasil Pengawasan yang Ditindaklanjuti"
+      ],
+      "level": "atas"
+    },
+    {
+      "id": "A1",
+      "title": "Penanganan pengaduan dan tindak lanjut pengawasan wilayah I membaik",
+      "indicators": [
+        "Persentase penanganan pengaduan tepat waktu di wilayah I",
+        "Persentase rekomendasi hasil pengawasan yang ditindaklanjuti",
+        "Persentase rekomendasi pemeriksaan BPK yang ditindaklanjuti"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "A2",
+      "title": "Penanganan pengaduan dan tindak lanjut pengawasan wilayah II membaik",
+      "indicators": [
+        "Persentase penanganan pengaduan tepat waktu di wilayah II",
+        "Persentase rekomendasi hasil pengawasan yang ditindaklanjuti",
+        "Persentase rekomendasi pemeriksaan BPK yang ditindaklanjuti"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "A3",
+      "title": "Penanganan pengaduan dan tindak lanjut pengawasan wilayah III membaik",
+      "indicators": [
+        "Persentase penanganan pengaduan tepat waktu di wilayah III",
+        "Persentase rekomendasi hasil pengawasan yang ditindaklanjuti",
+        "Persentase rekomendasi pemeriksaan BPK yang ditindaklanjuti"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "A4",
+      "title": "Kepatuhan LHKPN, penanganan pengaduan, dan tindak lanjut pengawasan wilayah IV membaik",
+      "indicators": [
+        "Persentase kepatuhan penyampaian LHKPN",
+        "Persentase pelaporan penyampaian LHKPN",
+        "Persentase penanganan pengaduan tepat waktu di wilayah IV",
+        "Persentase rekomendasi hasil pengawasan yang ditindaklanjuti",
+        "Persentase rekomendasi pemeriksaan BPK yang ditindaklanjuti"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "B",
+      "title": "Pengawasan teknis, administrasi peradilan, administrasi umum, dan penanganan pengaduan terlaksana efektif, efisien, dan ekonomis",
+      "indicators": [
+        "Indeks Tingkat Pemenuhan Kepuasan Pengguna Layanan",
+        "Persentase Efektivitas Pengawasan Daerah",
+        "Jumlah Pengawasan berbasis Continuous Audit",
+        "Jumlah Pedoman Pengawasan",
+        "Jumlah Rekomendasi Kebijakan Hasil Pengawasan",
+        "Persentase Evaluasi Implementasi Program Pengendalian Gratifikasi MA RI",
+        "Persentase Efektivitas Pelaksanaan Hukuman Disiplin"
+      ],
+      "level": "atas"
+    },
+    {
+      "id": "B1",
+      "title": "Pengawasan dan layanan wilayah I terlaksana efektif",
+      "indicators": [
+        "Indeks Kepuasan Layanan Badan Pengawasan",
+        "Persentase unit pengawasan tingkat banding yang menggunakan Wastitama",
+        "Jumlah pedoman pengawasan",
+        "Jumlah rekomendasi naskah kebijakan"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "B2",
+      "title": "Pengawasan dan layanan wilayah II terlaksana efektif serta didukung pengembangan audit berkelanjutan",
+      "indicators": [
+        "Indeks Kepuasan Layanan Badan Pengawasan",
+        "Persentase unit pengawasan tingkat banding yang menggunakan Wastitama",
+        "Jumlah inisiatif pengawasan berbasis Continuous Audit",
+        "Jumlah pedoman pengawasan",
+        "Jumlah rekomendasi naskah kebijakan"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "B3",
+      "title": "Pengawasan dan layanan wilayah III terlaksana efektif serta pelaksanaan hukuman disiplin membaik",
+      "indicators": [
+        "Indeks Kepuasan Layanan Badan Pengawasan",
+        "Jumlah pedoman pengawasan",
+        "Jumlah rekomendasi naskah kebijakan",
+        "Persentase ketepatan waktu pelaksanaan hukuman disiplin melalui SK",
+        "Persentase pelaksanaan hukuman disiplin di satuan kerja"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "B4",
+      "title": "Pengawasan dan layanan wilayah IV terlaksana efektif serta pengendalian integritas menguat",
+      "indicators": [
+        "Indeks Kepuasan Layanan Badan Pengawasan",
+        "Jumlah pedoman pengawasan",
+        "Jumlah rekomendasi naskah kebijakan",
+        "Persentase evaluasi implementasi Program Pengendalian Gratifikasi MA RI",
+        "Persentase satuan kerja bersertifikat SMAP",
+        "Persentase satuan kerja berpredikat WBK dan WBBM",
+        "Jumlah aparatur yang diprofil melalui Mystery Shopper",
+        "Jumlah laporan penegakan integritas oleh Tim Satgassus"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "C",
+      "title": "Dukungan manajemen Badan Pengawasan terlaksana prima dan optimal",
+      "indicators": [
+        "Indeks Kapabilitas APIP"
+      ],
+      "level": "atas"
+    },
+    {
+      "id": "C1",
+      "title": "Tata kelola dan layanan dukungan manajemen membaik",
+      "indicators": [
+        "Nilai Akuntabilitas Kinerja Bawas MA RI",
+        "Nilai Kinerja Anggaran Bawas MA RI",
+        "Persentase pemenuhan standar kompetensi aparatur",
+        "Persentase BMN yang sesuai pencatatannya",
+        "Persentase sanksi atau hukuman disiplin yang dipublikasikan tepat waktu"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "C2",
+      "title": "Kapabilitas pengawasan intern meningkat",
+      "indicators": [
+        "Indeks Kapabilitas APIP"
+      ],
+      "level": "menengah"
+    },
+    {
+      "id": "T1",
+      "title": "Akuntabilitas kinerja, tata laksana, dan pengelolaan informasi membaik",
+      "indicators": [
+        "Persentase pemenuhan dokumen akuntabilitas kinerja secara lengkap dan tepat waktu",
+        "Jumlah SOP yang dimonitor dan dievaluasi",
+        "Persentase sanksi atau hukuman disiplin yang dipublikasikan tepat waktu"
+      ],
+      "level": "taktis"
+    },
+    {
+      "id": "T2",
+      "title": "Pengelolaan SDM mendukung kebutuhan pengawasan",
+      "indicators": [
+        "Persentase pemenuhan standar kompetensi aparatur",
+        "Persentase pemutakhiran data pegawai"
+      ],
+      "level": "taktis"
+    },
+    {
+      "id": "T3",
+      "title": "Pengelolaan anggaran dan pelaporan keuangan terlaksana tertib",
+      "indicators": [
+        "Nilai Kinerja Anggaran",
+        "Jumlah laporan keuangan yang disusun lengkap dan tepat waktu"
+      ],
+      "level": "taktis"
+    },
+    {
+      "id": "T4",
+      "title": "Layanan umum dan pengelolaan BMN terlaksana tertib",
+      "indicators": [
+        "Jumlah laporan pengelolaan surat masuk dan keluar",
+        "Jumlah laporan pengelolaan arsip",
+        "Jumlah laporan kualitas kebersihan",
+        "Jumlah laporan pemeliharaan sarana dan prasarana",
+        "Jumlah laporan pemeliharaan kendaraan dinas",
+        "Jumlah laporan penyiapan sarana rapat, pemeriksaan, dan pelantikan",
+        "Jumlah dokumen analisis RKBMN",
+        "Jumlah analisis kebutuhan persediaan",
+        "Jumlah laporan pengadaan belanja modal",
+        "Jumlah laporan penatausahaan BMN",
+        "Jumlah dokumen penetapan status penggunaan BMN",
+        "Jumlah laporan penghapusan BMN",
+        "Jumlah laporan pengawasan dan pengendalian BMN",
+        "Jumlah dokumen laporan BMN",
+        "Jumlah berita acara rekonsiliasi"
+      ],
+      "level": "taktis"
+    },
+    {
+      "id": "O11",
+      "title": "Publikasi hukuman disiplin terlaksana tepat waktu",
+      "indicators": [
+        "Jumlah dokumen rekonsiliasi data hukuman disiplin dengan SK yang diterbitkan tepat waktu",
+        "Persentase hukuman disiplin yang dipublikasikan tepat waktu"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "O12",
+      "title": "Dokumentasi dan pelayanan informasi terlaksana lengkap dan tepat waktu",
+      "indicators": [
+        "Laporan data dan informasi yang dipublikasikan dan didokumentasikan",
+        "Laporan layanan informasi internal dan eksternal",
+        "Laporan pemantauan sistem informasi dan jaringan",
+        "Laporan pengembangan sistem informasi",
+        "Laporan pengelolaan persuratan dan pengaduan elektronik"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "O21",
+      "title": "Bahan evaluasi akuntabilitas kinerja tersedia lengkap dan tepat waktu",
+      "indicators": [
+        "Jumlah dokumen tindak lanjut rekomendasi penilaian akuntabilitas kinerja",
+        "Persentase pemenuhan dokumen akuntabilitas kinerja pada SEMAR"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "O22",
+      "title": "Bahan evaluasi organisasi dan pelaporan kinerja tersedia lengkap dan tepat waktu",
+      "indicators": [
+        "Jumlah laporan tahunan",
+        "Jumlah LKJiP",
+        "Jumlah rekapitulasi LHP",
+        "Jumlah dokumen capaian kinerja pada Komdanas",
+        "Jumlah dokumen SAKIP pada e-Sakip Reviu",
+        "Jumlah dokumen IKU",
+        "Jumlah dokumen rencana aksi dan pemantauan capaian triwulanan",
+        "Jumlah hasil pemantauan data dukung kapabilitas APIP atau IACM"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "O3",
+      "title": "Prosedur, pengendalian intern, dan administrasi pengawasan tertata",
+      "indicators": [
+        "Jumlah SOP yang dimonitor dan dievaluasi",
+        "Persentase pemenuhan data dukung SPIP",
+        "Jumlah hasil pemantauan data dukung SPIP",
+        "Jumlah laporan manajemen risiko",
+        "Jumlah laporan pengelolaan LHP kasus pada A-Sensus",
+        "Jumlah evaluasi standar pelayanan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "H1",
+      "title": "Data, kebutuhan, kinerja, dan pengembangan pegawai terkelola",
+      "indicators": [
+        "Jumlah pegawai yang diusulkan untuk pengembangan kompetensi",
+        "Ketersediaan dokumen kebutuhan jabatan fungsional",
+        "Rekapitulasi pengelolaan kinerja pegawai",
+        "Persentase pemutakhiran data pegawai",
+        "Ketersediaan laporan hasil assessment calon hakim tinggi, hakim yustisial, dan jabatan lain",
+        "Tingkat kepuasan layanan kepegawaian"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "H2",
+      "title": "Layanan kenaikan pangkat, penggajian, dan mutasi terlaksana sesuai ketentuan",
+      "indicators": [
+        "Persentase layanan kenaikan pangkat sesuai ketentuan",
+        "Persentase layanan kenaikan gaji berkala sesuai ketentuan",
+        "Jumlah laporan pelaksanaan assessment hakim dan aparatur",
+        "Jumlah rekapitulasi kedisiplinan hakim"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "H3",
+      "title": "Layanan pemberhentian dan pensiun terlaksana sesuai ketentuan",
+      "indicators": [
+        "Persentase layanan pensiun pegawai sesuai ketentuan",
+        "Jumlah rekapitulasi kedisiplinan ASN"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "F1",
+      "title": "Laporan keuangan dan pengendalian pelaporan tersusun",
+      "indicators": [
+        "Jumlah laporan keuangan lengkap dan tepat waktu",
+        "Nilai Kinerja Anggaran pada pemantauan Kemenkeu dan Bappenas",
+        "Jumlah laporan PIPK lengkap dan tepat waktu"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "F2",
+      "title": "Pertanggungjawaban belanja dan perbendaharaan terlaksana tertib",
+      "indicators": [
+        "Jumlah dokumen pertanggungjawaban belanja",
+        "Jumlah laporan pertanggungjawaban bendahara"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "F3",
+      "title": "Dokumen program, rencana kerja, dan anggaran tersusun",
+      "indicators": [
+        "Jumlah dokumen program kerja",
+        "Jumlah dokumen rencana kerja",
+        "Jumlah dokumen rencana kerja dan anggaran",
+        "Jumlah dokumen revisi Renstra",
+        "Jumlah dokumen revisi rencana kerja dan anggaran"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "U1",
+      "title": "Perencanaan kebutuhan, penatausahaan, dan pelaporan BMN terlaksana",
+      "indicators": [
+        "Jumlah dokumen analisis RKBMN",
+        "Jumlah analisis kebutuhan persediaan",
+        "Jumlah laporan pengadaan belanja modal",
+        "Jumlah laporan penatausahaan BMN",
+        "Jumlah dokumen penetapan status penggunaan BMN",
+        "Jumlah laporan penghapusan BMN",
+        "Jumlah laporan pengawasan dan pengendalian BMN pada e-Sadewa",
+        "Jumlah dokumen laporan BMN",
+        "Jumlah berita acara rekonsiliasi"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "U2",
+      "title": "Kebersihan, pemeliharaan, dan penyiapan sarana layanan terlaksana",
+      "indicators": [
+        "Jumlah laporan kualitas kebersihan gedung dan ruangan",
+        "Jumlah laporan pemeliharaan sarana dan prasarana",
+        "Jumlah laporan pemeliharaan kendaraan dinas",
+        "Jumlah laporan penyiapan sarana rapat, pemeriksaan, dan pelantikan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "U3",
+      "title": "Persuratan dan kearsipan terkelola tertib dan tepat waktu",
+      "indicators": [
+        "Jumlah laporan pengelolaan surat masuk dan keluar",
+        "Jumlah laporan pengelolaan arsip"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I1a",
+      "title": "Tindak lanjut pengaduan wilayah I terselesaikan",
+      "indicators": [
+        "Jumlah dokumen surat penanganan pengaduan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I1b",
+      "title": "Tindak lanjut hasil pengawasan wilayah I terselesaikan",
+      "indicators": [
+        "Jumlah LHP hasil pengawasan yang dimonitor"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I1c",
+      "title": "Pengawasan berbasis TIK oleh unit pengawasan daerah terlaksana",
+      "indicators": [
+        "Jumlah LHP unit pengawasan daerah yang melaksanakan pengawasan berbasis TIK"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I1d",
+      "title": "Tindak lanjut rekomendasi BPK wilayah I terlaksana",
+      "indicators": [
+        "Jumlah LHP atas tindak lanjut rekomendasi BPK"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I1e",
+      "title": "Survei kepuasan layanan terlaksana",
+      "indicators": [
+        "Indeks Kepuasan Layanan Badan Pengawasan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I1f",
+      "title": "Pedoman pengawasan tersedia",
+      "indicators": [
+        "Jumlah pedoman pengawasan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I1g",
+      "title": "Naskah kebijakan tersedia",
+      "indicators": [
+        "Jumlah naskah kebijakan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I2a",
+      "title": "Surat masuk kode A dan A.Siwas teradministrasi",
+      "indicators": [
+        "Jumlah dokumen surat masuk kode A dan A.Siwas"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I2b",
+      "title": "Surat masuk kode B teradministrasi",
+      "indicators": [
+        "Jumlah dokumen surat masuk kode B"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I2c",
+      "title": "Surat masuk kode C teradministrasi",
+      "indicators": [
+        "Jumlah dokumen surat masuk kode C"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I2d",
+      "title": "Pengaduan hasil gabung berkas terarsipkan",
+      "indicators": [
+        "Jumlah dokumen pengaduan hasil gabung berkas"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I2e",
+      "title": "Bahan usulan kerja pengawasan tersusun",
+      "indicators": [
+        "Jumlah bahan usulan kerja pengawasan yang tersusun baik"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I2f",
+      "title": "Pengawasan reguler terlaksana sesuai ketentuan",
+      "indicators": [
+        "Jumlah laporan hasil pengawasan reguler"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I2g",
+      "title": "Audit kinerja terlaksana sesuai ketentuan",
+      "indicators": [
+        "Jumlah laporan hasil audit kinerja"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I3a",
+      "title": "Jawaban surat pengaduan terselesaikan tepat waktu",
+      "indicators": [
+        "Persentase penanganan pengaduan masyarakat yang ditindaklanjuti tepat waktu"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I3b",
+      "title": "Rekomendasi hasil pengawasan ditindaklanjuti",
+      "indicators": [
+        "Persentase rekomendasi hasil pengawasan yang ditindaklanjuti"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I3c",
+      "title": "Penjatuhan hukuman disiplin terlaksana",
+      "indicators": [
+        "Persentase ketetapan pelaksanaan penjatuhan hukuman disiplin"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I3d",
+      "title": "Rekomendasi BPK ditindaklanjuti",
+      "indicators": [
+        "Persentase tindak lanjut rekomendasi BPK"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I3e",
+      "title": "Survei kepuasan layanan terlaksana",
+      "indicators": [
+        "Indeks Kepuasan Layanan Badan Pengawasan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I3f",
+      "title": "Pedoman pengawasan tersedia",
+      "indicators": [
+        "Jumlah pedoman pengawasan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I3g",
+      "title": "Naskah kebijakan tersedia",
+      "indicators": [
+        "Jumlah naskah kebijakan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4a",
+      "title": "Kapabilitas pengawasan intern mencapai tingkat yang ditetapkan",
+      "indicators": [
+        "Nilai Kapabilitas APIP MA RI"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4b",
+      "title": "Survei Penilaian Integritas terlaksana",
+      "indicators": [
+        "Indeks SPI MA"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4c",
+      "title": "Tindak lanjut pengaduan wilayah IV terselesaikan",
+      "indicators": [
+        "Jumlah dokumen surat penanganan pengaduan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4d",
+      "title": "Rekomendasi hasil pengawasan ditindaklanjuti",
+      "indicators": [
+        "Jumlah LHP pengawasan yang dimonitor"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4e",
+      "title": "Rekomendasi BPK ditindaklanjuti",
+      "indicators": [
+        "Jumlah LHP atas tindak lanjut rekomendasi BPK"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4f",
+      "title": "Program pengendalian gratifikasi dievaluasi",
+      "indicators": [
+        "Nilai evaluasi implementasi Program Pengendalian Gratifikasi MA RI"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4g",
+      "title": "Survei kepuasan layanan terlaksana",
+      "indicators": [
+        "Indeks Kepuasan Layanan Badan Pengawasan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4h",
+      "title": "Pedoman pengawasan tersedia",
+      "indicators": [
+        "Jumlah pedoman pengawasan"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4i",
+      "title": "Satuan kerja memperoleh sertifikat SMAP",
+      "indicators": [
+        "Persentase satuan kerja yang memperoleh sertifikat SMAP"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4j",
+      "title": "Satuan kerja memperoleh predikat WBK atau WBBM",
+      "indicators": [
+        "Persentase satuan kerja yang memperoleh predikat WBK dan WBBM"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4k",
+      "title": "Profil aparatur peradilan melalui Mystery Shopping tersedia",
+      "indicators": [
+        "Jumlah aparatur peradilan yang diprofil"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4l",
+      "title": "Penegakan integritas aparatur terlaksana",
+      "indicators": [
+        "Jumlah laporan penegakan integritas oleh Tim Satgassus"
+      ],
+      "level": "operasional"
+    },
+    {
+      "id": "I4m",
+      "title": "Naskah kebijakan tersedia",
+      "indicators": [
+        "Jumlah naskah kebijakan"
+      ],
+      "level": "operasional"
+    }
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "A1"
+    },
+    {
+      "from": "A",
+      "to": "A2"
+    },
+    {
+      "from": "A",
+      "to": "A3"
+    },
+    {
+      "from": "A",
+      "to": "A4"
+    },
+    {
+      "from": "B",
+      "to": "B1"
+    },
+    {
+      "from": "B",
+      "to": "B2"
+    },
+    {
+      "from": "B",
+      "to": "B3"
+    },
+    {
+      "from": "B",
+      "to": "B4"
+    },
+    {
+      "from": "C",
+      "to": "C1"
+    },
+    {
+      "from": "C",
+      "to": "C2"
+    },
+    {
+      "from": "C1",
+      "to": "T1"
+    },
+    {
+      "from": "C1",
+      "to": "T2"
+    },
+    {
+      "from": "C1",
+      "to": "T3"
+    },
+    {
+      "from": "C1",
+      "to": "T4"
+    },
+    {
+      "from": "T1",
+      "to": "O11"
+    },
+    {
+      "from": "T1",
+      "to": "O12"
+    },
+    {
+      "from": "T1",
+      "to": "O21"
+    },
+    {
+      "from": "T1",
+      "to": "O22"
+    },
+    {
+      "from": "T1",
+      "to": "O3"
+    },
+    {
+      "from": "T2",
+      "to": "H1"
+    },
+    {
+      "from": "T2",
+      "to": "H2"
+    },
+    {
+      "from": "T2",
+      "to": "H3"
+    },
+    {
+      "from": "T3",
+      "to": "F1"
+    },
+    {
+      "from": "T3",
+      "to": "F2"
+    },
+    {
+      "from": "T3",
+      "to": "F3"
+    },
+    {
+      "from": "T4",
+      "to": "U1"
+    },
+    {
+      "from": "T4",
+      "to": "U2"
+    },
+    {
+      "from": "T4",
+      "to": "U3"
+    },
+    {
+      "from": "A1",
+      "to": "I1a"
+    },
+    {
+      "from": "A1",
+      "to": "I1b"
+    },
+    {
+      "from": "A1",
+      "to": "I1d"
+    },
+    {
+      "from": "B1",
+      "to": "I1c"
+    },
+    {
+      "from": "B1",
+      "to": "I1e"
+    },
+    {
+      "from": "B1",
+      "to": "I1f"
+    },
+    {
+      "from": "B1",
+      "to": "I1g"
+    },
+    {
+      "from": "A2",
+      "to": "I2d"
+    },
+    {
+      "from": "B2",
+      "to": "I2a"
+    },
+    {
+      "from": "B2",
+      "to": "I2b"
+    },
+    {
+      "from": "B2",
+      "to": "I2c"
+    },
+    {
+      "from": "B2",
+      "to": "I2e"
+    },
+    {
+      "from": "B2",
+      "to": "I2f"
+    },
+    {
+      "from": "B2",
+      "to": "I2g"
+    },
+    {
+      "from": "A3",
+      "to": "I3a"
+    },
+    {
+      "from": "A3",
+      "to": "I3b"
+    },
+    {
+      "from": "A3",
+      "to": "I3d"
+    },
+    {
+      "from": "B3",
+      "to": "I3c"
+    },
+    {
+      "from": "B3",
+      "to": "I3e"
+    },
+    {
+      "from": "B3",
+      "to": "I3f"
+    },
+    {
+      "from": "B3",
+      "to": "I3g"
+    },
+    {
+      "from": "C2",
+      "to": "I4a"
+    },
+    {
+      "from": "A4",
+      "to": "I4c"
+    },
+    {
+      "from": "A4",
+      "to": "I4d"
+    },
+    {
+      "from": "A4",
+      "to": "I4e"
+    },
+    {
+      "from": "B4",
+      "to": "I4b"
+    },
+    {
+      "from": "B4",
+      "to": "I4f"
+    },
+    {
+      "from": "B4",
+      "to": "I4g"
+    },
+    {
+      "from": "B4",
+      "to": "I4h"
+    },
+    {
+      "from": "B4",
+      "to": "I4i"
+    },
+    {
+      "from": "B4",
+      "to": "I4j"
+    },
+    {
+      "from": "B4",
+      "to": "I4k"
+    },
+    {
+      "from": "B4",
+      "to": "I4l"
+    },
+    {
+      "from": "B4",
+      "to": "I4m"
+    }
+  ]
+}
