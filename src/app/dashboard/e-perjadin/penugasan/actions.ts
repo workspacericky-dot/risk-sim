@@ -32,6 +32,32 @@ const bolehPpk = (a: AksesEPerjadin) => a.isAdmin || a.peran.includes('ppk')
 const bolehKpa = (a: AksesEPerjadin) => a.isAdmin || a.peran.includes('kpa')
 const bolehBendahara = (a: AksesEPerjadin) => a.isAdmin || a.peran.includes('bendahara')
 
+export async function hapusPenugasan(penugasanId: string): Promise<Gagal | Sukses> {
+  const { akses } = await konteks()
+  if (!akses.userId || !akses.bisaAkses || !akses.isAdmin) {
+    return { error: 'Hanya admin sistem yang dapat menghapus penugasan.' }
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(penugasanId)) {
+    return { error: 'ID penugasan tidak sah.' }
+  }
+
+  // Policy sesi biasa membatasi hapus ke Draf. Admin dapat menghapus semua
+  // status sesuai persetujuan pengguna; CASCADE membersihkan data terkait.
+  // Jejak audit lama tetap disimpan melalui foreign key SET NULL.
+  const admin = createAdminClient()
+  const { data: dihapus, error } = await admin.from('perjadin_penugasan')
+    .delete().eq('id', penugasanId).select('id, nomor, maksud, status, tahun_anggaran').maybeSingle()
+  if (error) return { error: `Gagal menghapus penugasan: ${error.message}` }
+  if (!dihapus) return { error: 'Penugasan tidak ditemukan atau sudah dihapus.' }
+
+  await catatLog(admin, {
+    aktorId: akses.userId, aksi: 'hapus_penugasan', entitas: 'perjadin_penugasan',
+    entitasId: penugasanId, nilaiLama: dihapus,
+  })
+  revalidatePath('/dashboard/e-perjadin', 'layout')
+  return { success: true }
+}
+
 // ── Header draf ─────────────────────────────────────────────────────
 function bacaHeader(fd: FormData) {
   return {

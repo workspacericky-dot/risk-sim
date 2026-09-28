@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { SearchableSelect } from '@/components/SearchableSelect'
 import { PROVINSI, JENIS_DINAS, LABEL_JENIS_DINAS } from '@/lib/e-perjadin/konstanta'
 import { buatDraf, perbaruiDraf } from './actions'
 
@@ -81,17 +82,17 @@ export default function FormHeaderPenugasan({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="unit_tujuan_id">Satker Tujuan</Label>
-          <select id="unit_tujuan_id" name="unit_tujuan_id" defaultValue={awal?.unit_tujuan_id ?? ''} className={KELAS_SELECT}>
-            <option value="">— pilih —</option>
-            {unitKerja.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}
-          </select>
+          <SearchableSelect id="unit_tujuan_id" name="unit_tujuan_id"
+            defaultValue={awal?.unit_tujuan_id ?? ''}
+            options={unitKerja.map((u) => ({ value: u.id, label: u.label }))}
+            searchPlaceholder="Cari nama atau kode satker..." />
         </div>
         <div className="space-y-2">
           <Label htmlFor="provinsi">Provinsi Tujuan (acuan SBM)</Label>
-          <select id="provinsi" name="provinsi" required defaultValue={awal?.provinsi ?? ''} className={KELAS_SELECT}>
-            <option value="" disabled>— pilih —</option>
-            {PROVINSI.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
+          <SearchableSelect id="provinsi" name="provinsi" required
+            defaultValue={awal?.provinsi ?? ''}
+            options={PROVINSI.map((p) => ({ value: p, label: p }))}
+            searchPlaceholder="Cari provinsi..." />
         </div>
       </div>
 

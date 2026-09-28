@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { muatAksesEPerjadin } from '@/lib/e-perjadin/akses'
+import TombolHapusPenugasan from './TombolHapusPenugasan'
 
 export const metadata = { title: 'Penugasan — E-Perjadin' }
 
@@ -75,12 +76,13 @@ export default async function DaftarPenugasanPage() {
                 <TableHead>Tanggal</TableHead>
                 <TableHead>Alur</TableHead>
                 <TableHead>Status</TableHead>
+                {akses.isAdmin && <TableHead>Aksi</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {baris.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={akses.isAdmin ? 6 : 5} className="h-24 text-center text-muted-foreground">
                     Belum ada penugasan.
                   </TableCell>
                 </TableRow>
@@ -109,6 +111,11 @@ export default async function DaftarPenugasanPage() {
                         </div>
                       )}
                     </TableCell>
+                    {akses.isAdmin && (
+                      <TableCell>
+                        <TombolHapusPenugasan id={b.id} label={b.nomor ? `${b.nomor} - ${b.maksud}` : b.maksud} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
