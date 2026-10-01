@@ -5,13 +5,16 @@ import { createServerClient } from '@supabase/ssr'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/dashboard')) {
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/knowledge-decks/')) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} } }
     )
     const { data: { user } } = await supabase.auth.getUser()
+    if (pathname.startsWith('/knowledge-decks/') && !user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
     if (user) {
       const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
       if (profile?.role === 'peserta_consulting' && !pathname.startsWith('/dashboard/rals')) {

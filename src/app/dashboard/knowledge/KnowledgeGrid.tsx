@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Eye, Trash2, BookOpen, Table2, FileText, LayoutGrid, User, Calendar } from 'lucide-react'
+import Link from 'next/link'
+import { Eye, Trash2, BookOpen, Table2, FileText, LayoutGrid, User, Calendar, Presentation } from 'lucide-react'
 import { deleteKnowledgeItem } from './actions'
 
-type Item = {
+export type Item = {
   id: string
   judul: string
   deskripsi: string
@@ -36,6 +37,7 @@ type Props = { items: Item[]; isAdmin: boolean }
 
 export default function KnowledgeGrid({ items, isAdmin }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [section, setSection] = useState<'notes' | 'decks'>('notes')
 
   async function handleDelete(id: string, judul: string) {
     if (!confirm(`Hapus item "${judul}"? Tindakan ini tidak dapat dibatalkan.`)) return
@@ -44,20 +46,37 @@ export default function KnowledgeGrid({ items, isAdmin }: Props) {
     setDeleting(null)
   }
 
-  if (items.length === 0) {
-    return (
-      <div className="py-20 text-center text-slate-400">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-50 flex items-center justify-center">
-          <BookOpen className="w-8 h-8 opacity-30" />
-        </div>
-        <p className="text-sm font-medium">Belum ada konten knowledge.</p>
-        <p className="text-xs mt-1 text-slate-300">Tambahkan item pertama melalui SQL.</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-wrap gap-5">
+    <div>
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-200" role="tablist" aria-label="Jenis materi Knowledge">
+        <button type="button" role="tab" aria-selected={section === 'notes'} aria-controls="knowledge-notes" onClick={() => setSection('notes')} className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${section === 'notes' ? 'border-slate-800 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+          <BookOpen className="size-4" /> Notes <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{items.length}</span>
+        </button>
+        <button type="button" role="tab" aria-selected={section === 'decks'} aria-controls="knowledge-decks" onClick={() => setSection('decks')} className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${section === 'decks' ? 'border-amber-500 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+          <Presentation className="size-4" /> Decks <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs">1</span>
+        </button>
+      </div>
+      <div id="knowledge-decks" role="tabpanel" hidden={section !== 'decks'}>
+        <div className="w-72 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-lg">
+          <div className="h-1.5 bg-gradient-to-r from-amber-400 to-yellow-300" />
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-amber-100 p-2.5 text-amber-700"><Presentation className="size-4" /></span>
+              <div>
+                <h3 className="text-sm font-bold leading-snug text-slate-800">Tinjauan Dokumen SMAP</h3>
+                <span className="mt-2 inline-block rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">SMAP · Deck</span>
+              </div>
+            </div>
+            <p className="mt-5 text-xs leading-relaxed text-slate-500">Paparan interaktif 59 slide tentang maksud, definisi, bobot penilaian, dan dokumen SMAP beserta contoh templatnya.</p>
+            <div className="mt-5 flex items-center justify-between gap-2">
+              <span className="text-[10px] text-slate-500">Ricky P. Hermawan</span>
+              <Link href="/dashboard/knowledge/decks/tinjauan-dokumen" className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-slate-700"><Eye className="size-3" /> View</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="knowledge-notes" role="tabpanel" hidden={section !== 'notes'} className="flex flex-wrap gap-5">
+      {items.length === 0 && <p className="py-12 text-sm text-slate-400">Belum ada Notes.</p>}
       {items.map(item => {
         const tipeMeta = TIPE_META[item.tipe] ?? TIPE_META.Lainnya
         const katMeta  = KATEGORI_META[item.kategori] ?? KATEGORI_META.Umum
@@ -137,6 +156,7 @@ export default function KnowledgeGrid({ items, isAdmin }: Props) {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

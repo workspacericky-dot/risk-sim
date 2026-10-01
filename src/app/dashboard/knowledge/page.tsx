@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { BookOpen, Lightbulb, GraduationCap, Share2 } from 'lucide-react'
-import KnowledgeGrid from './KnowledgeGrid'
+import KnowledgeGrid, { type Item } from './KnowledgeGrid'
 
 export default async function KnowledgePage() {
   const supabase = await createClient()
@@ -17,7 +17,7 @@ export default async function KnowledgePage() {
     .select('id, judul, deskripsi, kategori, tipe, penulis, created_at')
     .order('created_at', { ascending: false })
 
-  const total = items?.length ?? 0
+  const total = (items?.length ?? 0) + 1
 
   return (
     <div className="space-y-6">
@@ -76,18 +76,18 @@ export default async function KnowledgePage() {
         </div>
       </div>
 
-      {/* Items section */}
+      {/* Notes and decks */}
       <div className="bg-white rounded-2xl border shadow-sm p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="p-2 rounded-xl bg-amber-50 text-amber-600 shrink-0">
             <Lightbulb className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-700">Semua Item</h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">{total} konten tersedia untuk dibaca</p>
+            <h3 className="text-sm font-semibold text-slate-700">Koleksi Knowledge</h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">Pilih Notes atau Decks untuk membuka materi</p>
           </div>
         </div>
-        <KnowledgeGrid items={(items ?? []) as any} isAdmin={isAdmin} />
+        <KnowledgeGrid items={(items ?? []) as Item[]} isAdmin={isAdmin} />
       </div>
 
     </div>
