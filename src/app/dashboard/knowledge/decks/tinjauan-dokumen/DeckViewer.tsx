@@ -26,7 +26,7 @@ export default function DeckViewer() {
   return (
     <div ref={containerRef} className={`overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm ${isFullscreen ? 'flex h-screen flex-col rounded-none border-0' : ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-slate-900 px-4 py-2 text-white">
-        <span className="text-xs font-semibold">Tinjauan Dokumen SMAP · 59 slide</span>
+        <span className="text-xs font-semibold">Tinjauan Dokumen SMAP · 60 slide</span>
         <div className="flex items-center gap-2">
           <a href={DECK_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10" title="Buka deck di tab baru"><ExternalLink className="size-4" /> Buka tab baru</a>
           <button type="button" onClick={toggleFullscreen} className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/10" aria-label={isFullscreen ? 'Keluar dari fullscreen' : 'Tampilkan fullscreen'}>

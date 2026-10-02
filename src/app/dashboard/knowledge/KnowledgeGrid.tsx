@@ -67,7 +67,7 @@ export default function KnowledgeGrid({ items, isAdmin }: Props) {
                 <span className="mt-2 inline-block rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">SMAP · Deck</span>
               </div>
             </div>
-            <p className="mt-5 text-xs leading-relaxed text-slate-500">Paparan interaktif 59 slide tentang maksud, definisi, bobot penilaian, dan dokumen SMAP beserta contoh templatnya.</p>
+            <p className="mt-5 text-xs leading-relaxed text-slate-500">Paparan interaktif 60 slide tentang maksud, definisi, bobot penilaian, dan dokumen SMAP beserta contoh templatnya.</p>
             <div className="mt-5 flex items-center justify-between gap-2">
               <span className="text-[10px] text-slate-500">Ricky P. Hermawan</span>
               <Link href="/dashboard/knowledge/decks/tinjauan-dokumen" className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-slate-700"><Eye className="size-3" /> View</Link>
